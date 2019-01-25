@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/plugins/pat_plugin" >
+        <file>icons/icon.png</file>
+        <file>icons/icon_pointTrailToPolygon.svg</file>
+        <file>icons/icon_blockGrid.svg</file>
+        <file>icons/icon_cleanTrimPoints.svg</file>
+        <file>icons/icon_vesperKriging.svg</file>
+        <file>icons/icon_importVesperKriging.svg</file>
+        <file>icons/icon_randomPixel.svg</file>
+        <file>icons/icon_gridExtract.svg</file>
+        <file>icons/icon_rescaleNormalise.svg</file>
+        <file>icons/icon_calcImgIndices.svg</file>
+        <file>icons/icon_resampleToBlock.svg</file>
+        <file>icons/icon_kMeansCluster.svg</file>
+        <file>icons/icon_stripTreatmentPoints.svg</file>
+        <file>icons/icon_about.svg</file>
+        <file>icons/icon_help.svg</file>
+        <file>icons/icon_settings.svg</file>
+        <file>icons/CSIRO_Grad_RGB.png</file>
+        <file>icons/WineAustralia_Logo.png</file>
+    </qresource>
+</RCC>

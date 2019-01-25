@@ -1,0 +1,66 @@
+# This file contains metadata for your plugin. Since version 2.0 of QGIS this is the proper way to supply information
+# about a plugin. The old method of embedding metadata in __init__.py will is no longer supported since version 2.0.
+#
+# Supported html tags include <p> new line,    <b></b> bold text,     <font color="red"></font> change font color
+#    <dl><dt> <dd> to create a table for indenting text   <u></u> underline <i></i> italics
+# https://docs.qgis.org/2.18/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata
+#
+# This file should be included when you package your plugin.
+
+# Mandatory items:
+
+[general]
+name=Precision Agriculture Tools (PAT)
+description=A collection of tools for processing precision agriculture data.
+
+qgisMinimumVersion=2.18.12
+qgisMaximumVersion=2.18.99
+version=0.0.11.0
+
+author=Christina Ratcliff (CSIRO)
+email=PAT@csiro.au
+
+about=<dl><dt>This plugin includes the following tools
+           <dd>1. Create Block Grid
+            2. Clean Trim and Normalize Points
+            3. Run Kriging using VESPER
+            4. Import VESPER Results
+            5. Create Polygon from on-the-go GPS Point Trail Data
+            6. Generate Random Pixel Selection
+            7. Normalise/Rescale(standardise) Raster
+            8. Extract Pixel Statistics for Points
+            9. Calculate Image Indices for Blocks
+           10. Resample Image Band to Blocks
+           11. Create Zones using <i>k</i>-means Clustering </dd></dt></dl>
+
+   <b><font color="red">This plugin requires pandas, geopandas, fiona, rasterio and unidecode to be installed.</font></b>
+   <font size=1>If required you will be provided a shortcut <b>Install_PrecisionAg_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
+
+   <p>Developed by the CSIRO Precision Agriculture team.
+   This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.</font>
+
+homepage=https://www.csiro.au/en/Research/AF/Areas/Sustainable-farming/Precision-agriculture
+#tracker=https://jira.csiro.au/projects/PA/issues
+#repository=https://bitbucket.csiro.au/projects/PA/repos/precisionag_qgisplugin
+
+# End of mandatory metadata
+
+# Recommended items:
+
+# Tags are comma separated with spaces allowed
+tags=raster, vector, kriging, agriculture
+category=PAT Menu and Toolbar
+icon=icons/icon.png
+
+# experimental flag
+experimental=True
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+update_date=2019-01-25T11:22:53.943000
+
+changelog=<dl><dt><font size=1>
+    Version 0.0.11.0
+        <dd>First release to GitHub</dd>
+    </font></dt></dl>

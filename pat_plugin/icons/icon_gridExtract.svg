@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:osb="http://www.openswatchbook.org/uri/2009/osb"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128"
+   height="128"
+   viewBox="0 0 128 128"
+   version="1.1"
+   id="SVGRoot"
+   sodipodi:docname="icon_gridExtract.svg"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="7.5703125"
+     inkscape:cx="64"
+     inkscape:cy="64"
+     inkscape:document-units="px"
+     inkscape:current-layer="SVGRoot"
+     showgrid="true"
+     inkscape:window-width="1920"
+     inkscape:window-height="1138"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:grid-bbox="true"
+     inkscape:lockguides="false"
+     inkscape:snap-others="false"
+     inkscape:snap-grids="true"
+     inkscape:snap-to-guides="false"
+     inkscape:object-nodes="false"
+     inkscape:snap-nodes="false"
+     showguides="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid5044"
+       enabled="true" />
+  </sodipodi:namedview>
+  <defs
+     id="defs4485">
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1082">
+      <stop
+         style="stop-color:#333333;stop-opacity:1;"
+         offset="0"
+         id="stop1078" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1"
+         offset="1"
+         id="stop1080" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1034">
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1;"
+         offset="0"
+         id="stop1030" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:0;"
+         offset="1"
+         id="stop1032" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1015">
+      <stop
+         style="stop-color:#1294ff;stop-opacity:1;"
+         offset="0"
+         id="stop1011" />
+      <stop
+         style="stop-color:#000000;stop-opacity:1"
+         offset="1"
+         id="stop1013" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient937">
+      <stop
+         style="stop-color:#1a1a1a;stop-opacity:1"
+         offset="0"
+         id="stop933" />
+      <stop
+         style="stop-color:#cccccc;stop-opacity:1"
+         offset="1"
+         id="stop935" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient6595"
+       osb:paint="solid">
+      <stop
+         style="stop-color:#00dd00;stop-opacity:1;"
+         offset="0"
+         id="stop6593" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient937"
+       id="linearGradient939"
+       x1="21.813274"
+       y1="23.001125"
+       x2="27.572241"
+       y2="22.86195"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.1020117,-0.34176557,0.67685871,0.94981741,-17.326146,8.0044085)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1015"
+       id="radialGradient1017"
+       cx="-28.543993"
+       cy="-6.9387922"
+       fx="-28.543993"
+       fy="-6.9387922"
+       r="6.3132596"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(-0.00156508,2.4456726,-1.4155935,-9.0587958e-4,-24.676479,62.864183)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1034"
+       id="linearGradient1036"
+       x1="-28.879805"
+       y1="-7.9462271"
+       x2="-28.946968"
+       y2="-0.54476768"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.88888888,0,0,0.86813186,10.548217,-0.92386213)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1082"
+       id="linearGradient1084"
+       x1="-17.730858"
+       y1="17.57546"
+       x2="-7.0520453"
+       y2="17.642624"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(2.6744897,0,0,2.6744897,11.217008,11.419945)" />
+    <radialGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1015"
+       id="radialGradient1017-3"
+       cx="-28.543993"
+       cy="-6.9387922"
+       fx="-28.543993"
+       fy="-6.9387922"
+       r="6.3132596"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(-0.00156508,2.4456726,-1.4155935,-9.0587958e-4,-24.676479,62.864183)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1034"
+       id="linearGradient1036-1"
+       x1="-28.879805"
+       y1="-7.9462271"
+       x2="-28.946968"
+       y2="-0.54476768"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0.88888888,0,0,0.86813186,10.548217,-0.92386213)" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1082"
+       id="linearGradient1084-5"
+       x1="-17.730858"
+       y1="17.57546"
+       x2="-7.0520453"
+       y2="17.642624"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(2.444753,-1.0844712,1.0844712,2.444753,77.757506,-2.0885408)" />
+  </defs>
+  <metadata
+     id="metadata4488">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <rect
+     style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:#838383;stroke-width:3.47541571;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect864"
+     width="86.395836"
+     height="46.207153"
+     x="-81.115715"
+     y="104.31854"
+     rx="1.1367365e-016"
+     transform="matrix(0.9341537,-0.35687094,0.79162666,0.6110051,0,0)"
+     inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_gridExtract.png"
+     inkscape:export-xdpi="96"
+     inkscape:export-ydpi="96" />
+  <rect
+     transform="matrix(0.9341537,-0.35687094,0.79162666,0.6110051,0,0)"
+     rx="1.1367365e-016"
+     y="83.582657"
+     x="-66.42794"
+     height="46.207153"
+     width="86.395836"
+     id="rect925"
+     style="opacity:1;fill:#ffff00;fill-opacity:1;stroke:#838383;stroke-width:3.47541571;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_gridExtract.png"
+     inkscape:export-xdpi="96"
+     inkscape:export-ydpi="96" />
+  <rect
+     style="opacity:1;fill:#00ff00;fill-opacity:1;stroke:#838383;stroke-width:3.27984667;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     id="rect927"
+     width="82.66465"
+     height="43.01062"
+     x="-56.277374"
+     y="70.852173"
+     rx="1.087644e-016"
+     transform="matrix(0.94702536,-0.32115878,0.82494341,0.56521533,0,0)"
+     inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_gridExtract.png"
+     inkscape:export-xdpi="96"
+     inkscape:export-ydpi="96" />
+  <path
+     style="fill:url(#linearGradient1084);fill-opacity:1;stroke:none;stroke-width:2.38013434px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m -36.742861,15.461222 15.663657,0.158249 0.322961,103.176459 -8.146624,17.09058 -7.678514,-17.09058 z"
+     id="path1038"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cccccc" />
+  <g
+     id="g1064"
+     transform="matrix(2.6744897,0,0,2.7260493,11.217008,16.950525)">
+    <circle
+       r="6.3132596"
+       cy="-0.69269478"
+       cx="-14.943621"
+       id="path1009"
+       style="opacity:1;fill:url(#radialGradient1017);fill-opacity:1;stroke:none;stroke-width:0.87199998;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       inkscape:connector-curvature="0"
+       id="circle1019"
+       d="m -10.645232,-4.353042 a 4.2983894,2.6529123 0 0 1 -4.298389,2.6529122 4.2983894,2.6529123 0 0 1 -4.298389,-2.6529122 4.2983894,2.6529123 0 0 1 4.298389,-2.6529123 4.2983894,2.6529123 0 0 1 4.298389,2.6529123 z"
+       style="opacity:1;fill:url(#linearGradient1036);fill-opacity:1;stroke:none;stroke-width:0.46641997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  </g>
+  <path
+     style="fill:none;stroke:#000000;stroke-width:0.50205821;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     d="m -28.839362,12.2963 0.179619,123.90671 v 0"
+     id="path1052"
+     inkscape:connector-curvature="0" />
+  <path
+     style="fill:url(#linearGradient1084-5);fill-opacity:1;stroke:none;stroke-width:2.38013434px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 35.556056,21.052701 14.38233,-6.206758 42.13194,94.182717 -0.516818,18.92587 -13.948948,-12.50899 c -0.749328,-1.69617 -4.152373,-4.87988 -2.392224,-5.46297 L 89.815515,104.60719 86.54126,96.250723 C 85.973166,94.800856 72.400928,103.25925 71.795902,101.82441 L 68.187796,93.363505 82.963841,88.186147 78.918082,79.553135 64.255879,85.09203 60.562992,76.694775 75.361789,71.834558 68.850195,57.104779 54.330522,63.198684 Z"
+     id="path1038-9"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cccccscscccccccccc"
+     inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_gridExtract.png"
+     inkscape:export-xdpi="96"
+     inkscape:export-ydpi="96" />
+  <g
+     id="g1064-5"
+     transform="matrix(2.444753,-1.0844712,1.1053779,2.4918837,80.0001,2.9669618)"
+     inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_gridExtract.png"
+     inkscape:export-xdpi="96"
+     inkscape:export-ydpi="96">
+    <circle
+       r="6.3132596"
+       cy="-0.69269478"
+       cx="-14.943621"
+       id="path1009-8"
+       style="opacity:1;fill:url(#radialGradient1017-3);fill-opacity:1;stroke:none;stroke-width:0.87199998;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       inkscape:connector-curvature="0"
+       id="circle1019-3"
+       d="m -10.645232,-4.353042 a 4.2983894,2.6529123 0 0 1 -4.298389,2.6529122 4.2983894,2.6529123 0 0 1 -4.298389,-2.6529122 4.2983894,2.6529123 0 0 1 4.298389,-2.6529123 4.2983894,2.6529123 0 0 1 4.298389,2.6529123 z"
+       style="opacity:1;fill:url(#linearGradient1036-1);fill-opacity:1;stroke:none;stroke-width:0.46641997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  </g>
+</svg>
