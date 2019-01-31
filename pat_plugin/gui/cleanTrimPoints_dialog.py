@@ -48,7 +48,8 @@ from pyprecag import processing, describe, crs as pyprecag_crs, convert, config
 from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
 from pat_plugin.util.gdal_util import GDAL_COMPAT
 from pat_plugin.util.qgis_common import copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, \
-    vector_applyUniqueValueRenderer, saveAsDialog
+    saveAsDialog
+from pat_plugin.util.qgis_symbology import vector_apply_unique_value_renderer
 from pat_plugin.util.settings import read_setting, write_setting
 
 from util.qgis_common import file_in_use
@@ -305,6 +306,7 @@ class CleanTrimPointsDialog(QtGui.QDialog, FORM_CLASS):
                 self.chkUseSelected_ClipPoly.setStyleSheet('font:bold')
                 self.chkUseSelected_ClipPoly.setEnabled(True)
 
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat_plugin/icons/icon_cleanTrimPoints.svg'))
         self.gpbGeometry.setChecked(False)
         self.chkSavePointsFile.setChecked(False)
         self.sampleRefreshDisabled = False
@@ -1728,7 +1730,7 @@ class CleanTrimPointsDialog(QtGui.QDialog, FORM_CLASS):
                     os.path.splitext(points_remove_shp)[0]),
                                                       atTop=True, group_layer_name=gp_layer_name)
 
-                vector_applyUniqueValueRenderer(lyrRemoveFilter, 'filter')
+                vector_apply_unique_value_renderer(lyrRemoveFilter, 'filter')
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)

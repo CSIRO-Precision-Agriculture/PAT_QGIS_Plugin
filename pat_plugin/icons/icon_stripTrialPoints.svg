@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128px"
+   height="128px"
+   viewBox="0 0 128 128"
+   version="1.1"
+   id="SVGRoot"
+   sodipodi:docname="icon_stripTreatmentPoints.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="5.7353363"
+     inkscape:cx="43.456114"
+     inkscape:cy="54.200197"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:window-width="1920"
+     inkscape:window-height="1137"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:grid-bbox="true"
+     inkscape:snap-grids="false"
+     inkscape:snap-to-guides="false"
+     showguides="true"
+     inkscape:guide-bbox="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid1374"
+       spacingx="0.8"
+       spacingy="0.8"
+       enabled="true" />
+    <sodipodi:guide
+       position="-59.341553,64.000172"
+       orientation="0,1"
+       id="guide1317"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="64.066047,40.685243"
+       orientation="1,0"
+       id="guide1319"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs815">
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker4115"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path4113"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path2838"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.4) rotate(180) translate(10,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker4059"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path4057"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.2) rotate(180) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path2856"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Tail"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker3863"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <g
+         id="g3861"
+         transform="scale(-1.2)"
+         style="stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1">
+        <path
+           id="path3849"
+           d="M -3.8048674,-3.9585227 L 0.54352094,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3851"
+           d="M -1.2866832,-3.9585227 L 3.0617053,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3853"
+           d="M 1.3053582,-3.9585227 L 5.6537466,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3855"
+           d="M -3.8048674,4.1775838 L 0.54352094,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3857"
+           d="M -1.2866832,4.1775838 L 3.0617053,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3859"
+           d="M 1.3053582,4.1775838 L 5.6537466,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+      </g>
+    </marker>
+    <marker
+       inkscape:stockid="Tail"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Tail"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <g
+         id="g2877"
+         transform="scale(-1.2)"
+         style="stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1">
+        <path
+           id="path2865"
+           d="M -3.8048674,-3.9585227 L 0.54352094,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2867"
+           d="M -1.2866832,-3.9585227 L 3.0617053,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2869"
+           d="M 1.3053582,-3.9585227 L 5.6537466,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2871"
+           d="M -3.8048674,4.1775838 L 0.54352094,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2873"
+           d="M -1.2866832,4.1775838 L 3.0617053,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2875"
+           d="M 1.3053582,4.1775838 L 5.6537466,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+      </g>
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Send"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path2844"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.2) rotate(180) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Sstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Sstart"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path2841"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.2) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mstart"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path2853"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) translate(0,0)" />
+    </marker>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Checkerboard"
+       id="pattern2819"
+       patternTransform="scale(4.0337866)" />
+    <pattern
+       inkscape:stockid="Checkerboard"
+       id="Checkerboard"
+       patternTransform="translate(0,0) scale(10,10)"
+       height="2"
+       width="2"
+       patternUnits="userSpaceOnUse"
+       inkscape:collect="always"
+       inkscape:isstock="true">
+      <rect
+         id="rect2169"
+         height="1"
+         width="1"
+         y="0"
+         x="0"
+         style="fill:black;stroke:none" />
+      <rect
+         id="rect2171"
+         height="1"
+         width="1"
+         y="1"
+         x="1"
+         style="fill:black;stroke:none" />
+    </pattern>
+  </defs>
+  <metadata
+     id="metadata818">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <circle
+       cy="-88.660995"
+       cx="36.250584"
+       id="circle3742"
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3744"
+       cx="-26.110365"
+       cy="-92.063797"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3752"
+       cx="15.463602"
+       cy="-89.795265"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-90.929535"
+       cx="-5.3233852"
+       id="circle3754"
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3756"
+       cx="57.037548"
+       cy="-87.526726"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-93.198067"
+       cx="-46.897339"
+       id="circle3758"
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-116.5844"
+       cx="37.758289"
+       id="circle3742-4"
+       style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3744-8"
+       cx="-24.633329"
+       cy="-120.10396"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3752-8"
+       cx="16.961061"
+       cy="-117.75758"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-118.93078"
+       cx="-3.8361263"
+       id="circle3754-6"
+       style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3756-1"
+       cx="58.555492"
+       cy="-115.41121"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-121.27715"
+       cx="-45.430527"
+       id="circle3758-1"
+       style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-60.292248"
+       cx="34.718563"
+       id="circle3742-9"
+       style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3744-6"
+       cx="-27.603209"
+       cy="-63.733925"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3752-5"
+       cx="13.944643"
+       cy="-61.439476"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-62.586697"
+       cx="-6.8292904"
+       id="circle3754-8"
+       style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="circle3756-7"
+       cx="55.492489"
+       cy="-59.145027"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <circle
+       cy="-64.881149"
+       cx="-48.377129"
+       id="circle3758-2"
+       style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:2.83800006;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+       inkscape:export-xdpi="96"
+       inkscape:export-ydpi="96"
+       r="7.0408874"
+       transform="rotate(131.87668)" />
+    <rect
+       y="-71.938438"
+       x="89.109558"
+       height="144.1938"
+       width="2.7897232"
+       id="rect2495"
+       style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:2.83252883;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       transform="rotate(45)" />
+    <rect
+       y="-71.764084"
+       x="74.986588"
+       height="143.84509"
+       width="31.035669"
+       id="rect2495-3"
+       style="opacity:1;fill:#121215;fill-opacity:0.32663317;stroke:none;stroke-width:9.43623066;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       transform="rotate(45)" />
+  </g>
+</svg>

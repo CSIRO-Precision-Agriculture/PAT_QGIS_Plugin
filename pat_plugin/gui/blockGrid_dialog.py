@@ -36,7 +36,8 @@ from qgis.gui import QgsMessageBar
 
 from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
 from pat_plugin.util.qgis_common import removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS, \
-     saveAsDialog, raster_applyUniqueValueRenderer
+     saveAsDialog
+from pat_plugin.util.qgis_symbology import raster_apply_unique_value_renderer
 from pat_plugin.util.settings import read_setting, write_setting
 
 from pyprecag import config, processing
@@ -320,7 +321,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
 
             if self.chkDisplayResults.isChecked():
                 rasterLyr = addRasterFileToQGIS(rasterFile, atTop=False)
-                raster_applyUniqueValueRenderer(rasterLyr,1)
+                raster_apply_unique_value_renderer(rasterLyr, 1)
               
 
             QtGui.qApp.restoreOverrideCursor()

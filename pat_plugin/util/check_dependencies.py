@@ -20,6 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+import pkg_resources
 
 """DO NOT CHANGE THE IMPORT ORDER OR OPTIMISE. IT WILL INTRODUCE AN ERROR....."""
 
@@ -35,6 +36,7 @@ from pkg_resources import parse_version
 
 from PyQt4.QtGui import QMessageBox
 from qgis.gui import QgsMessageBar
+
 import osgeo.gdal
 import win32api
 from win32com.shell import shell, shellcon
@@ -47,9 +49,31 @@ from pat_plugin.util.settings import read_setting, write_setting
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
-gdal_wheels = {"2.2.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m', 'rasterio': 'rasterio-1.0.13-cp27-cp27m'}}
+# max version of GDAL supported via the specified wheel. 
+GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
+                         'rasterio': 'rasterio-1.0.13-cp27-cp27m',
+                         'pyprecag': 'pyprecag-0.2.1'}}
+               
+               
+def check_gdal_dependency():
+        # get the list of wheels matching the gdal version
+    if not os.environ.get('GDAL_VERSION', None):
+        gdal_ver = osgeo.gdal.__version__
+        LOGGER.warning('Environment Variable GDAL_VERSION does not exist. Setting to {}'.format(gdal_ver))
+        os.environ['GDAL_VERSION'] = gdal_ver
 
-
+    gdal_ver = os.environ.get('GDAL_VERSION', None)
+    wheels=None
+    for key, val in sorted(GDAL_WHEELS.iteritems()):
+        if parse_version(gdal_ver) <= parse_version(key):
+            wheels = val
+    
+    if wheels is None: 
+        return gdal_ver, False
+    
+    return gdal_ver, wheels
+    
+    
 def check_vesper_dependency(iface=None):
     """ Check for the vesper exe as specified in the pyprecag config.json file. If the exe string is invalid, or does
     not exist it will return None.
@@ -111,54 +135,21 @@ def check_package(package):
 
     Returns {dict}: a dictionary containing actions required, and which version is installed.
     """
+    
+    _, wheels = check_gdal_dependency()
+    
+    try:
+        pack_dict = pack_dict = {'Action': '','Version': pkg_resources.get_distribution(package).version, 'Wheel':''}
+    except pkg_resources.DistributionNotFound:
+        if package in wheels:
+            pack_dict = pack_dict = {'Action': 'Install', 'Version': '', 'Wheel' : wheels[package]}
 
-    pack_dict = {}
-    if package == 'rasterio':
-        # treat rasterio separately as it will trigger a false gdal_version error which can be misinterpreted as an
-        # install issue. It is actually associated with the way dependency check is completed.
-
-        if pkgutil.find_loader(package):  # ie package is installed
-            pack_dict = {'Action': '', 'Version': get_pip_version(package)}
-        else:  # not installed
-            pack_dict = {'Action': 'Install', 'Version': ''}
-    else:
-        try:
-            # source python 2.7 -> 3.4+ https://stackoverflow.com/a/14050282
-            pk = __import__(package)
-        except ImportError:
-            if pkgutil.find_loader(package):
-                # ie package is installed but can't be imported.
-                pack_dict = {'Action': '', 'Version': get_pip_version(package)}
-            else:  # not installed
-                pack_dict = {'Action': 'Install', 'Version': ''}
-
-        for ea in ['__version__', 'version']:
-            try:
-                ver = eval('pk.{}'.format(ea))
-                pack_dict = {'Action': '', 'Version': ver}
-                break
-            except:
-                pass
-            try:
-                ver = eval('pk.{}'.format(ea.upper()))
-                pack_dict = {'Action': '', 'Version': ver}
-                break
-            except:
-                continue
-
-        if not pack_dict:
-            # as a last resort check pip. unidecode uses this method.
-            pack_dict = {'Action': '', 'Version': get_pip_version(package)}
-
-    gdal_ver = os.environ.get('GDAL_VERSION', None)
-    for key, val in sorted(gdal_wheels.iteritems()):
-        if int(gdal_ver.replace('.', '')) >= int(key.replace('.', '')):
-            wheels = val
-
+    # Check for upgraded packages
     if pack_dict['Action'] != 'Install' and package in wheels:
         # compare version numbers source: https://stackoverflow.com/a/6972866
         if parse_version(pack_dict['Version']) < parse_version(wheels[package].split('-')[1]):
             pack_dict['Action'] = 'Upgrade'
+            pack_dict['Wheel'] = wheels[package]
 
     return pack_dict
 
@@ -207,11 +198,6 @@ def check_python_dependencies(plugin_path, iface):
         gdal_ver = osgeo.gdal.__version__
         LOGGER.warning('Environment Variable GDAL_VERSION does not exist. Setting to {}'.format(gdal_ver))
         os.environ['GDAL_VERSION'] = gdal_ver
-
-    gdal_ver = os.environ.get('GDAL_VERSION', None)
-    for key, val in sorted(gdal_wheels.iteritems()):
-        if int(gdal_ver.replace('.', '')) >= int(key.replace('.', '')):
-            wheels = val
 
     packCheck = {}
     # Check for the listed modules.
@@ -336,12 +322,15 @@ def check_python_dependencies(plugin_path, iface):
                 wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
                                                                                       python_version,ea_pack))
                 if ea_pack == 'pyprecag':
-                    whl_file = 'pyprecag'
+                    if packCheck[ea_pack]['Action'] == 'Upgrade':
+                        whl_file = 'pyprecag --upgrade'
+                    else: 
+                        whl_file = 'pyprecag'
                 else:
                     if python_version == 32:
-                        whl_file = os.path.join(ea_pack, wheels[ea_pack] + '-win32.whl')
+                        whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win32.whl')
                     else:
-                        whl_file = os.path.join(ea_pack, wheels[ea_pack] + '-win_amd64.whl')
+                        whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win_amd64.whl')
 
                 wInFile.write(r'   python -m pip install {} --disable-pip-version-check'.format(whl_file) + '\n')
 
@@ -385,7 +374,7 @@ def check_python_dependencies(plugin_path, iface):
         create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin", user_path, True)
 
         message = 'Please quit QGIS and run {} located on your desktop to install ' \
-                  'dependencies. Dependencies not met are {}\n\nClick No to this message'.format(title, ', '.join(failDependencyCheck))
+                  'dependencies. Dependencies not met are {}'.format(title, ', '.join(failDependencyCheck))
         iface.messageBar().pushMessage("ERROR Failed Dependency Check", message, level=QgsMessageBar.CRITICAL,
                                        duration=0)
         QMessageBox.critical(None, 'Failed Dependency Check', message)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DialogResampleImageToBlock</class>
- <widget class="QDialog" name="DialogResampleImageToBlock">
+ <class>ResampleImageToBlockDialog</class>
+ <widget class="QDialog" name="ResampleImageToBlockDialog">
   <property name="windowModality">
    <enum>Qt::ApplicationModal</enum>
   </property>
@@ -622,7 +622,7 @@ boundary</string>
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>DialogResampleImageToBlock</receiver>
+   <receiver>ResampleImageToBlockDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -638,7 +638,7 @@ boundary</string>
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>DialogResampleImageToBlock</receiver>
+   <receiver>ResampleImageToBlockDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
