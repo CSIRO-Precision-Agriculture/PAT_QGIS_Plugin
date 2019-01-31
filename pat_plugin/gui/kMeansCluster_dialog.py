@@ -30,18 +30,19 @@ import traceback
 import rasterio
 from pyprecag.convert import numeric_pixelsize_to_string
 from pyprecag import processing, crs as pyprecag_crs
+from pyprecag import raster_ops, config, processing, describe
 
 from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import saveAsDialog, file_in_use
+from pat_plugin.util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS
+from pat_plugin.util.qgis_symbology import raster_apply_unique_value_renderer
 from pat_plugin.util.settings import read_setting, write_setting
+
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QTableWidgetItem, QPushButton
-from pyprecag import raster_ops, config, processing, describe
+
 from qgis.core import QgsMapLayerRegistry, QgsMapLayer, QgsMessageLog, QgsUnitTypes
 from qgis.gui import QgsMessageBar
-
-from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, raster_applyUniqueValueRenderer
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'kMeansCluster_dialog_base.ui'))
@@ -438,7 +439,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             _ = processing.kmeans_clustering(rasterSource, self.lneSaveFile.text(), self.spnClusters.value())
 
             raster_layer = addRasterFileToQGIS(self.lneSaveFile.text(), atTop=False)
-            raster_applyUniqueValueRenderer(raster_layer,1)
+            raster_apply_unique_value_renderer(raster_layer,1)
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
     

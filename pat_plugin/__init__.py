@@ -33,6 +33,8 @@ import osgeo.gdal
 import logging
 import resources  # import resources like icons for the plugin
 import qgis.utils
+from qgis.gui import QgsMessageBar
+from PyQt4.QtGui import QMessageBox
 
 PLUGIN_DIR = os.path.abspath( os.path.dirname(__file__))
 PLUGIN_NAME = "PAT"
@@ -79,12 +81,20 @@ def classFactory(iface):
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler( logging.NullHandler())   # logging.StreamHandler()
     
-    gdal_ver = os.environ.get('GDAL_VERSION', None)
+    from pat_plugin.util.check_dependencies import check_gdal_dependency
     
-    if gdal_ver is None:
-        gdal_ver = osgeo.gdal.__version__
-        LOGGER.warn('Environment Variable GDAL_VERSION does not exist. Setting to {}'.format(gdal_ver))
-        os.environ['GDAL_VERSION'] = gdal_ver
+    gdal_ver, check_gdal = check_gdal_dependency()  
+    
+    if not check_gdal:
+        # TODO: Implement running the BAT file from within QGIS see https://jira.csiro.au/browse/PA-67
+        LOGGER.critical('QGIS Version {} and GDAL {} is are not currently supported.'.format(qgis.utils.QGis.QGIS_VERSION, gdal_ver))
+        
+        message = 'QGIS Version {} and GDAL {}  are not currently supported. Downgrade QGIS to an earlier version. If required email PAT@csiro.au for assistance.'.format(qgis.utils.QGis.QGIS_VERSION, gdal_ver)
+        
+        iface.messageBar().pushMessage("ERROR Failed Dependency Check", message, level=QgsMessageBar.CRITICAL,
+                                       duration=0)
+        QMessageBox.critical(None, 'Failed Dependency Check', message)
+        sys.exit(message)
     
     from pat_plugin.util.check_dependencies import check_python_dependencies, check_vesper_dependency
         

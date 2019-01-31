@@ -19,6 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+from pat_plugin.gui.stripTrialPoints_dialog import StripTrialPointsDialog
 
 try:
     import ConfigParser as configparser
@@ -34,6 +35,7 @@ import time
 import traceback
 import webbrowser
 from functools import partial
+from pkg_resources import parse_version
 
 from PyQt4.Qt import QLabel
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
@@ -60,7 +62,7 @@ from util.check_dependencies import check_vesper_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from util.settings import read_setting, write_setting
-
+import pyprecag
 from pyprecag import config
 from pyprecag.kriging_ops import vesper_text_to_raster
 
@@ -301,6 +303,15 @@ class pat_toolbar:
             status_tip=self.tr(u'Create zones with k-means clustering'),
             add_to_toolbar=True,
             callback=self.run_kMeansClustering,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
+            icon_path=':/plugins/pat_plugin/icons/icon_stripTrialPoints.svg',
+            text=self.tr(u'Create strip trial points'),
+            tool_tip=self.tr(u'Create strip trial points'),
+            status_tip=self.tr(u'Create strip trial points'),
+            add_to_toolbar=True,
+            callback=self.run_stripTrialPoints,
             parent=self.iface.mainWindow())
 
         self.add_action(
@@ -554,6 +565,31 @@ class pat_toolbar:
             self.queueStatusBarHide()
 
         return
+
+    def run_stripTrialPoints(self):
+        
+        if parse_version(pyprecag.__version__) < parse_version('0.2.0'):
+            self.iface.messageBar().pushMessage("Create strip trial points tool is not supported in pyprecag {}. Upgrade to version 0.2.0+".format(pyprecag.__version__),
+                                                 level=QgsMessageBar.WARNING, duration=15)
+            return
+
+        """Run method for the Strip trial points dialog"""
+        dlgStripTrialPoints = StripTrialPointsDialog(self.iface)
+
+        # Show the dialog
+        dlgStripTrialPoints.show()
+
+        if dlgStripTrialPoints.exec_():
+            message = 'Strip trial points created successfully !'
+            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            # LOGGER.info(message)
+
+        # Close Dialog
+        dlgStripTrialPoints.deleteLater()
+
+        # Refresh QGIS
+        QCoreApplication.processEvents()
+
 
     def run_kMeansClustering(self):
         """Run method for the Calculate Image Indices dialog"""
