@@ -35,7 +35,6 @@ about=<dl><dt>This plugin includes the following tools
            12. Create Strip Trial Points
            13. Whole-of-block Analysis</dd></dt></dl>
 
-    <b><font color="red"> Currently this plugin is only supported in Windows </font></b>
    <b><font color="red">This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. </font></b>
    <br><font size=2>NOTE: if required you will be provided a shortcut <b>Install_PrecisionAg_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
 
