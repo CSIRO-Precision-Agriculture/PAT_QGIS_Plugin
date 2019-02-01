@@ -170,15 +170,23 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
     QgsMapLayerRegistry.instance().addMapLayer(layer, addToLegend=False)
     root = QgsProject.instance().layerTreeRoot()
 
+    # create group layers first:
+    if os.path.sep in group_layer_name:
+        grplist = group_layer_name.split(os.path.sep)
+    
     if group_layer_name != "":
-        group_layer = root.findGroup(group_layer_name)
-        if group_layer is None:
-            if atTop:
-                group_layer = root.insertGroup(0, group_layer_name)
-            else:
-                group_layer = root.addGroup(group_layer_name)
-
-        node_layer = group_layer.addLayer(layer)
+        current_grp = root
+        for ea_grp in grplist:
+            group_layer = current_grp.findGroup(ea_grp)
+            if group_layer is None:
+                if atTop:
+                    group_layer = current_grp.insertGroup(0,ea_grp)
+                else: 
+                    group_layer = current_grp.addGroup(ea_grp)
+            current_grp = group_layer
+        
+        node_layer = current_grp.addLayer(layer)
+    
     else:
         if atTop:
             root.insertLayer(0, layer)

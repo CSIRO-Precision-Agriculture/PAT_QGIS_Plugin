@@ -19,7 +19,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from pat_plugin.gui.stripTrialPoints_dialog import StripTrialPointsDialog
 
 try:
     import ConfigParser as configparser
@@ -40,11 +39,16 @@ from pkg_resources import parse_version
 from PyQt4.Qt import QLabel
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
 from PyQt4.QtGui import QAction, QIcon, QMenu, QDockWidget, QToolButton, QMessageBox
-from qgis.core import QgsMapLayerRegistry
+from qgis.core import QgsMapLayerRegistry, QgsMessageLog
 from qgis.gui import QgsMessageBar
+
+from processing.core.Processing import Processing
+from processing.tools import general
+from processing.gui.CommanderWindow import CommanderWindow
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from gui.about_dialog import AboutDialog
+from gui.settings_dialog import SettingsDialog
 from gui.blockGrid_dialog import BlockGridDialog
 from gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
 from gui.gridExtract_dialog import GridExtractDialog
@@ -56,12 +60,15 @@ from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
 from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 from gui.kMeansCluster_dialog import KMeansClusterDialog
-from gui.settings_dialog import SettingsDialog
+from pat_plugin.gui.stripTrialPoints_dialog import StripTrialPointsDialog
 
-from util.check_dependencies import check_vesper_dependency
+from util.check_dependencies import check_vesper_dependency, check_R_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from util.settings import read_setting, write_setting
+from util.processing_alg_logging import ProcessingAlgMessages
+from pat_plugin.util.qgis_symbology import raster_apply_unique_value_renderer
+
 import pyprecag
 from pyprecag import config
 from pyprecag.kriging_ops import vesper_text_to_raster
@@ -315,6 +322,15 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
+            icon_path=':/plugins/pat_plugin/icons/icon_wholeOfBlockExp.svg',
+            text=self.tr(u'Whole-of-block analysis'),
+            tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
+            status_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
+            add_to_toolbar=True,
+            callback=self.run_wholeOfBlockAnalysis,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
             icon_path=':/plugins/pat_plugin/icons/icon_help.svg',
             text=self.tr(u'Help'),
             tool_tip=self.tr(u'Help'),
@@ -565,6 +581,53 @@ class pat_toolbar:
             self.queueStatusBarHide()
 
         return
+
+    def run_wholeOfBlockAnalysis(self):
+        """Run method for the fit to block grid dialog"""
+        # https://gis.stackexchange.com/a/160146
+
+        result = check_R_dependency()
+        if result is not True:
+            self.iface.messageBar().pushMessage("R configuration", result, level=QgsMessageBar.WARNING, duration=15)
+            return
+
+        proc_alg_mess = ProcessingAlgMessages(self.iface)
+        QgsMessageLog.instance().messageReceived.connect(proc_alg_mess.processingCatcher)
+
+        # Then get the algorithm you're interested in (for instance, Join Attributes):
+        alg = Processing.getAlgorithm("r:wholeofblockanalysis")
+        if alg is None:
+            self.iface.messageBar().pushMessage("Whole-of-block analysis algorithm could not be found",
+                                                level=QgsMessageBar.CRITICAL)
+            return
+        # Instantiate the commander window and open the algorithm's interface
+        cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
+        if alg is not None:
+            cw.runAlgorithm(alg)
+
+        # if proc_alg_mess.alg_name == '' then cancel was clicked
+            
+        if proc_alg_mess.error:
+            self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
+                                                level=QgsMessageBar.CRITICAL, duration=0)
+        elif proc_alg_mess.alg_name != '':
+            data_column = proc_alg_mess.parameters['Data_Column']
+            
+            # load rasters into qgis as grouped layers.
+            for key, val in proc_alg_mess.output_files.items():
+                
+                grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
+
+                for ea_file in val['files']:
+                    removeFileFromQGIS(ea_file)
+                    raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
+                    if key in ['p_val']:
+                        raster_apply_unique_value_renderer(raster_layer)
+
+            self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
+                                                level=QgsMessageBar.INFO, duration=15)
+
+        del proc_alg_mess
 
     def run_stripTrialPoints(self):
         

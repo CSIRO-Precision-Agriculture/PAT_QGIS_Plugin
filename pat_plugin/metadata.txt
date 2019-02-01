@@ -10,12 +10,12 @@
 # Mandatory items:
 
 [general]
-name=Precision Agriculture Tools (PAT)
+name=PAT - Precision Agriculture Tools
 description=A collection of tools for processing precision agriculture data.
 
 qgisMinimumVersion=2.18.12
-qgisMaximumVersion=2.18.99
-version=0.0.12.0
+qgisMaximumVersion=2.18.26
+version=0.0.12.1
 
 author=Christina Ratcliff (CSIRO)
 email=PAT@csiro.au
@@ -32,12 +32,13 @@ about=<dl><dt>This plugin includes the following tools
             9. Calculate Image Indices for Blocks
            10. Resample Image Band to Blocks
            11. Create Zones using <i>k</i>-means Clustering
-           12. Create Strip Trial Points </dd></dt></dl>
+           12. Create Strip Trial Points
+           13. Whole-of-block Analysis</dd></dt></dl>
 
-   <b><font color="red">This plugin requires pandas, geopandas, fiona, rasterio and unidecode to be installed.</font></b>
-   <font size=1>If required you will be provided a shortcut <b>Install_PrecisionAg_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
+   <b><font color="red">This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. </font></b>
+   <br><font size=2>NOTE: if required you will be provided a shortcut <b>Install_PrecisionAg_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
 
-   <p>Developed by the CSIRO Precision Agriculture team.
+   <p>Developed by the CSIRO Precision Agriculture Team.
    This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.</font>
 
 #homepage=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
@@ -59,9 +60,12 @@ experimental=True
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
 
-update_date=2019-01-31T10:39:51.205000
+update_date=2019-02-01T14:01:02.781000
 
 changelog=<dl><dt><font size=1>
+    Version 0.0.12.0
+        <dd>New Feature - Whole-of-block Analysis</dd>
+
     Version 0.0.11.0
         <dd>New Feature - Create Strip Trial Points</dd>
 
