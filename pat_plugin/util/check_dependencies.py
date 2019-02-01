@@ -57,21 +57,23 @@ GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
 
 def check_R_dependency():
     updated = False
-        
     r_installfold = read_setting('Processing/Configuration/R_FOLDER')
-    if r_installfold is None: 
-        try:
-            from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
-            aReg = ConnectRegistry(None,HKEY_LOCAL_MACHINE)
-            aKey = OpenKey(aReg, r"SOFTWARE\R-core\R")
-            aVal = os.path.normpath(QueryValueEx(aKey, "InstallPath")[0])
-            if os.path.exists(aVal):
-                write_setting ('Processing/Configuration/R_FOLDER', aVal)
-                LOGGER.info( 'Setting ... R Install folder: ', aVal)
-            
-            write_setting('Processing/Configuration/ACTIVATE_R', True)
-        except EnvironmentError:
-            return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+    try:
+        from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
+        aReg = ConnectRegistry(None,HKEY_LOCAL_MACHINE)
+        aKey = OpenKey(aReg, r"SOFTWARE\R-core\R")
+        aVal = os.path.normpath(QueryValueEx(aKey, "InstallPath")[0])
+        
+        if os.path.exists(aVal):
+            if r_installfold is not None and r_installfold != aVal:
+                r_installfold = aVal
+                write_setting('Processing/Configuration/R_FOLDER', aVal)
+                LOGGER.info('Setting ... R Install folder: {}'.format(aVal))
+
+    except EnvironmentError:
+        write_setting('Processing/Configuration/R_FOLDER', '')
+        write_setting('Processing/Configuration/ACTIVATE_R', False)
+        return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
 
     # Get the users R script folder - returns none if not set.
     r_scripts_fold = read_setting('Processing/Configuration/R_SCRIPTS_FOLDER')
@@ -86,17 +88,16 @@ def check_R_dependency():
 
         dest_file = os.path.join(r_scripts_fold, os.path.basename(src_file))
 
-        # only copy if it doesn't exist or it is newer.
+        # only copy if it doesn't exist or it is newer by 1 second.
         if not os.path.exists(dest_file) or os.stat(src_file).st_mtime - os.stat(dest_file).st_mtime > 1:
-            # If more than 1 second difference
             shutil.copy2(src_file, dest_file)
             updated = True
-            LOGGER.info('Updating Whole-of-block analysis tool ({})'.format(os.path.basename(src_file)))
-    
+
     if updated:
         LOGGER.info('Updating Whole-of-block analysis tool.')
 
     return True
+
 
 def check_gdal_dependency():
         # get the list of wheels matching the gdal version
