@@ -20,19 +20,19 @@
  *                                                                         *
  ***************************************************************************/
 """
-import pkg_resources
 
 """DO NOT CHANGE THE IMPORT ORDER OR OPTIMISE. IT WILL INTRODUCE AN ERROR....."""
 
-import pkgutil
 import os
+import glob
 import platform
 import subprocess
 import tempfile
 import shutil
 import sys
 import logging
-from pkg_resources import parse_version
+
+from pkg_resources import parse_version, get_distribution, DistributionNotFound
 
 from PyQt4.QtGui import QMessageBox
 from qgis.gui import QgsMessageBar
@@ -43,7 +43,7 @@ from win32com.shell import shell, shellcon
 import pythoncom
 import struct
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME
+from pat_plugin import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR
 from pat_plugin.util.settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -53,8 +53,52 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
                          'rasterio': 'rasterio-1.0.13-cp27-cp27m',
                          'pyprecag': 'pyprecag-0.2.1'}}
-               
-               
+
+
+def check_R_dependency():
+    updated = False
+    r_installfold = read_setting('Processing/Configuration/R_FOLDER')
+    try:
+        from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
+        aReg = ConnectRegistry(None,HKEY_LOCAL_MACHINE)
+        aKey = OpenKey(aReg, r"SOFTWARE\R-core\R")
+        aVal = os.path.normpath(QueryValueEx(aKey, "InstallPath")[0])
+        
+        if os.path.exists(aVal):
+            if r_installfold is not None and r_installfold != aVal:
+                r_installfold = aVal
+                write_setting('Processing/Configuration/R_FOLDER', aVal)
+                LOGGER.info('Setting ... R Install folder: {}'.format(aVal))
+
+    except EnvironmentError:
+        write_setting('Processing/Configuration/R_FOLDER', '')
+        write_setting('Processing/Configuration/ACTIVATE_R', False)
+        return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+
+    # Get the users R script folder - returns none if not set.
+    r_scripts_fold = read_setting('Processing/Configuration/R_SCRIPTS_FOLDER')
+
+    if r_scripts_fold is None:
+        return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+    
+    files = glob.glob(os.path.join(PLUGIN_DIR,"R-Scripts","*.rsx"))
+    files += glob.glob(os.path.join(PLUGIN_DIR,"R-Scripts","*.rsx.help"))
+    
+    for src_file in files:
+
+        dest_file = os.path.join(r_scripts_fold, os.path.basename(src_file))
+
+        # only copy if it doesn't exist or it is newer by 1 second.
+        if not os.path.exists(dest_file) or os.stat(src_file).st_mtime - os.stat(dest_file).st_mtime > 1:
+            shutil.copy2(src_file, dest_file)
+            updated = True
+
+    if updated:
+        LOGGER.info('Updating Whole-of-block analysis tool.')
+
+    return True
+
+
 def check_gdal_dependency():
         # get the list of wheels matching the gdal version
     if not os.environ.get('GDAL_VERSION', None):
@@ -139,8 +183,8 @@ def check_package(package):
     _, wheels = check_gdal_dependency()
     
     try:
-        pack_dict = pack_dict = {'Action': '','Version': pkg_resources.get_distribution(package).version, 'Wheel':''}
-    except pkg_resources.DistributionNotFound:
+        pack_dict = pack_dict = {'Action': '','Version': get_distribution(package).version, 'Wheel':''}
+    except DistributionNotFound:
         if package in wheels:
             pack_dict = pack_dict = {'Action': 'Install', 'Version': '', 'Wheel' : wheels[package]}
 
@@ -238,7 +282,7 @@ def check_python_dependencies(plugin_path, iface):
 
         shutil.copytree(os.path.join(plugin_path, 'python_packages'), tempPackPath)
 
-    bat_logfile = os.path.join(plugin_path, 'python_packages', 'dependancy.log')
+    bat_logfile = os.path.join(plugin_path, 'python_packages', 'dependency.log')
     user_path = os.path.join(os.path.expanduser('~'))
     shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
     python_version = struct.calcsize("P") * 8  # this will return 64 or 32

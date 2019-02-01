@@ -40,7 +40,9 @@ PLUGIN_DIR = os.path.abspath( os.path.dirname(__file__))
 PLUGIN_NAME = "PAT"
 PLUGIN_SHORT= "PAT"
 LOGGER_NAME = 'pyprecag'
-TEMPDIR = os.path.join(tempfile.gettempdir(), PLUGIN_NAME)
+
+# This matches the folder pyprecag uses.
+TEMPDIR = os.path.join(tempfile.gettempdir(), 'PrecisionAg')
 
 ''' Adds the path to the external libraries to the sys.path if not already added'''
 if PLUGIN_DIR not in sys.path:
@@ -81,12 +83,14 @@ def classFactory(iface):
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler( logging.NullHandler())   # logging.StreamHandler()
     
-    from pat_plugin.util.check_dependencies import check_gdal_dependency
-    
+    #from pat_plugin.util.check_dependencies import check_gdal_dependency
+
+    from pat_plugin.util.check_dependencies import *
+    check_R_dependency()
+
     gdal_ver, check_gdal = check_gdal_dependency()  
     
     if not check_gdal:
-        # TODO: Implement running the BAT file from within QGIS see https://jira.csiro.au/browse/PA-67
         LOGGER.critical('QGIS Version {} and GDAL {} is are not currently supported.'.format(qgis.utils.QGis.QGIS_VERSION, gdal_ver))
         
         message = 'QGIS Version {} and GDAL {}  are not currently supported. Downgrade QGIS to an earlier version. If required email PAT@csiro.au for assistance.'.format(qgis.utils.QGis.QGIS_VERSION, gdal_ver)
@@ -96,7 +100,7 @@ def classFactory(iface):
         QMessageBox.critical(None, 'Failed Dependency Check', message)
         sys.exit(message)
     
-    from pat_plugin.util.check_dependencies import check_python_dependencies, check_vesper_dependency
+    #from pat_plugin.util.check_dependencies import check_python_dependencies, check_vesper_dependency
         
     check_python_dependencies(PLUGIN_DIR, iface)
     vesper_exe = check_vesper_dependency()

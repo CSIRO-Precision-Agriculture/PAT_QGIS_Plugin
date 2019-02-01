@@ -155,8 +155,11 @@
     </layout>
    </item>
    <item row="2" column="0">
-    <widget class="QPlainTextEdit" name="pteVersions">
-     <property name="readOnly">
+    <widget class="QTextBrowser" name="pteVersions">
+     <property name="acceptRichText">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
       <bool>true</bool>
      </property>
     </widget>

@@ -72,7 +72,8 @@ class SettingsDialog(BASE, WIDGET):
         self.lneVesperExe.setText(self.vesper_exe)
 
         # Add text to plain text box ------------
-        self.pteVersions.setPlainText(self.get_plugin_state())
+        self.pteVersions.setOpenExternalLinks(True)
+        self.get_plugin_state()
     
     @QtCore.pyqtSlot(int)
     def on_chkDisplayTempLayers_stateChanged(self, state):
@@ -148,22 +149,35 @@ class SettingsDialog(BASE, WIDGET):
         # Check for the listed modules.
         for argCheck in ['geopandas', 'fiona', 'rasterio', 'pyprecag']:
             packCheck[argCheck] = check_package(argCheck)
-        plugin_state = '    {:20}\n'.format('Version:')
-        plugin_state = '    {:20}\t{}\n'.format('QGIS :', qgis.utils.QGis.QGIS_VERSION)
-        plugin_state += '    {:20}\t{}\n'.format('Python :',  sys.version)
-        plugin_state += '    {:20}\t{}\n'.format('PAT :', version)
-        plugin_state += '    {:20}\t{}\n'.format('GDAL :', os.environ.get('GDAL_VERSION', None))
-        plugin_state += '    \n'
-        plugin_state += '    {:20}\t{}\n'.format('pyPrecAg :', packCheck['pyprecag']['Version'])
-        plugin_state += '    {:20}\t{}\n'.format('GeoPandas :', packCheck['geopandas']['Version'])
-        plugin_state += '    {:20}\t{}\n'.format('RasterIO :', packCheck['rasterio']['Version'])
-        plugin_state += '    {:20}\t{}\n'.format('Fiona :', packCheck['fiona']['Version'])
-        plugin_state += '    \n'
-        plugin_state += '    {:20}\t{}\n'.format('User Path:', os.path.normpath(os.path.expanduser('~')))
-        plugin_state += '    {:20}\t{}\n'.format('Plugin Dir:',  os.path.normpath(PLUGIN_DIR))
-        plugin_state += '    {:20}\t{}\n'.format('Temp Folder:',  os.path.normpath(TEMPDIR))
         
-        return plugin_state
+        """TODO: Make the paths clickable links to open folder
+        def create_path_link(path):
+            path = os.path.normpath(path)
+            #"<a href={}>Open Project Folder</a>".format("`C:/Progra~1/needed"`)
+            return '<a href= file:///"`{0}"`>{0}</a>'.format(path)
+        """
+        
+        self.pteVersions.setText( 'QGIS Environment:')
+        self.pteVersions.append('    {:20}\t{}'.format('QGIS :', qgis.utils.QGis.QGIS_VERSION))
+        self.pteVersions.append('    {:20}\t{}'.format('Python :',  sys.version))
+        self.pteVersions.append('    {:20}\t{}'.format('GDAL :', os.environ.get('GDAL_VERSION', None)))
+
+        self.pteVersions.append('    {:20}\t{}'.format('User Path:', os.path.normpath(os.path.expanduser('~'))))
+        self.pteVersions.append('    {:20}\t{}'.format('Plugin Dir:',  os.path.normpath(PLUGIN_DIR)))
+        self.pteVersions.append('    {:20}\t{}'.format('Temp Folder:',  os.path.normpath(TEMPDIR)))
+        
+        self.pteVersions.append('\nPAT Version:')
+        self.pteVersions.append('    {:20}\t{}'.format('PAT:', version))
+        self.pteVersions.append('    {:20}\t{}'.format('pyPrecAg:', packCheck['pyprecag']['Version']))
+        self.pteVersions.append('    {:20}\t{}'.format('GeoPandas:', packCheck['geopandas']['Version']))
+        self.pteVersions.append('    {:20}\t{}'.format('RasterIO:', packCheck['rasterio']['Version']))
+        self.pteVersions.append('    {:20}\t{}'.format('Fiona:', packCheck['fiona']['Version']))
+
+        self.pteVersions.append('\nR Configuration')
+        self.pteVersions.append('    {:20}\t{}'.format('R Active :', read_setting('Processing/Configuration/ACTIVATE_R')))
+        self.pteVersions.append('    {:20}\t{}'.format('R Install Folder :', read_setting('Processing/Configuration/R_FOLDER')))
+#                 
+#         return plugin_state
 
     def accept(self, *args, **kwargs):
         # Stop and start logging to setup the new log level
