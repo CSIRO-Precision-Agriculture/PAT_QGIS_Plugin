@@ -15,7 +15,7 @@ description=A collection of tools for processing precision agriculture data.
 
 qgisMinimumVersion=2.18.12
 qgisMaximumVersion=2.18.26
-version=0.0.12.1
+version=0.1.0
 
 author=Christina Ratcliff (CSIRO)
 email=PAT@csiro.au
@@ -35,6 +35,7 @@ about=<dl><dt>This plugin includes the following tools
            12. Create Strip Trial Points
            13. Whole-of-block Analysis</dd></dt></dl>
 
+    <b><font color="red"> Currently this plugin is only supported in Windows </font></b>
    <b><font color="red">This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. </font></b>
    <br><font size=2>NOTE: if required you will be provided a shortcut <b>Install_PrecisionAg_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
 
@@ -60,15 +61,9 @@ experimental=True
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
 
-update_date=2019-02-01T14:01:02.781000
+update_date=2019-02-01T18:16:40.814000
 
 changelog=<dl><dt><font size=1>
-    Version 0.0.12.0
-        <dd>New Feature - Whole-of-block Analysis</dd>
-
-    Version 0.0.11.0
-        <dd>New Feature - Create Strip Trial Points</dd>
-
-    Version 0.0.11.0
-        <dd>First release to GitHub</dd>
-    </font></dt></dl>
+    Version 0.1.0
+        <dd>First release to QGIS Plugin repository</dd>
+ </font></dt></dl>
