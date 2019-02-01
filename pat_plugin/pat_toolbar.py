@@ -60,14 +60,14 @@ from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
 from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 from gui.kMeansCluster_dialog import KMeansClusterDialog
-from pat_plugin.gui.stripTrialPoints_dialog import StripTrialPointsDialog
+from gui.stripTrialPoints_dialog import StripTrialPointsDialog
 
 from util.check_dependencies import check_vesper_dependency, check_R_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from util.settings import read_setting, write_setting
 from util.processing_alg_logging import ProcessingAlgMessages
-from pat_plugin.util.qgis_symbology import raster_apply_unique_value_renderer
+from util.qgis_symbology import raster_apply_unique_value_renderer
 
 import pyprecag
 from pyprecag import config
