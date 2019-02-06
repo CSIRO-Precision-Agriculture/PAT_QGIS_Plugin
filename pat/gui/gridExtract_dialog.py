@@ -28,10 +28,10 @@ import time
 import traceback
 
 import numpy as np
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import saveAsDialog, file_in_use
-from pat_plugin.util.settings import read_setting, write_setting
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import saveAsDialog, file_in_use
+from util.settings import read_setting, write_setting
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QTableWidgetItem, QPushButton
 from pyprecag import raster_ops, config, processing, describe
@@ -79,6 +79,8 @@ class GridExtractDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # GUI Runtime Customisation -----------------------------------------------
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_gridExtract.svg'))
+
         self.chkgrpStatistics.setExclusive(False)
         self.tabList.setColumnCount(2)
         self.tabList.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))

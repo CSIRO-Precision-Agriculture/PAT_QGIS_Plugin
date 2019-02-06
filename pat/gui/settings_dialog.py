@@ -10,7 +10,7 @@
         begin      : 2018-03-13
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -29,17 +29,17 @@ import sys
 import configparser
 import qgis
 
-from pat_plugin import PLUGIN_NAME
+from pat import PLUGIN_NAME
 from PyQt4 import uic
 from PyQt4.QtGui import QMessageBox
 from qgis.PyQt import QtCore, QtGui
 
 from pyprecag import config
 
-from pat_plugin import PLUGIN_NAME, TEMPDIR, PLUGIN_DIR
-from pat_plugin.util.check_dependencies import check_vesper_dependency
-from pat_plugin.util.custom_logging import stop_logging, setup_logger
-from pat_plugin.util.settings import read_setting, write_setting
+from pat import PLUGIN_NAME, TEMPDIR, PLUGIN_DIR
+from util.check_dependencies import check_vesper_dependency
+from util.custom_logging import stop_logging, setup_logger
+from util.settings import read_setting, write_setting
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 WIDGET, BASE = uic.loadUiType(
@@ -74,6 +74,9 @@ class SettingsDialog(BASE, WIDGET):
         # Add text to plain text box ------------
         self.pteVersions.setOpenExternalLinks(True)
         self.get_plugin_state()
+
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_settings.svg'))
+
     
     @QtCore.pyqtSlot(int)
     def on_chkDisplayTempLayers_stateChanged(self, state):
@@ -144,7 +147,7 @@ class SettingsDialog(BASE, WIDGET):
         cfg.read(os.path.join(pluginPath, 'metadata.txt'))
         version = cfg.get('general', 'version')
 
-        from pat_plugin.util.check_dependencies import check_package
+        from util.check_dependencies import check_package
         packCheck = {}
         # Check for the listed modules.
         for argCheck in ['geopandas', 'fiona', 'rasterio', 'pyprecag']:

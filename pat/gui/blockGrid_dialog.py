@@ -8,7 +8,7 @@
         begin      : 2017-05-25
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -26,7 +26,7 @@ import re
 import sys
 import traceback
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QColor, QPushButton
@@ -34,11 +34,11 @@ from qgis._core import QgsMapLayer, QgsVectorFileWriter, QgsMessageLog, \
     QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer
 from qgis.gui import QgsMessageBar
 
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS, \
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS, \
      saveAsDialog
-from pat_plugin.util.qgis_symbology import raster_apply_unique_value_renderer
-from pat_plugin.util.settings import read_setting, write_setting
+from util.qgis_symbology import raster_apply_unique_value_renderer
+from util.settings import read_setting, write_setting
 
 from pyprecag import config, processing
 from pyprecag.convert import numeric_pixelsize_to_string
@@ -88,7 +88,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         self.setMapLayers()
         # GUI Runtime Customisation -----------------------------------------------
 
-        self.setWindowIcon(QtGui.QIcon(':/plugins/pat_plugin/icons/icon_blockGrid.svg'))
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_blockGrid.svg'))
         # hide some objects on the form, delete later if no longer needed.
         self.chkDisplayResults.hide()
         self.lblNoDataVal.hide()

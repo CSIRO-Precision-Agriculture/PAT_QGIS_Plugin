@@ -8,7 +8,7 @@
         begin      : 2018-03-13
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 
+
 try:
     import ConfigParser as configparser
 except ImportError:
@@ -28,6 +29,7 @@ except ImportError:
 import logging
 import os
 
+from qgis.PyQt import QtGui
 from PyQt4 import uic
 from PyQt4.QtGui import QPixmap
 
@@ -52,15 +54,17 @@ class AboutDialog(BASE, WIDGET):
         cfg.read(os.path.join(pluginPath, 'metadata.txt'))
         version = cfg.get('general', 'version')
 
-        self.lblPATLogo.setPixmap(QPixmap(':/plugins/pat_plugin/icons/icon.png'))
-        self.lblLogo1.setPixmap(QPixmap(':/plugins/pat_plugin/icons/CSIRO_Grad_RGB.png'))
-        self.lblLogo2.setPixmap(QPixmap(':/plugins/pat_plugin/icons/WineAustralia_Logo.png'))
+        self.lblPATLogo.setPixmap(QPixmap(':/plugins/pat/icons/icon.png'))
+        self.lblLogo1.setPixmap(QPixmap(':/plugins/pat/icons/CSIRO_Grad_RGB.png'))
+        self.lblLogo2.setPixmap(QPixmap(':/plugins/pat/icons/WineAustralia_Logo.png'))
         self.lblVersion.setText(self.tr('PAT Version: {}'.format(version)))
         self.lblAbout.setText(self.getAboutText())
 
         licence = os.path.join(pluginPath, 'LICENSE')
         with open(licence, 'r') as oFile:
             self.pteLicence.setPlainText(oFile.read())
+
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_about.svg'))
 
     def getAboutText(self):
         return self.tr(

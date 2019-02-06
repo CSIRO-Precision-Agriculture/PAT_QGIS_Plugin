@@ -32,11 +32,11 @@ from pyprecag.convert import numeric_pixelsize_to_string
 from pyprecag import processing, crs as pyprecag_crs
 from pyprecag import raster_ops, config, processing, describe
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS
-from pat_plugin.util.qgis_symbology import raster_apply_unique_value_renderer
-from pat_plugin.util.settings import read_setting, write_setting
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS
+from util.qgis_symbology import raster_apply_unique_value_renderer
+from util.settings import read_setting, write_setting
 
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QTableWidgetItem, QPushButton
@@ -83,7 +83,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # GUI Runtime Customisation -----------------------------------------------
-        self.setWindowIcon(QtGui.QIcon(':/plugins/pat_plugin/icons/icon_kMeansCluster.svg'))
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_kMeansCluster.svg'))
         
         self.tabList.setColumnCount(2)
         self.tabList.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))

@@ -213,7 +213,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>Nodata value:</string>
+          <string>No-data value:</string>
          </property>
         </widget>
        </item>

@@ -30,8 +30,8 @@ from qgis.gui import QgsMessageBar
 from qgis.core import QgsMapLayerRegistry, QgsMessageLog
 from qgis.utils import iface
 
-from pat_plugin import LOGGER_NAME
-from pat_plugin.util.custom_logging import errorCatcher
+from pat import LOGGER_NAME
+from util.custom_logging import errorCatcher
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())

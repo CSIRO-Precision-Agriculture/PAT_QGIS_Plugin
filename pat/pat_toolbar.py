@@ -155,7 +155,7 @@ class pat_toolbar:
             QString: Translated version of message.
         """
 
-        return QCoreApplication.translate('pat_plugin', message)
+        return QCoreApplication.translate('pat', message)
 
     def add_action(self, icon_path, text, callback, enabled_flag=True, add_to_menu=True, add_to_toolbar=True,
                    tool_tip=None, status_tip=None, whats_this=None, parent=None):
@@ -217,7 +217,7 @@ class pat_toolbar:
 
         # Finally, add your action to the menu and toolbar
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_blockGrid.svg',
+            icon_path=':/plugins/pat/icons/icon_blockGrid.svg',
             text=self.tr(u'Create block grid'),
             tool_tip=self.tr(u'Create raster and VESPER grids for block polygons.'),
             status_tip=self.tr(u'Create raster and VESPER grids for block polygons.'),
@@ -225,7 +225,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_cleanTrimPoints.svg',
+            icon_path=':/plugins/pat/icons/icon_cleanTrimPoints.svg',
             text=self.tr(u'Clean, trim and normalise data points'),
             tool_tip=self.tr(u'Clean, trim and normalise data points'),
             status_tip=self.tr(u'Clean, trim and normalise data points'),
@@ -233,7 +233,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_vesperKriging.svg',
+            icon_path=':/plugins/pat/icons/icon_vesperKriging.svg',
             text=self.tr(u'Run kriging using VESPER'),
             tool_tip=self.tr(u'Run kriging using VESPER'),
             status_tip=self.tr(u'Run kriging using VESPER'),
@@ -241,7 +241,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_importVesperKriging.svg',
+            icon_path=':/plugins/pat/icons/icon_importVesperKriging.svg',
             text=self.tr(u'Import VESPER results'),
             tool_tip=self.tr(u'Import VESPER results'),
             status_tip=self.tr(u'Import VESPER results'),
@@ -250,7 +250,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_pointTrailToPolygon.svg',
+            icon_path=':/plugins/pat/icons/icon_pointTrailToPolygon.svg',
             text=self.tr(u'Create polygons from on-the-go GPS point trail'),
             tool_tip=self.tr(u'Create polygons from on-the-go GPS point trail'),
             status_tip=self.tr(u'Create polygons from on-the-go GPS point trail'),
@@ -259,7 +259,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_rescaleNormalise.svg',
+            icon_path=':/plugins/pat/icons/icon_rescaleNormalise.svg',
             text=self.tr(u'Rescale or normalise raster'),
             tool_tip=self.tr(u'Rescale or normalise raster'),
             status_tip=self.tr(u'Rescale or normalise raster'),
@@ -268,7 +268,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_randomPixel.svg',
+            icon_path=':/plugins/pat/icons/icon_randomPixel.svg',
             text=self.tr(u'Generate random pixel selection'),
             tool_tip=self.tr(u'Generate random pixel selection'),
             status_tip=self.tr(u'Generate random pixel selection'),
@@ -277,7 +277,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_gridExtract.svg',
+            icon_path=':/plugins/pat/icons/icon_gridExtract.svg',
             text=self.tr(u'Extract raster pixel statistics for points'),
             tool_tip=self.tr(u'Extract raster pixel statistics for points'),
             status_tip=self.tr(u'Extract raster pixel statistics for points'),
@@ -286,7 +286,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_calcImgIndices.svg',
+            icon_path=':/plugins/pat/icons/icon_calcImgIndices.svg',
             text=self.tr(u'Calculate image indices for blocks'),
             tool_tip=self.tr(u'Calculate image indices for blocks'),
             status_tip=self.tr(u'Calculate image indices for blocks'),
@@ -295,7 +295,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_resampleToBlock.svg',
+            icon_path=':/plugins/pat/icons/icon_resampleToBlock.svg',
             text=self.tr(u'Resample image band to blocks'),
             tool_tip=self.tr(u'Resample image band to blocks'),
             status_tip=self.tr(u'Resample image band to blocks'),
@@ -304,7 +304,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_kMeansCluster.svg',
+            icon_path=':/plugins/pat/icons/icon_kMeansCluster.svg',
             text=self.tr(u'Create zones with k-means clustering'),
             tool_tip=self.tr(u'Create zones with k-means clustering'),
             status_tip=self.tr(u'Create zones with k-means clustering'),
@@ -313,7 +313,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_stripTrialPoints.svg',
+            icon_path=':/plugins/pat/icons/icon_stripTrialPoints.svg',
             text=self.tr(u'Create strip trial points'),
             tool_tip=self.tr(u'Create strip trial points'),
             status_tip=self.tr(u'Create strip trial points'),
@@ -322,7 +322,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_wholeOfBlockExp.svg',
+            icon_path=':/plugins/pat/icons/icon_wholeOfBlockExp.svg',
             text=self.tr(u'Whole-of-block analysis'),
             tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
             status_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
@@ -331,7 +331,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_help.svg',
+            icon_path=':/plugins/pat/icons/icon_help.svg',
             text=self.tr(u'Help'),
             tool_tip=self.tr(u'Help'),
             status_tip=self.tr(u'Help'),
@@ -339,7 +339,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_settings.svg',
+            icon_path=':/plugins/pat/icons/icon_settings.svg',
             text=self.tr(u'Settings'),
             tool_tip=self.tr(u'Settings'),
             add_to_toolbar=False,
@@ -348,7 +348,7 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
-            icon_path=':/plugins/pat_plugin/icons/icon_about.svg',
+            icon_path=':/plugins/pat/icons/icon_about.svg',
             text=self.tr(u'About'),
             tool_tip=self.tr(u'About'),
             status_tip=self.tr(u'About'),

@@ -43,8 +43,8 @@ from win32com.shell import shell, shellcon
 import pythoncom
 import struct
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR
-from pat_plugin.util.settings import read_setting, write_setting
+from pat import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR
+from util.settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()

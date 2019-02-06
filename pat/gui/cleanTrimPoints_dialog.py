@@ -3,14 +3,14 @@
 /***************************************************************************
  CSIRO Precision Agriculture Tools (PAT) Plugin
 
- PointTrailToPolygonDialog -  Create a polygon from a Point Trail created
- from a file containing GPS coordinates.
+ CleanTrimPointsDialog
 
+ Clean and Trim a points or csv layer based on a field to remove excess points
            -------------------
-        begin      : 2017-05-25
+        begin      : 2017-10-18
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
 
  Modified from: Spreadsheet Layers QGIS Plugin on 21/08/2017
      https://github.com/camptocamp/QGIS-SpreadSheetLayers/blob/master/widgets/SpreadsheetLayersDialog.py
@@ -31,24 +31,28 @@ import os
 import re
 import shutil
 import sys
-import time
 import traceback
 
 import chardet
 import pandas as pd
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from PyQt4 import QtCore, QtGui, uic
+
 from PyQt4.QtGui import QPushButton
 from osgeo import ogr
 from qgis.core import (QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsMessageLog)
 from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
 from unidecode import unidecode
 
-from pyprecag import processing, crs as pyprecag_crs, config, convert, describe
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.gdal_util import GDAL_COMPAT
-from pat_plugin.util.qgis_common import copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, saveAsDialog
-from pat_plugin.util.settings import read_setting, write_setting
+from pyprecag import processing, describe, crs as pyprecag_crs, convert, config
+from util.custom_logging import errorCatcher, openLogPanel
+from util.gdal_util import GDAL_COMPAT
+from util.qgis_common import copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, \
+    saveAsDialog
+from util.qgis_symbology import vector_apply_unique_value_renderer
+from util.settings import read_setting, write_setting
+
+from util.qgis_common import file_in_use
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -207,23 +211,28 @@ class OgrFieldTypeDelegate(QtGui.QStyledItemDelegate):
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'pointTrailToPolygon_dialog_base.ui'))
+    os.path.dirname(__file__), 'cleanTrimPoints_dialog_base.ui'))
 
 
-class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
-    """Dialg for create a polygon from a point trail created from a yield monitor file csv file."""
+class CleanTrimPointsDialog(QtGui.QDialog, FORM_CLASS):
+    """Prepare a points file for kriging.
 
-    toolKey = 'PointTrailToPolygonDialog'
+    TODO: Consider using a pandas dataframe for previewing data
+    see: https://stackoverflow.com/questions/31475965/fastest-way-to-populate-qtableview-from-pandas-data-frame
+
+    """
+
+    toolKey = 'CleanTrimPointsDialog'
     sampleRowCount = 20
 
     def __init__(self, iface, parent=None):
 
-        super(PointTrailToPolygonDialog, self).__init__(iface.mainWindow())
+        super(CleanTrimPointsDialog, self).__init__(iface.mainWindow())
 
         # Set up the user interface from Designer.
         self.setupUi(self)
 
-        self.iface = iface
+        self.iface = iface  # The qgis interface
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
 
@@ -234,10 +243,11 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
-        self.validationLayout = QtGui.QFormLayout(self)
+        ''' source: https://nathanw.net/2013/08/02/death-to-the-message-box-use-the-qgis-messagebar/
+        Add the error messages to top of form via a message bar. '''
 
-        # Add the error messages to top of form via a message bar.
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
+        self.validationLayout = QtGui.QFormLayout(self)
 
         if isinstance(self.layout(), QtGui.QFormLayout):
             # create a validation layout so multiple messages can be added and cleaned up.
@@ -250,6 +260,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         self.dataSource = None
         self.layer = None
         self.fields = None
+        self.file_encoding = None
         self.sampleDatasource = None
         self.lblOGRHeaders.setText('')
         self.inQgsCRS = None
@@ -259,15 +270,15 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         # GUI Runtime Customisation -----------------------------------------------
         # Exclude services (WFS, WCS etc from list)
         # Source: https://gis.stackexchange.com/a/231792
-        # python 2 solution....
 
+        # qgis2/python 2 solution....
         expected = []
         for layer in self.iface.legendInterface().layers():
             if hasattr(layer, 'providerType') and layer.providerType() not in ['ogr', 'delimitedtext']:
                 expected.append(layer)
 
         self.mcboTargetLayer.setExceptedLayerList(expected)
-
+        self.mcboClipPolyLayer.setExceptedLayerList(expected)
         # python3 solution
         # providers = QgsProviderRegistry.instance().providerList()
         # providers.remove('WFS')
@@ -282,6 +293,20 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             self.cgbFromLayer.setChecked(False)
             self.toggleSource()
 
+        if self.mcboClipPolyLayer.count() > 0:
+            self.chkUseSelected_ClipPoly.setText('No features selected')
+            self.chkUseSelected_ClipPoly.setStyleSheet('font:regular')
+            self.chkUseSelected_ClipPoly.setEnabled(False)
+
+            lyrTarget = self.mcboClipPolyLayer.currentLayer()
+
+            if len(lyrTarget.selectedFeatures()) > 0:
+                self.chkUseSelected_ClipPoly.setText(
+                    'Use the {} selected feature(s) ?'.format(len(lyrTarget.selectedFeatures())))
+                self.chkUseSelected_ClipPoly.setStyleSheet('font:bold')
+                self.chkUseSelected_ClipPoly.setEnabled(True)
+
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_cleanTrimPoints.svg'))
         self.gpbGeometry.setChecked(False)
         self.chkSavePointsFile.setChecked(False)
         self.sampleRefreshDisabled = False
@@ -321,10 +346,8 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             addToLog (bool): Also add message to Log. Defaults to False
             showLogPanel (bool): Display the log panel
             exc_info () : Information to be used as a traceback if required
-
         """
 
-        # self.cleanMessageBars(AllBars=False)
         if core_QGIS:
             newMessageBar = self.iface.messageBar()
         else:
@@ -346,6 +369,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             rowCount = self.validationLayout.count()
             self.validationLayout.insertRow(rowCount + 1, newMessageBar)
 
+        # print to console which will also force the messagebar to update
         if addToLog:
             if level == 1:  # 'WARNING':
                 LOGGER.warning(message)
@@ -364,7 +388,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         return self.currentFile
 
     def setFilePath(self, path):
-        self.lneInCSVFile.setText(path)
+        self.lneInCSVFile.setText(os.path.normpath(path))
 
     def verifyFile(self, file_name):
         """ This will check (verify) the file. If non-utf-8 characters are found (ie degree symbol, cubed symbol
@@ -380,7 +404,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
         result = file_name
         self.cleanMessageBars(True)
-        dataSource = ogr.Open(file_name, 0)
+        dataSource = ogr.Open(os.path.normpath(file_name), 0)
         if dataSource is None:
             self.send_to_messagebar(u"Could not open file. Try loading as a Delimited Text Layer",
                                     level=QgsMessageBar.CRITICAL, duration=0,
@@ -443,12 +467,10 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                         self.send_to_messagebar(
                             '     {}   to   {} using {}'.format(fieldName, str(newName), encodeType),
                             '', QgsMessageBar.WARNING, iRenamedFields * 5, addToLog=True)
-
                         # Make a copy of the definition
                         newFldDef = ogr.FieldDefn(fieldDefn.GetName(), fieldDefn.GetType())
                         newFldDef.SetWidth(fieldDefn.GetWidth())
                         newFldDef.SetPrecision(fieldDefn.GetPrecision())
-
                         # Change the name
                         newFldDef.SetName(str(newName))
                         layer.AlterFieldDefn(iFld, newFldDef, ogr.ALTER_NAME_FLAG)
@@ -552,7 +574,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         if index is None:
             self.layer = None
         else:
-            self.lblSheet.setStyleSheet('color:black')
+            self.lblSheet.setStyleSheet('QLabel#lblSheet {color:black}')
             self.layer = self.cboSheet.itemData(index)
             if self.cboSheet.count() > 1:
                 self.setLayerName(u"{}-{}".format(self.finfo.completeBaseName(),
@@ -587,7 +609,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
     def on_cmdInFile_clicked(self):
         # Reset for new file....
         self.setInCrs('Unspecified')
-        self.lneSavePolyFile.clear()
+        self.lneSaveCSVFile.clear()
         self.lneSavePointsFile.clear()
 
         inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder")
@@ -597,16 +619,20 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         # Reset the Message Box
         self.messageBar.clearWidgets()
         s = QtGui.QFileDialog.getOpenFileName(
-            self, self.tr("Choose a spreadsheet file to open"),
-            inFolder, self.tr("Delimited files") + " (*.csv *.txt);;"
-                      + self.tr("Spreadsheet files") + " (*.ods *.xls *.xlsx);;"
-                      + self.tr("GDAL Virtual Format") + " (*.vrt);;")
+            self,
+            caption=self.tr("Choose a spreadsheet file to open"),
+            directory=inFolder,
+            filter=self.tr("Delimited files") + " (*.csv *.txt);;"
+                   + self.tr("Spreadsheet files") + " (*.ods *.xls *.xlsx);;"
+                   + self.tr("GDAL Virtual Format") + " (*.vrt);;")
 
         s = os.path.normpath(s)
         self.currentFile = self.verifyFile(s)
 
         if self.currentFile == '':
             return
+
+        self.lblInFile.setStyleSheet('color:black')
 
         self.cleanMessageBars(self)
         self.setFileEncoding(self.currentFile)
@@ -617,7 +643,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             x = float(self.tvwSample.model().index(1, self.cboXField.currentIndex()).data())
             y = float(self.tvwSample.model().index(1, self.cboYField.currentIndex()).data())
 
-            # if it looks like geographics then use gps default coordinate system of wgs84
+            # if it looks like geograPhics then use gps default coordinate system of wgs84
             if abs(x) < 180 and abs(y) <= 90:
                 self.setInCrs(QgsCoordinateReferenceSystem('EPSG:4326'))
             else:
@@ -632,59 +658,113 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cmdSavePointsFile_clicked')
     def on_cmdSavePointsFile_clicked(self):
 
-        # If the setting has been previously set use this.
         lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        if self.cgbFromLayer.isChecked():
-            lyrTarget = self.mcboTargetLayer.currentLayer()
-            filename = lyrTarget.name() + '_points.shp'
-        else:
-            filename = self.lneLayerName.text() + '_points.shp'
+        fld = re.sub('[^A-Za-z0-9_-]+', '', unidecode(self.processField()))[:10]
 
-        s = saveAsDialog(self, self.tr("Save Points As"),
+        if self.lneSaveCSVFile.text() == '':
+
+            if self.cgbFromLayer.isChecked():
+                lyrTarget = self.mcboTargetLayer.currentLayer()
+                filename = lyrTarget.name() + '_{}_normtrimmed.shp'.format(fld)
+            else:
+                filename = self.lneLayerName.text() + '_{}_normtrimmed.shp'.format(fld)
+        else:
+            filename = os.path.splitext(self.lneSaveCSVFile.text())[0]
+
+        # replace more than one instance of underscore with a single one.
+        # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
+        filename = re.sub(r"_+", "_", filename)
+
+        s = saveAsDialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
                          defaultName=os.path.join(lastFolder, filename))
+
         if s == '' or s is None:
             return
-
         s = os.path.normpath(s)
         self.chkSavePointsFile.setChecked(True)
         self.lneSavePointsFile.setText(s)
         self.chkSavePointsFile.setStyleSheet('color:black')
-        self.lneSavePointsFile.setStyleSheet('color:black')
+        self.lblSaveCSVFile.setStyleSheet('color:black')
+
         write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
 
-    @QtCore.pyqtSlot(name='on_cmdSavePolyFile_clicked')
-    def on_cmdSavePolyFile_clicked(self):
+    @QtCore.pyqtSlot(name='on_cmdSaveCSVFile_clicked')
+    def on_cmdSaveCSVFile_clicked(self):
 
         lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
+        # start building a filename
         if self.cgbFromLayer.isChecked():
             lyrTarget = self.mcboTargetLayer.currentLayer()
-            filename = lyrTarget.name() + '_polygon.shp'
+            filename = lyrTarget.name()
         else:
-            filename = self.lneLayerName.text() + '_polygon.shp'
+            filename = self.lneLayerName.text()
 
-        s = saveAsDialog(self, self.tr("Save Polygon As"),
-                         self.tr("ESRI Shapefile") + " (*.shp);;",
+        # convert field name to something meaningful if it contains invalid chars, ie degC
+        fld = unidecode(self.processField())
+
+        # remove field from filename, then addit according to the naming convention to avoid duplications.
+        # flags=re.I is for a case insensitive find and replace
+        filename = re.sub(fld, '', filename, flags=re.I)
+
+        # and again with invalid characters removed. Only allow alpha-numeric Underscores and hyphens
+        fld = re.sub('[^A-Za-z0-9_-]+', '', fld)
+        filename = re.sub(fld, '', filename)
+
+        # and again with the field truncated to 10 chars
+        fld = fld[:10]
+        filename = re.sub(fld, '', filename)
+
+        # add the chosen field name to the filename
+        filename = '{}_{}_normtrimmed.csv'.format(filename, fld)
+
+        # replace more than one instance of underscore with a single one.
+        # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
+        filename = re.sub(r"_+", "_", filename)
+
+        s = saveAsDialog(self, self.tr("Save As"),
+                         self.tr("Comma Delimited") + " (*.csv);;",
                          defaultName=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return
 
         s = os.path.normpath(s)
-        self.lneSavePolyFile.setText(s)
-        self.lblSavePolyFile.setStyleSheet('color:black')
-        self.lneSavePolyFile.setStyleSheet('color:black')
-        write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
+        self.lneSaveCSVFile.setText(s)
+
+        if file_in_use(s):
+            self.lneSaveCSVFile.setStyleSheet('color:red')
+            self.lblSaveCSVFile.setStyleSheet('color:red')
+        else:
+            self.lblSaveCSVFile.setStyleSheet('color:black')
+            self.lneSaveCSVFile.setStyleSheet('color:black')
+            write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
+
+    @QtCore.pyqtSlot(int)
+    def on_cboXField_currentIndexChanged(self, index):
+        if self.cboXField.currentText() != '':
+            self.lblXField.setStyleSheet('color:black')
+        self.setOutCRS()
+
+    @QtCore.pyqtSlot(int)
+    def on_cboYField_currentIndexChanged(self, index):
+        if self.cboYField.currentText() != '':
+            self.lblYField.setStyleSheet('color:black')
+        self.setOutCRS()
+
+    @QtCore.pyqtSlot(int)
+    def on_cboProcessField_currentIndexChanged(self, index):
+        if self.cboProcessField.currentText() != '':
+            self.lblProcessField.setStyleSheet('color:black')
 
     @QtCore.pyqtSlot(name='on_cmdInCRS_clicked')
     def on_cmdInCRS_clicked(self):
-
         dlg = QgsGenericProjectionSelector(self)
         dlg.setMessage('Select CRS for the input file geometry')
         if self.inQgsCRS is not None:
@@ -695,13 +775,14 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(str)
     def on_lneInCRS_textChanged(self):
+        # https://stackoverflow.com/a/27426576
         self.setOutCRS()
 
     @QtCore.pyqtSlot(name='on_cmdOutCRS_clicked')
     def on_cmdOutCRS_clicked(self):
 
         dlg = QgsGenericProjectionSelector(self)
-        dlg.setMessage('Select coordinate reference system for output files')
+        dlg.setMessage('Select projected coordinate reference system for output Files')
         if self.outQgsCRS is not None:
             dlg.setSelectedAuthId(self.outQgsCRS.authid())
 
@@ -722,6 +803,11 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         self.updatetvwSample()
 
     @QtCore.pyqtSlot(int)
+    def on_chkUseSelected_ClipPoly_stateChanged(self, state):
+        if self.chkUseSelected_ClipPoly.isChecked():
+            self.chkClipToPoly.setChecked(True)
+
+    @QtCore.pyqtSlot(int)
     def on_chkHeader_stateChanged(self, state):
         self.updateFields()
         self.updateFieldBoxes()
@@ -733,6 +819,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(name='on_lneInCSVFile_editingFinished')
     def on_lneInCSVFile_editingFinished(self):
+
         self.afterOpenFile()
 
     def on_cgbFromLayer_collapsedStateChanged(self):
@@ -744,6 +831,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cgbFromLayer_clicked')
     def on_cgbFromLayer_clicked(self):
         self.toggleSource()
+        self.updateUseSelected()
 
     @QtCore.pyqtSlot(name='on_cgbFromFile_clicked')
     def on_cgbFromFile_clicked(self):
@@ -753,6 +841,25 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
     def on_mcboTargetLayer_layerChanged(self):
         self.updateUseSelected()
 
+    def on_mcboClipPolyLayer_layerChanged(self):
+        """Update use selected checkbox if active layer has a feature selection"""
+
+        self.chkUseSelected_ClipPoly.setText('No features selected')
+        self.chkUseSelected_ClipPoly.setEnabled(False)
+        self.chkUseSelected_ClipPoly.setChecked(False)
+        self.chkUseSelected_ClipPoly.setStyleSheet('font:regular')
+        self.chkClipToPoly.setChecked(True)
+
+        if self.mcboClipPolyLayer.count() == 0:
+            return
+        lyrTarget = self.mcboClipPolyLayer.currentLayer()
+
+        if len(lyrTarget.selectedFeatures()) > 0:
+            self.chkUseSelected_ClipPoly.setText(
+                'Use the {} selected feature(s) ?'.format(len(lyrTarget.selectedFeatures())))
+            self.chkUseSelected_ClipPoly.setEnabled(True)
+            self.chkUseSelected_ClipPoly.setStyleSheet('font:bold')
+
     def toggleSource(self):
         """Toggles or set collapse state of collapsible group box. """
         if self.cgbFromLayer.isChecked():
@@ -760,6 +867,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             self.cgbFromFile.setCollapsed(True)  # Shrink File Group
             self.cgbFromFile.setChecked(False)  # Uncheck File Group
         else:
+            self.setLayerName('')
             self.cgbFromLayer.setCollapsed(True)
             self.cgbFromFile.setCollapsed(False)
             self.cgbFromFile.setChecked(True)
@@ -767,6 +875,8 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
         self.chkHeader.hide()
         self.chkEOFDetection.hide()
+        self.lneSaveCSVFile.setText('')
+        self.lneSavePointsFile.setText('')
 
     def offset(self):
         offset = self.linesToIgnore()
@@ -804,7 +914,9 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             feature = layer.GetNextFeature()
             current_row = 1
             while feature is not None:
+                # values = []
                 for iField in xrange(0, layerDefn.GetFieldCount()):
+                    # values.append(feature.GetFieldAsString(iField).decode('UTF-8'))
                     if feature.IsFieldSet(iField):
                         self._non_empty_rows = current_row
 
@@ -822,7 +934,6 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         return sql
 
     def updateGeometry(self):
-
         if GDAL_COMPAT or self.offset() == 0:
             self.gpbGeometry.setEnabled(True)
             self.gpbGeometry.setToolTip('')
@@ -855,8 +966,19 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
     def setYField(self, fieldName):
         self.cboYField.setCurrentIndex(self.cboYField.findData(fieldName, QtCore.Qt.EditRole))
 
+    def processField(self):
+        index = self.cboProcessField.currentIndex()
+        if index == -1:
+            return ''
+        return self.cboProcessField.itemData(index, QtCore.Qt.EditRole)
+
+    def setProcessField(self, fieldName):
+        self.cboProcessField.setCurrentIndex(self.cboProcessField.findData(fieldName, QtCore.Qt.EditRole))
+
     def updateFieldBoxes(self):
+
         if self.offset() > 0:
+            # return
             pass
 
         if self.layer is None:
@@ -872,12 +994,19 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         self.cboXField.setModel(model)
         self.cboYField.setModel(model)
 
+        # copy the fields, and add a blank.
+        process_fields = [''] + [self.cboYField.itemText(i) for i in range(self.cboYField.count())]
+        self.cboProcessField.clear()
+        self.cboProcessField.addItems(process_fields)
+        self.setProcessField("")
+
         self.setXField(xField)
         self.setYField(yField)
 
         if self.xField() != '' and self.yField() != '':
             return
 
+        # ToDo: Look at using predict coordinate column names from pyprecag
         self.tryFields("longitude", "latitude")
         self.tryFields("lon", "lat")
         self.tryFields("x", "y")
@@ -897,26 +1026,6 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                     self.cboYField.setCurrentIndex(i)
                     break
 
-    def crs(self):
-        return self.inQgsCRS.authid()
-
-    def setInCrs(self, crs):
-        if crs == 'Unspecified' or crs == '':
-            self.inQgsCRS = None
-            self.outQgsCRS = None
-        else:
-            self.inQgsCRS = QgsCoordinateReferenceSystem(crs)
-
-        if self.inQgsCRS is None:
-            self.lneInCRS.setText('Unspecified')
-            self.lblOutCRS.setText('Unspecified')
-        else:
-            self.lneInCRS.setText('{}  -  {}'.format(self.inQgsCRS.description(), self.inQgsCRS.authid()))
-            self.lneInCRS.setStyleSheet('color:black;background:transparent;')
-            self.lblInCRSTitle.setStyleSheet('color:black')
-            self.inQgsCRS.validate()
-            self.setOutCRS()
-
     def setOutCRS(self):
         if self.chkAutoCRS.isChecked() and self.inQgsCRS is None:
             self.lblOutCRS.setText('Unspecified')
@@ -928,7 +1037,6 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                 if self.inQgsCRS.geographicFlag():
 
                     # https://stackoverflow.com/questions/8157688/specifying-an-index-in-qtableview-with-pyqt
-                    # QTableView.model().index(row, column).data()
                     try:
                         x = float(self.tvwSample.model().index(1, self.cboXField.currentIndex()).data())
                         y = float(self.tvwSample.model().index(1, self.cboYField.currentIndex()).data())
@@ -957,8 +1065,34 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             self.outQgsCRS.validate()
             self.lblOutCRS.setText('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid()))
 
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
+            if self.outQgsCRS.geographicFlag():
+                self.lblOutCRSTitle.setStyleSheet('color:red')
+                self.lblOutCRS.setStyleSheet('color:red')
+                self.send_to_messagebar(unicode(self.tr("Select output PROJECTED coordinate system (not geographic)")),
+                                        level=QgsMessageBar.WARNING, duration=5)
+            else:
+                self.lblOutCRSTitle.setStyleSheet('color:black')
+                self.lblOutCRS.setStyleSheet('color:black')
+
+    def crs(self):
+        return self.inQgsCRS.authid()
+
+    def setInCrs(self, crs):
+        if crs == 'Unspecified' or crs == '':
+            self.inQgsCRS = None
+            self.outQgsCRS = None
+        else:
+            self.inQgsCRS = QgsCoordinateReferenceSystem(crs)
+
+        if self.inQgsCRS is None:
+            self.lneInCRS.setText('Unspecified')
+            self.lblOutCRS.setText('Unspecified')
+        else:
+            self.lneInCRS.setText('{}  -  {}'.format(self.inQgsCRS.description(), self.inQgsCRS.authid()))
+            self.lneInCRS.setStyleSheet('color:black;background:transparent;')
+            self.lblInCRSTitle.setStyleSheet('color:black')
+            self.inQgsCRS.validate()
+            self.setOutCRS()
 
     def updatetvwSample(self):
         if self.sampleRefreshDisabled:
@@ -989,16 +1123,17 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
     def vrtPath(self):
         if self.cboSheet.count() > 1:
-            vrtpth = u'{}.{}.vrt'.format(os.path.basename(self.filePath()), self.sheet())
+            vrtpth = u'{}.{}.vrt'.format(self.filePath(), self.sheet())
         else:
-            vrtpth = u'{}.vrt'.format(os.path.basename(self.filePath()))
-        return os.path.join(TEMPDIR, vrtpth)
+            vrtpth = u'{}.vrt'.format(self.filePath())
+        return vrtpth
 
     def samplePath(self):
         filename = u'{}.tmp.vrt'.format(os.path.basename(self.filePath()))
         return os.path.join(TEMPDIR, filename)
 
     def readVrt(self):
+
         if self.dataSource is None:
             return False
 
@@ -1025,6 +1160,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         return True
 
     def readVrtStream(self, in_file):
+
         stream = QtCore.QXmlStreamReader(in_file)
 
         stream.readNextStartElement()
@@ -1085,7 +1221,6 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
     def updateFields(self):
         """Refreshes the list of field definitions."""
-
         if self.layer is None:
             self.fields = []
             return
@@ -1193,7 +1328,6 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         Returns (bool): If file written successfully
 
         """
-
         content = self.prepareVrt()
 
         vrtPath = self.vrtPath()
@@ -1219,8 +1353,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
         """
 
-        content = self.prepareVrt(sample=True,
-                                  without_fields=without_fields)
+        content = self.prepareVrt(sample=True, without_fields=without_fields)
 
         vrtPath = self.samplePath()
         in_file = QtCore.QFile(vrtPath)
@@ -1239,11 +1372,11 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         """Update use selected checkbox if active layer has a feature selection"""
 
         self.chkUseSelected.setText('No features selected')
-        self.chkUseSelected.setStyleSheet('font:regular')
         self.chkUseSelected.setEnabled(False)
+        self.chkUseSelected.setStyleSheet('font:regular')
         self.lneLayerName.setText('')
 
-        if self.mcboTargetLayer.count() == 0:
+        if self.mcboTargetLayer.count() == 0:  # count of layers in combo box
             return
 
         lyrTarget = self.mcboTargetLayer.currentLayer()
@@ -1251,10 +1384,14 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
 
         if len(lyrTarget.selectedFeatures()) > 0:
             self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(len(lyrTarget.selectedFeatures())))
-            self.chkUseSelected.setStyleSheet('font:bold')
             self.chkUseSelected.setEnabled(True)
-
+            self.chkUseSelected.setStyleSheet('font:bold')
         self.lneLayerName.setText(lyrTarget.name())
+
+        process_fields = [''] + [field.name() for field in lyrTarget.fields() if field.isNumeric()]
+
+        self.cboProcessField.clear()
+        self.cboProcessField.addItems(process_fields)
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
@@ -1264,25 +1401,25 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             if self.cgbFromFile.isChecked():
                 if self.dataSource is None:
                     self.lblInFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Please select an input file"))
+                    errorList.append(self.tr("Select an input file"))
                 else:
                     self.lblInFile.setStyleSheet('color:black')
 
                 if self.layer is None:
                     self.lblSheet.setStyleSheet('color:red')
-                    errorList.append(self.tr("Please select a sheet"))
+                    errorList.append(self.tr("Select a sheet"))
                 else:
                     self.lblSheet.setStyleSheet('color:black')
 
                 if self.cboXField.currentText() == '':
                     self.lblXField.setStyleSheet('color:red')
-                    errorList.append(self.tr("Please select an x field"))
+                    errorList.append(self.tr("Select an x field"))
                 else:
                     self.lblXField.setStyleSheet('color:black')
 
                 if self.cboYField.currentText() == '':
                     self.lblYField.setStyleSheet('color:red')
-                    errorList.append(self.tr("Please select an y field"))
+                    errorList.append(self.tr("Select an y field"))
                 else:
                     self.lblYField.setStyleSheet('color:black')
 
@@ -1294,26 +1431,11 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                     self.lblInCRSTitle.setStyleSheet('color:black')
                     self.lneInCRS.setStyleSheet('color:black;background:transparent;')
 
-                if self.chkSavePointsFile.isChecked():
-                    if self.lneSavePointsFile.text() == '':
-                        self.chkSavePointsFile.setStyleSheet('color:red')
-                        errorList.append(self.tr("Please enter an output points filename"))
-                    elif not os.path.exists(os.path.dirname(self.lneSavePointsFile.text())):
-                        self.lneSavePointsFile.setStyleSheet('color:red')
-                        errorList.append(self.tr("Output point folder does not exist!"))
-                else:
-                    self.chkSavePointsFile.setStyleSheet('color:black')
-                    self.lneSavePointsFile.setStyleSheet('color:black')
-
-            if self.lneSavePolyFile.text() == '':
-                self.lblSavePolyFile.setStyleSheet('color:red')
-                errorList.append(self.tr("Please enter an output polygon filename"))
-            elif not os.path.exists(os.path.dirname(self.lneSavePolyFile.text())):
-                self.lneSavePolyFile.setStyleSheet('color:red')
-                errorList.append(self.tr("Output polygon folder does not exist!"))
+            if self.cboProcessField.currentText() == '':
+                self.lblProcessField.setStyleSheet('color:red')
+                errorList.append(self.tr("Select a field to process"))
             else:
-                self.lblSavePolyFile.setStyleSheet('color:black')
-                self.lneSavePolyFile.setStyleSheet('color:black')
+                self.lblProcessField.setStyleSheet('color:black')
 
             if self.outQgsCRS is None:
                 self.lblOutCRSTitle.setStyleSheet('color:red')
@@ -1328,6 +1450,35 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                     self.lblOutCRSTitle.setStyleSheet('color:black')
                     self.lblOutCRS.setStyleSheet('color:black')
 
+            if self.lneSaveCSVFile.text() == '':
+                self.lneSaveCSVFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Enter output CSV file"))
+            elif not os.path.exists(os.path.dirname(self.lneSaveCSVFile.text())):
+                self.lneSaveCSVFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Output CSV folder cannot be found"))
+            elif os.path.exists(self.lneSaveCSVFile.text()) and file_in_use(self.lneSaveCSVFile.text(), False):
+                self.lneSaveCSVFile.setStyleSheet('color:red')
+                self.lblSaveCSVFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Output file {} is open in QGIS or another application".format(
+                    os.path.basename(self.lneSaveCSVFile.text()))))
+            else:
+                self.lblSaveCSVFile.setStyleSheet('color:black')
+                self.lneSaveCSVFile.setStyleSheet('color:black')
+
+            if self.chkSavePointsFile.isChecked():
+                if self.lneSavePointsFile.text() == '':
+                    self.chkSavePointsFile.setStyleSheet('color:red')
+                    errorList.append(self.tr("Enter output points shapefile file"))
+                elif not os.path.exists(os.path.dirname(self.lneSavePointsFile.text())):
+                    self.lneSavePointsFile.setStyleSheet('color:red')
+                    errorList.append(self.tr("Output shapefile folder cannot be found"))
+                else:
+                    self.chkSavePointsFile.setStyleSheet('color:black')
+                    self.lneSavePointsFile.setStyleSheet('color:black')
+            else:
+                self.chkSavePointsFile.setStyleSheet('color:black')
+                self.lneSavePointsFile.setStyleSheet('color:black')
+
             if len(errorList) > 0:
                 raise ValueError(errorList)
 
@@ -1337,6 +1488,7 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                 for i, ea in enumerate(errorList):
                     self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
                 return False
+
         return True
 
     def setFileEncoding(self, file_name):
@@ -1368,16 +1520,20 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         try:
             # disable form via a frame, this will still allow interaction with the message bar
             self.fraMain.setDisabled(True)
-            self.cleanMessageBars(True)
 
+            # clean gui and Qgis messagebars
+            self.cleanMessageBars(True)
+            # self.iface.messageBar().clearWidgets()
+
+            # Change cursor to Wait cursor
             QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
 
-            LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
+            self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
+                                    level=QgsMessageBar.WARNING,
+                                    duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
-            # Close the form before processing
-            self.send_to_messagebar("Please wait. QGIS will be locked. See log panel for progress.", "Processing",
-                                    level=QgsMessageBar.WARNING, duration=0, addToLog=False, showLogPanel=True)
+            LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
@@ -1387,34 +1543,89 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                 settingsStr += '\n    {:30}\t{}'.format('Coordinate System:', self.lneInCRS.text())
             else:
                 if self.chkUseSelected.isChecked():
-                    settingsStr += '\n    {:30}\t{} with {} selected features' \
-                                   ''.format('Layer:', self.mcboTargetLayer.currentLayer().name(),
-                                             len(self.mcboTargetLayer.currentLayer().selectedFeatures()))
+                    settingsStr += '\n    {:30}\t{} with {} selected features'.format('Layer:',
+                                                                                      self.mcboTargetLayer.currentLayer().name(),
+                                                                                      len(
+                                                                                          self.mcboTargetLayer.currentLayer().selectedFeatures()))
                 else:
                     settingsStr += '\n    {:30}\t{}'.format('Layer:', self.mcboTargetLayer.currentLayer().name())
                 settingsStr += '\n    {:30}\t{}'.format('Coordinate System:', self.lneInCRS.text())
 
+            settingsStr += '\n    {:30}\t{}'.format('Process Field', self.processField())
+
+            if self.chkClipToPoly.isChecked():
+                if self.chkUseSelected_ClipPoly.isChecked():
+
+                    settingsStr += '\n    {:30}\t{} with {} selected features'.format('Clip Layer:',
+                                                                                      self.mcboClipPolyLayer.currentLayer().name(),
+                                                                                      len(
+                                                                                          self.mcboClipPolyLayer.currentLayer().selectedFeatures()))
+                else:
+                    settingsStr += '\n    {:30}\t{}'.format('Clip Layer:', self.mcboClipPolyLayer.currentLayer().name())
+
+            points_clean_shp = None
+            points_remove_shp = None
+            gp_layer_name = ''
+
             if self.chkSavePointsFile.isChecked():
-                settingsStr += '\n    {:30}\t{}'.format('Output Points File:', self.lneSavePointsFile.text())
+                points_clean_shp = self.lneSavePointsFile.text()
+                if 'norm_trim' in os.path.basename(points_clean_shp):
+                    points_remove_shp = self.lneSavePointsFile.text().replace('_normtrimmed', '_removedpts')
+                else:
+                    points_remove_shp = self.lneSavePointsFile.text().replace('.shp', '_removedpts.shp')
+
+                settingsStr += '\n    {:30}\t{}'.format('Saved Points:', points_clean_shp)
+                settingsStr += '\n    {:30}\t{}'.format('Saved Removed Points:', points_remove_shp)
+
+            elif self.DEBUG:
+                gp_layer_name = 'DEBUG'
+                points_clean_shp = os.path.join(TEMPDIR,
+                                                os.path.basename(self.lneSaveCSVFile.text().replace('.csv', '.shp')))
+                points_remove_shp = os.path.join(TEMPDIR, os.path.basename(
+                    self.lneSaveCSVFile.text().replace('.csv', '_removepts.shp')))
 
             settingsStr += '\n    {:30}\t{}m'.format('Thinning Distance:', self.dsbThinDist.value())
-            settingsStr += '\n    {:30}\t{}m'.format("Aggregate Distance", self.dsbAggregateDist.value())
-            settingsStr += '\n    {:30}\t{}m'.format("Buffer Distance", self.dsbBufferDist.value())
-            settingsStr += '\n    {:30}\t{}m'.format("Shrink Distance", self.dsbShrinkDist.value())
+            settingsStr += '\n    {:30}\t{}'.format('Remove Zeros:', self.chkRemoveZero.isChecked())
+            settingsStr += '\n    {:30}\t{}'.format("Standard Devs to Use:", self.dsbStdCount.value())
+            settingsStr += '\n    {:30}\t{}'.format("Trim Iteratively:", self.chkIterate.isChecked())
 
-            settingsStr += '\n    {:30}\t{}'.format('Output Polygon File:', self.lneSavePolyFile.text())
+            settingsStr += '\n    {:30}\t{}'.format('Output CSV File:', self.lneSaveCSVFile.text())
             settingsStr += '\n    {:30}\t{}\n\n'.format('Output Projected Coordinate System:', self.lblOutCRS.text())
 
             LOGGER.info(settingsStr)
-            layerPts = None
+
+            filePoly = None
+            if self.chkClipToPoly.isChecked():
+                lyrPlyTarget = self.mcboClipPolyLayer.currentLayer()
+
+                if self.chkUseSelected_ClipPoly.isChecked():
+
+                    savePlyName = lyrPlyTarget.name() + '_poly.shp'
+                    filePoly = os.path.join(TEMPDIR, savePlyName)
+                    if os.path.exists(filePoly):  removeFileFromQGIS(filePoly)
+
+                    QgsVectorFileWriter.writeAsVectorFormat(lyrPlyTarget, filePoly, "utf-8", self.inQgsCRS,
+                                                            "ESRI Shapefile", onlySelected=True)
+
+                    if self.DISP_TEMP_LAYERS:
+                        addVectorFileToQGIS(filePoly, layer_name=os.path.splitext(os.path.basename(filePoly))[0]
+                                            , group_layer_name='DEBUG', atTop=True)
+
+                else:
+                    filePoly = lyrPlyTarget.source()
+
             gdfPoints = None
-            stepTime = time.time()
+            filePoints = None
             if self.cgbFromFile.isChecked():
                 if not self.writeVrt():
                     return False
 
+                if self.DEBUG:
+                    filePoints = os.path.join(TEMPDIR, os.path.splitext(os.path.basename(self.lneSaveCSVFile.text()))[
+                        0] + '_table2pts.shp')
+
                 if os.path.splitext(self.currentFile)[-1] == '.csv':
-                    gdfPoints, gdfPtsCrs = convert.convert_csv_to_points(self.currentFile,
+                    gdfPoints, gdfPtsCrs = convert.convert_csv_to_points(self.currentFile, out_shapefilename=filePoints,
                                                                          coord_columns=[self.xField(), self.yField()],
                                                                          coord_columns_epsg=int(
                                                                              self.inQgsCRS.authid().replace('EPSG:',
@@ -1431,21 +1642,13 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                                                                                    coord_columns_epsg=int(
                                                                                        self.inQgsCRS.authid().replace(
                                                                                            'EPSG:', '')))
+                    if filePoints != '':
+                        describe.save_geopandas_tofile(gdfPoints, filePoints, file_encoding=self.file_encoding)
                     del pdfxls
 
-                stepTime = time.time()
-
-                if self.DISP_TEMP_LAYERS or self.DEBUG:
-                    filePoints = os.path.join(TEMPDIR, os.path.basename(
-                        self.lneSavePolyFile.text().replace('.shp', '_table2pts.shp')))
-                    describe.save_geopandas_tofile(gdfPoints, filePoints, file_encoding=self.file_encoding)
-                    LOGGER.info('{:<30} {:<15} {}'.format('Save To file',
-                                                          datetime.timedelta(seconds=time.time() - stepTime),
-                                                          filePoints))
-                    stepTime = time.time()
-                    if self.DISP_TEMP_LAYERS:
-                        addVectorFileToQGIS(filePoints, layer_name=os.path.basename(filePoints),
-                                            group_layer_name='DEBUG', atTop=True)
+                if self.DISP_TEMP_LAYERS and filePoints != '':
+                    addVectorFileToQGIS(filePoints, layer_name=os.path.splitext(os.path.basename(filePoints))[0],
+                                        group_layer_name='DEBUG', atTop=True)
 
             elif self.cgbFromLayer.isChecked():
                 layerPts = self.mcboTargetLayer.currentLayer()
@@ -1453,10 +1656,10 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                 if layerPts.providerType() == 'delimitedtext' or os.path.splitext(layerPts.source())[-1] == '.vrt' or \
                         self.chkUseSelected.isChecked() or self.cgbFromFile.isChecked():
 
-                    filePoints = os.path.join(TEMPDIR, "{}_lyr2pts.shp".format(self.layerName()))
+                    filePoints = os.path.join(TEMPDIR, "{}_points.shp".format(self.layerName()))
 
                     if self.chkUseSelected.isChecked():
-                        filePoints = os.path.join(TEMPDIR, "{}_sel2pts.shp".format(self.layerName()))
+                        filePoints = os.path.join(TEMPDIR, "{}_selected_points.shp".format(self.layerName()))
 
                     if os.path.exists(filePoints):
                         removeFileFromQGIS(filePoints)
@@ -1467,15 +1670,16 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                     _writer = QgsVectorFileWriter.writeAsVectorFormat(ptsLayer, filePoints, "utf-8", self.inQgsCRS,
                                                                       "ESRI Shapefile")
 
-                    LOGGER.info('{:<30} {:<15} {}'.format('Save layer/selection to file',
-                                                          datetime.timedelta(seconds=time.time() - stepTime),
-                                                          filePoints))
-                    stepTime = time.time()
+                    # reset field to match truncated field in the saved shapefile.
+                    shpField = re.sub('[^A-Za-z0-9_-]+', '', self.cboProcessField.currentText())[:10]
+                    self.cboProcessField.addItem(shpField)
+                    self.setProcessField(shpField)
 
                     del ptsLayer
 
                     if self.DISP_TEMP_LAYERS:
-                        addVectorFileToQGIS(filePoints, group_layer_name='DEBUG', atTop=True)
+                        addVectorFileToQGIS(filePoints, layer_name=os.path.splitext(os.path.basename(filePoints))[0],
+                                            group_layer_name='DEBUG', atTop=True)
 
                 else:
                     filePoints = layerPts.source()
@@ -1490,51 +1694,51 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
                 gdfPoints = gdfPoints.to_crs(epsg=epsgOut)
                 gdfPtsCrs = pyprecag_crs.crs()
                 gdfPtsCrs.getFromEPSG(epsgOut)
-                LOGGER.info('{:<30} {d:<15} {}'.format('Reproject points', '',
-                                                       d=datetime.timedelta(seconds=time.time() - stepTime)))
-                stepTime = time.time()
 
-                if self.chkSavePointsFile.isChecked():
-                    filePoints = self.lneSavePointsFile.text()
-                else:
+                if self.DEBUG:
                     filePoints = os.path.join(TEMPDIR, os.path.basename(
-                        self.lneSavePolyFile.text().replace('.shp', '_ptsprj.shp')))
-
-                if self.DISP_TEMP_LAYERS and self.DEBUG or self.chkSavePointsFile.isChecked():
+                        self.lneSaveCSVFile.text().replace('.csv', '_ptsprj.shp')))
                     removeFileFromQGIS(filePoints)
                     describe.save_geopandas_tofile(gdfPoints, filePoints)
-                    LOGGER.info('{:<30} {:<15} {}'.format('Save to file',
-                                                          datetime.timedelta(seconds=time.time() - stepTime),
-                                                          filePoints))
-                    stepTime = time.time()
-
                     if self.DISP_TEMP_LAYERS:
                         if self.DEBUG:
-                            addVectorFileToQGIS(filePoints, group_layer_name='DEBUG', atTop=True)
+                            addVectorFileToQGIS(filePoints,
+                                                layer_name=os.path.splitext(os.path.basename(filePoints))[0],
+                                                group_layer_name='DEBUG',
+                                                atTop=True)
                         else:
-                            addVectorFileToQGIS(filePoints, atTop=True)
+                            addVectorFileToQGIS(filePoints,
+                                                layer_name=os.path.splitext(os.path.basename(filePoints))[0],
+                                                atTop=True)
 
-            # secondly create boundary from points.
-            removeFileFromQGIS(self.lneSavePolyFile.text())
+            _ = processing.clean_trim_points(gdfPoints, gdfPtsCrs, self.processField(),
+                                             output_csvfile=self.lneSaveCSVFile.text(), boundary_polyfile=filePoly,
+                                             out_keep_shapefile=points_clean_shp,
+                                             out_removed_shapefile=points_remove_shp,
+                                             thin_dist_m=self.dsbThinDist.value(),
+                                             remove_zeros=self.chkRemoveZero.isChecked(),
+                                             stdevs=self.dsbStdCount.value(),
+                                             iterative=self.chkIterate.isChecked())
 
-            result = processing.create_polygon_from_point_trail(gdfPoints, gdfPtsCrs,
-                                                                out_filename=self.lneSavePolyFile.text(),
-                                                                thin_dist_m=self.dsbThinDist.value(),
-                                                                aggregate_dist_m=self.dsbAggregateDist.value(),
-                                                                buffer_dist_m=self.dsbBufferDist.value(),
-                                                                shrink_dist_m=self.dsbShrinkDist.value())
+            if points_clean_shp is not None and points_clean_shp != '':
+                lyrFilter = addVectorFileToQGIS(points_clean_shp,
+                                                layer_name=os.path.basename(os.path.splitext(points_clean_shp)[0]),
+                                                atTop=True, group_layer_name=gp_layer_name)
 
-            addVectorFileToQGIS(self.lneSavePolyFile.text(), atTop=True)
+            if points_remove_shp is not None and points_remove_shp != '':
+                lyrRemoveFilter = addVectorFileToQGIS(points_remove_shp, layer_name=os.path.basename(
+                    os.path.splitext(points_remove_shp)[0]),
+                                                      atTop=True, group_layer_name=gp_layer_name)
+
+                vector_apply_unique_value_renderer(lyrRemoveFilter, 'filter')
 
             self.cleanMessageBars(True)
+            self.fraMain.setDisabled(False)
             QtGui.qApp.restoreOverrideCursor()
+            self.iface.messageBar().popWidget()
             self.iface.mainWindow().statusBar().clearMessage()
-            if result is not None:
-                self.fraMain.setDisabled(False)
-                self.send_to_messagebar(result, level=QgsMessageBar.WARNING, duration=0, addToLog=False)
-                return False  # leave dialog open
 
-            return super(PointTrailToPolygonDialog, self).accept(*args, **kwargs)
+            return super(CleanTrimPointsDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
             QtGui.qApp.restoreOverrideCursor()
@@ -1542,7 +1746,8 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
-                                    showLogPanel=True, exc_info=sys.exc_info())
+            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+                                    duration=0, addToLog=True, core_QGIS=False, showLogPanel=True,
+                                    exc_info=sys.exc_info())
 
             return False  # leave dialog open

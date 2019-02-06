@@ -26,11 +26,11 @@ import os
 import sys
 import traceback
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS, addRasterFileToQGIS
-from pat_plugin.util.settings import read_setting, write_setting
+from util.settings import read_setting, write_setting
 
 from pyprecag import config, crs
 from pyprecag.bandops import BandMapping, CalculateIndices
@@ -94,6 +94,8 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
         # GUI Runtime Customisation -----------------------------------------------
         self.chkAddToDisplay.setChecked(False)
         # self.chkAddToDisplay.hide()
+
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_calcImgIndices.svg'))
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.

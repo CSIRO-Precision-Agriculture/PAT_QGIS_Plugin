@@ -8,7 +8,7 @@
         begin      : 2018-02-01
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
 
  ***************************************************************************/
 
@@ -29,7 +29,7 @@ import numpy as np
 from PyQt4.QtGui import QMessageBox, QPushButton
 from unidecode import unidecode
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from PyQt4 import QtCore, QtGui, uic
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.core import QgsMessageLog
@@ -38,9 +38,9 @@ from qgis.gui import QgsMessageBar
 
 from pyprecag import describe, config
 from pyprecag.kriging_ops import prepare_for_vesper_krige
-from pat_plugin.util.check_dependencies import check_vesper_dependency
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.settings import read_setting, write_setting
+from util.check_dependencies import check_vesper_dependency
+from util.custom_logging import errorCatcher, openLogPanel
+from util.settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -72,6 +72,8 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_vesperKriging.svg'))
+
         self.validationLayout = QtGui.QFormLayout(self)
         # source: https://nathanw.net/2013/08/02/death-to-the-message-box-use-the-qgis-messagebar/
         # Add the error messages to top of form via a message bar.

@@ -26,7 +26,7 @@
 import logging
 import os
 
-from pat_plugin import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
+from pat import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 
 from PyQt4.QtGui import QDockWidget, QTabWidget
 from PyQt4.Qt import QCoreApplication
@@ -34,7 +34,7 @@ from qgis._gui import QgsMessageBar
 from qgis.core import QgsMessageLog
 from qgis.utils import iface
 
-from pat_plugin.util.settings import read_setting
+from util.settings import read_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
