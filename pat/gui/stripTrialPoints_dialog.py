@@ -25,12 +25,12 @@ import os
 import sys
 import traceback
 import warnings
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS
-from pat_plugin.util.qgis_symbology import vector_apply_unique_value_renderer
-from pat_plugin.util.settings import read_setting, write_setting
+from util.qgis_symbology import vector_apply_unique_value_renderer
+from util.settings import read_setting, write_setting
     
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QPushButton
@@ -92,7 +92,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         self.autoSetCoordinateSystem()
 
         # GUI Runtime Customisation -----------------------------------------------
-        self.setWindowIcon(QtGui.QIcon(':/plugins/pat_plugin/icons/icon_stripTrialPoints.svg'))
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_stripTrialPoints.svg'))
         self.chkUseSelected.setChecked(False)
         self.chkUseSelected.hide()
         self.chkSaveLinesFile.setChecked(False)

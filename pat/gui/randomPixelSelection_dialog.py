@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- CSIRO Precision Agriculture Tools (PAT) Plugin
+  CSIRO Precision Agriculture Tools (PAT) Plugin
 
- RescaleNormaliseDialog - Rescale or normalise a single band from an image
+  RandomPixelSelectionDialog - create a shapefile of randomly select pixels
            -------------------
         begin      : 2018-04-09
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -22,40 +22,36 @@
 
 import logging
 import os
-import re
 import sys
 import traceback
 
+import rasterio
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from PyQt4.QtGui import QDockWidget, QTabWidget, QPushButton
 
-from qgis._core import QgsMessageLog
+from qgis.core import QgsMessageLog
 from qgis.gui import QgsMessageBar
 
-import rasterio
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, saveAsDialog
-from pat_plugin.util.settings import read_setting, write_setting
-
-from pyprecag.raster_ops import rescale, normalise
-from pyprecag import crs as pyprecag_crs
+from pyprecag import processing, crs as pyprecag_crs
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import removeFileFromQGIS, saveAsDialog, addVectorFileToQGIS
+from util.settings import read_setting, write_setting
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'rescaleNormalise_dialog_base.ui'))
+    os.path.dirname(__file__), 'randomPixelSelection_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
 
 
-class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
-    """Dialog for Rescaling or normalising a single band from an image"""
-
-    toolKey = 'RescaleNormaliseDialog'
+class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
+    """create a shapefile of randomly select pixels"""
+    toolKey = 'RandomPixelSelectionDialog'
 
     def __init__(self, iface, parent=None):
 
-        super(RescaleNormaliseDialog, self).__init__(parent)
+        super(RandomPixelSelectionDialog, self).__init__(parent)
 
         # Set up the user interface from Designer.
         self.setupUi(self)
@@ -82,8 +78,10 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # GUI Customisation -----------------------------------------------
-        self.cboMethod.addItems(['Rescale', 'Normalise'])
-        self.update_bandlist()
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_randomPixel.svg'))
+
+        if read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize") > 0:
+            self.dsbSize.setValue(read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize", int))
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -101,6 +99,19 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
                 # also have to remove any widgets associated with it.
                 if item.widget() is not None:
                     item.widget().deleteLater()
+
+    def openLogPanel(self):
+        logMessagesPanel = self.iface.mainWindow().findChild(QDockWidget, 'MessageLog')
+        # Check to see if it is already open
+        if not logMessagesPanel.isVisible():
+            logMessagesPanel.setVisible(True)
+
+        # find and set the active tab
+        tabWidget = logMessagesPanel.findChildren(QTabWidget)[0]
+        for iTab in range(0, tabWidget.count()):
+            if tabWidget.tabText(iTab) == PLUGIN_SHORT:
+                tabWidget.setCurrentIndex(iTab)
+                break
 
     def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
@@ -154,73 +165,51 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
             else:  # INFO = 0
                 LOGGER.info(message)
 
-    def on_mcboTargetLayer_layerChanged(self):
-        self.update_bandlist()
-
-    def update_bandlist(self):
-        self.cboBand.clear()
-        if self.mcboTargetLayer.currentLayer() is not None:
-            bandCount = self.mcboTargetLayer.currentLayer().bandCount()
-            bandlist = ['band {}'.format(i) for i in range(1, bandCount + 1)]
-            self.cboBand.addItems(bandlist)
-
-    @QtCore.pyqtSlot(int)
-    def on_cboMethod_currentIndexChanged(self, index):
-        self.lblRescale.setDisabled(self.cboMethod.currentText() != 'Rescale')
-        self.dsbRescaleLower.setDisabled(self.cboMethod.currentText() != 'Rescale')
-        self.dsbRescaleUpper.setDisabled(self.cboMethod.currentText() != 'Rescale')
-
-    @QtCore.pyqtSlot(name='on_cmdSaveRasterFile_clicked')
-    def on_cmdSaveRasterFile_clicked(self):
+    @QtCore.pyqtSlot(name='on_cmdSaveFile_clicked')
+    def on_cmdSaveFile_clicked(self):
         lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
 
-        filename = self.mcboTargetLayer.currentText() + '_' + self.cboMethod.currentText()
-        if self.cboMethod.currentText() == 'Rescale':
-            filename = self.mcboTargetLayer.currentText() + '_{}{}-{}'.format(self.cboMethod.currentText(),
-                                                                              int(self.dsbRescaleLower.value()),
-                                                                              int(self.dsbRescaleUpper.value()))
-
-        filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
+        filename = self.mcboTargetLayer.currentText() + '_{}randompts'.format(int(self.dsbSize.value()))
 
         s = saveAsDialog(self, self.tr("Save As"),
-                         self.tr("Tiff") + " (*.tif);;",
-                         defaultName=os.path.join(lastFolder, filename + '.tif'))
+                         self.tr("ESRI Shapefile") + " (*.shp);;",
+                         defaultName=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return
 
         s = os.path.normpath(s)
-
         write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
-        self.lneSaveRasterFile.setText(s)
-        self.lblOutputFile.setStyleSheet('color:black')
-        self.lneSaveRasterFile.setStyleSheet('color:black')
+
+        self.lneSaveFile.setText(s)
+        self.lblSaveFile.setStyleSheet('color:black')
+        self.lneSaveFile.setStyleSheet('color:black')
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
         try:
+            self.cleanMessageBars(True)
             errorList = []
             targetLayer = self.mcboTargetLayer.currentLayer()
             if targetLayer is None or self.mcboTargetLayer.currentText() == '':
                 errorList.append(self.tr('Target layer is not set. Please load a raster layer into QGIS'))
 
-            if self.lneSaveRasterFile.text() == '':
-                self.lblOutputFile.setStyleSheet('color:red')
-                errorList.append(self.tr("Please enter an output raster filename"))
-            elif not os.path.exists(os.path.dirname(self.lneSaveRasterFile.text())):
-                self.lneSaveRasterFile.setStyleSheet('color:red')
-                errorList.append(self.tr("Output raster folder does not exist."))
+            if self.lneSaveFile.text() == '':
+                self.lblSaveFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Enter output Shapefile"))
+            elif not os.path.exists(os.path.dirname(self.lneSaveFile.text())):
+                self.lneSaveFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Output shapefile folder does not exist"))
             else:
-                self.lblOutputFile.setStyleSheet('color:black')
-                self.lneSaveRasterFile.setStyleSheet('color:black')
+                self.lblSaveFile.setStyleSheet('color:black')
+                self.lneSaveFile.setStyleSheet('color:black')
 
             if len(errorList) > 0:
                 raise ValueError(errorList)
 
         except ValueError as e:
-            self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
                     self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
@@ -232,59 +221,44 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
         if not self.validate():
             return False
         try:
-
             QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
 
-            LOGGER.info('{st}\nProcessing {} Raster'.format(self.cboMethod.currentText(), st='*' * 50))
-            self.iface.mainWindow().statusBar().showMessage('Processing {} Raster'.format(self.cboMethod.currentText()))
+            write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize", self.dsbSize.value())
+
+            LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
+            self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
 
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
+            settingsStr += '\n    {:30}\t{}'.format('Sample Size:', self.dsbSize.value())
             settingsStr += '\n    {:30}\t{}'.format('Layer:', self.mcboTargetLayer.currentLayer().name())
-            settingsStr += '\n    {:30}\t{}'.format('For Band: ', self.cboBand.currentText())
-            settingsStr += '\n    {:30}\t{}'.format('Method: ', self.cboMethod.currentText())
-            if self.cboMethod.currentText() == 'Rescale':
-                settingsStr += '\n    {:30}\t{} - {}'.format('Between:', self.dsbRescaleLower.value(),
-                                                             self.dsbRescaleUpper.value())
-            settingsStr += '\n    {:30}\t{}'.format('Output Raster File:', self.lneSaveRasterFile.text())
+            settingsStr += '\n    {:30}\t{}'.format('Output Shapefile:', self.lneSaveFile.text())
 
             LOGGER.info(settingsStr)
 
             lyrTarget = self.mcboTargetLayer.currentLayer()
-            rasterOut = self.lneSaveRasterFile.text()
-            removeFileFromQGIS(rasterOut)
+            removeFileFromQGIS(self.lneSaveFile.text())
 
-            rasterIn = lyrTarget.source()
-            # need this to maintain correct wkt otherwise gda/mga defaults to utm zonal
-            in_crswkt = lyrTarget.crs().toWkt()
+            raster_file = lyrTarget.source()
+            rasterCRS = pyprecag_crs.getCRSfromRasterFile(raster_file)
 
-            band_num = int(self.cboBand.currentText().replace('band ', ''))
-            with rasterio.open(os.path.normpath(rasterIn)) as src:
-                if self.cboMethod.currentText() == 'Rescale':
-                    rast_result = rescale(src, self.dsbRescaleLower.value(), self.dsbRescaleUpper.value(),
-                                          band_num=band_num, ignore_nodata=True)
-                else:
-                    rast_result = normalise(src, band_num=band_num, ignore_nodata=True)
-                meta = src.meta.copy()
+            if rasterCRS.epsg is None:
+                rasterCRS.getFromEPSG(lyrTarget.crs().authid())
 
-                meta['crs'] = str(in_crswkt)
-                meta['count'] = 1
-                meta['dtype'] = rasterio.float32
+            with rasterio.open(os.path.normpath(raster_file)) as src:
+                processing.random_pixel_selection(src, rasterCRS, int(self.dsbSize.value()), self.lneSaveFile.text())
 
-            with rasterio.open(os.path.normpath(rasterOut), 'w', **meta) as dst:
-                dst.write_band(1, rast_result)
-
-            rasterLyr = addRasterFileToQGIS(rasterOut, atTop=False)
+            lyrPts = addVectorFileToQGIS(self.lneSaveFile.text(), atTop=True,
+                                         layer_name=os.path.splitext(os.path.basename(self.lneSaveFile.text()))[0])
 
             QtGui.qApp.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
-            return super(RescaleNormaliseDialog, self).accept(*args, **kwargs)
+            return super(RandomPixelSelectionDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
             QtGui.qApp.restoreOverrideCursor()
-            self.cleanMessageBars(True)
             self.iface.mainWindow().statusBar().clearMessage()
-
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
-                                    duration=0, addToLog=True, exc_info=sys.exc_info())
+            self.cleanMessageBars(True)
+            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
+                                    exc_info=sys.exc_info())
             return False  # leave dialog open

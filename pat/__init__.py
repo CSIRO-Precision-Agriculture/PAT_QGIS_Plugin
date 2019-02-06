@@ -2,7 +2,7 @@
 """
 /***************************************************************************
   CSIRO Precision Agriculture Tools (PAT) Plugin
-  pat_plugin - This script initializes the plugin, making it known to QGIS.
+  pat - This script initializes the plugin, making it known to QGIS.
            -------------------
         begin      : 2017-05-25
         git sha    : $Format:%H$
@@ -61,7 +61,7 @@ def classFactory(iface):
     if not os.path.exists(TEMPDIR):
         os.mkdir(TEMPDIR)
 
-    from pat_plugin.util.settings import read_setting, write_setting
+    from util.settings import read_setting, write_setting
     if read_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS") is None:
         write_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", False)
     
@@ -76,16 +76,16 @@ def classFactory(iface):
         pass
 
     # the custom logging import requires qgis_config so leave it here
-    from pat_plugin.util.custom_logging import setup_logger
+    from util.custom_logging import setup_logger
 
     # Call the logger pyprecag so it picks up the module debugging as well.
     setup_logger(LOGGER_NAME)
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler( logging.NullHandler())   # logging.StreamHandler()
     
-    #from pat_plugin.util.check_dependencies import check_gdal_dependency
+    #from util.check_dependencies import check_gdal_dependency
 
-    from pat_plugin.util.check_dependencies import *
+    from util.check_dependencies import *
     check_R_dependency()
 
     gdal_ver, check_gdal = check_gdal_dependency()  
@@ -100,7 +100,7 @@ def classFactory(iface):
         QMessageBox.critical(None, 'Failed Dependency Check', message)
         sys.exit(message)
     
-    #from pat_plugin.util.check_dependencies import check_python_dependencies, check_vesper_dependency
+    #from util.check_dependencies import check_python_dependencies, check_vesper_dependency
         
     check_python_dependencies(PLUGIN_DIR, iface)
     vesper_exe = check_vesper_dependency()

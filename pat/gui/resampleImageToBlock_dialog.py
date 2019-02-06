@@ -25,11 +25,11 @@ import os
 import sys
 import traceback
 
-from pat_plugin import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-from pat_plugin.util.custom_logging import errorCatcher, openLogPanel
-from pat_plugin.util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from util.custom_logging import errorCatcher, openLogPanel
+from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS, addRasterFileToQGIS
-from pat_plugin.util.settings import read_setting, write_setting
+from util.settings import read_setting, write_setting
 
 from pyprecag import config, crs
 from pyprecag.processing import resample_bands_to_block
@@ -86,6 +86,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
         self.autoSetCoordinateSystem()
 
         # GUI Runtime Customisation -----------------------------------------------
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_resampleToBlock.svg'))
         self.chkAddToDisplay.setChecked(False)
         # self.chkAddToDisplay.hide()
 

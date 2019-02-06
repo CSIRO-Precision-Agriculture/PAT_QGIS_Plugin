@@ -33,7 +33,7 @@ from qgis.utils import iface
 from qgis.core import (QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
                        QgsFeature, QgsField, QgsProject)
 
-from pat_plugin import LOGGER_NAME
+from pat import LOGGER_NAME
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()

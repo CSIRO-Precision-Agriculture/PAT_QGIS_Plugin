@@ -24,7 +24,7 @@
 
 import logging
 
-from pat_plugin import LOGGER_NAME
+from pat import LOGGER_NAME
 from PyQt4.QtCore import QSettings
 
 LOGGER = logging.getLogger(LOGGER_NAME)

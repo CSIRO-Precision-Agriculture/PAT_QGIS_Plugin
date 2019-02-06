@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/pat_plugin" >
+    <qresource prefix="/plugins/pat" >
         <file>icons/icon.png</file>
         <file>icons/icon_pointTrailToPolygon.svg</file>
         <file>icons/icon_blockGrid.svg</file>
