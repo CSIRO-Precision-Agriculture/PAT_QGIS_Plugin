@@ -417,14 +417,14 @@ boundary</string>
          <item row="1" column="3">
           <widget class="QComboBox" name="cboBandRedEdge">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="minimumSize">
             <size>
-             <width>0</width>
+             <width>100</width>
              <height>20</height>
             </size>
            </property>
@@ -610,63 +610,7 @@ boundary</string>
          <item row="3" column="1">
           <widget class="QComboBox" name="cboBandNonVine">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maxVisibleItems">
-            <number>10</number>
-           </property>
-           <property name="maxCount">
-            <number>10</number>
-           </property>
-           <property name="insertPolicy">
-            <enum>QComboBox::NoInsert</enum>
-           </property>
-           <property name="minimumContentsLength">
-            <number>0</number>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QComboBox" name="cboBandRed">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maxVisibleItems">
-            <number>10</number>
-           </property>
-           <property name="maxCount">
-            <number>10</number>
-           </property>
-           <property name="insertPolicy">
-            <enum>QComboBox::NoInsert</enum>
-           </property>
-           <property name="minimumContentsLength">
-            <number>0</number>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QComboBox" name="cboBandGreen">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -691,10 +635,10 @@ boundary</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="3">
-          <widget class="QComboBox" name="cboBandIR">
+         <item row="2" column="1">
+          <widget class="QComboBox" name="cboBandRed">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -702,7 +646,63 @@ boundary</string>
            <property name="minimumSize">
             <size>
              <width>0</width>
-             <height>0</height>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maxVisibleItems">
+            <number>10</number>
+           </property>
+           <property name="maxCount">
+            <number>10</number>
+           </property>
+           <property name="insertPolicy">
+            <enum>QComboBox::NoInsert</enum>
+           </property>
+           <property name="minimumContentsLength">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="cboBandGreen">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>100</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="maxVisibleItems">
+            <number>10</number>
+           </property>
+           <property name="maxCount">
+            <number>10</number>
+           </property>
+           <property name="insertPolicy">
+            <enum>QComboBox::NoInsert</enum>
+           </property>
+           <property name="minimumContentsLength">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <widget class="QComboBox" name="cboBandIR">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>20</height>
             </size>
            </property>
            <property name="maxVisibleItems">
@@ -759,6 +759,19 @@ boundary</string>
             <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
            </property>
           </widget>
+         </item>
+         <item row="1" column="8">
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
          </item>
         </layout>
        </widget>
