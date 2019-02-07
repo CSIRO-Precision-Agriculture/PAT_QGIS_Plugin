@@ -171,10 +171,13 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
     root = QgsProject.instance().layerTreeRoot()
 
     # create group layers first:
-    if os.path.sep in group_layer_name:
-        grplist = group_layer_name.split(os.path.sep)
     
     if group_layer_name != "":
+    
+        if os.path.sep in group_layer_name:
+            grplist = group_layer_name.split(os.path.sep)
+        else: 
+            grplist = [group_layer_name]
         current_grp = root
         for ea_grp in grplist:
             group_layer = current_grp.findGroup(ea_grp)
