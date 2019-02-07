@@ -162,7 +162,8 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
         self.cboBand.clear()
         if self.mcboTargetLayer.currentLayer() is not None:
             bandCount = self.mcboTargetLayer.currentLayer().bandCount()
-            bandlist = ['band {}'.format(i) for i in range(1, bandCount + 1)]
+            bandlist = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
+            self.cboBand.setMaxCount(bandCount + 1)
             self.cboBand.addItems(bandlist)
 
     @QtCore.pyqtSlot(int)
@@ -259,7 +260,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
             # need this to maintain correct wkt otherwise gda/mga defaults to utm zonal
             in_crswkt = lyrTarget.crs().toWkt()
 
-            band_num = int(self.cboBand.currentText().replace('band ', ''))
+            band_num = int(self.cboBand.currentText().replace('Band ', ''))
             with rasterio.open(os.path.normpath(rasterIn)) as src:
                 if self.cboMethod.currentText() == 'Rescale':
                     rast_result = rescale(src, self.dsbRescaleLower.value(), self.dsbRescaleUpper.value(),

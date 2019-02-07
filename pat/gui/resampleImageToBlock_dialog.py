@@ -195,7 +195,8 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
 
         # add a band list to the drop down box
         bandCount = self.mcboRasterLayer.currentLayer().bandCount()
-        band_list = ['Band {}'.format(i) for i in range(1, bandCount + 1)]
+        band_list = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
+        self.cboBand.setMaxCount(bandCount + 1)
         self.cboBand.clear()
         self.cboBand.addItems([u''] + sorted(band_list))
 

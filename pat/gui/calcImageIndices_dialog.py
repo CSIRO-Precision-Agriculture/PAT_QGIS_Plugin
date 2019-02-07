@@ -204,8 +204,9 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
         # add a band list to the drop down box
         bandCount = self.mcboRasterLayer.currentLayer().bandCount()
-        band_list = ['Band {}'.format(i) for i in range(1, bandCount + 1)]
+        band_list = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
         for obj in [self.cboBandRed, self.cboBandGreen, self.cboBandIR, self.cboBandRedEdge, self.cboBandNonVine]:
+            obj.setMaxCount(bandCount + 1)
             obj.clear()
             obj.addItems([u''] + sorted(band_list))
 
@@ -223,9 +224,9 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             source https://stackoverflow.com/a/49778675/9567306 '''
 
             for i in band_list:
-                idx = obj.findText('Band {}'.format(i))
+                idx = obj.findText('Band {: >2}'.format(i))
 
-                if i in self.band_mapping.allocated_bands() and 'Band {}'.format(i) != obj.currentText():
+                if i in self.band_mapping.allocated_bands() and 'Band {: >2}'.format(i) != obj.currentText():
                     obj.view().setRowHidden(idx, True)
                 else:
                     obj.view().setRowHidden(idx, False)
