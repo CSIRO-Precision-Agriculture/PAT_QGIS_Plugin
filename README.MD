@@ -23,5 +23,5 @@ Installation
 PAT is only available using Windows QGIS Long Term Release 2.18.21 - 2.18.26 
 It is not currently available in QGIS 3.
 
-Installation instructions can be found in the appopriate chapter of the [PAT user manual](https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf).
+Installation instructions can be found in the appropriate chapter of the [PAT user manual](https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf).
 
