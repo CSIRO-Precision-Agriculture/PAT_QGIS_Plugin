@@ -21,7 +21,7 @@ makes use of the CSIRO developed pyPrecAg python module.
 Installation
 ------------
 PAT is only available using QGIS Long Term Release for Windows versions 2.18.21 - 2.18.26.
-It is not currently available in QGIS 3.
+PAT is not currently available in QGIS 3.
 
 Installation instructions can be found in the appropriate chapter of the [PAT user manual](https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf).
 
