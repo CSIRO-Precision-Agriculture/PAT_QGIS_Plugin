@@ -15,7 +15,7 @@ description=A collection of tools for processing precision agriculture data.
 
 qgisMinimumVersion=2.18.12
 qgisMaximumVersion=2.18.26
-version=0.1.1
+version=0.1.0
 
 author=Christina Ratcliff
 email=PAT@csiro.au

@@ -9,7 +9,7 @@
         begin      : 2017-05-25
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -38,8 +38,12 @@ from PyQt4.QtGui import QMessageBox
 from qgis.gui import QgsMessageBar
 
 import osgeo.gdal
-import win32api
-from win32com.shell import shell, shellcon
+
+if platform.system() == 'Windows':
+    import win32api
+    from win32com.shell import shell, shellcon
+    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
+
 import pythoncom
 import struct
 
@@ -49,28 +53,42 @@ from util.settings import read_setting, write_setting
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
-# max version of GDAL supported via the specified wheel. 
+# max version of GDAL supported via the specified wheel.
 GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
                          'rasterio': 'rasterio-1.0.13-cp27-cp27m',
                          'pyprecag': 'pyprecag-0.2.1'}}
 
-
 def check_R_dependency():
+
     updated = False
     r_installfold = read_setting('Processing/Configuration/R_FOLDER')
-    try:
-        from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
-        aReg = ConnectRegistry(None,HKEY_LOCAL_MACHINE)
-        aKey = OpenKey(aReg, r"SOFTWARE\R-core\R")
-        aVal = os.path.normpath(QueryValueEx(aKey, "InstallPath")[0])
-        
-        if os.path.exists(aVal):
-            if r_installfold is not None and r_installfold != aVal:
-                r_installfold = aVal
-                write_setting('Processing/Configuration/R_FOLDER', aVal)
-                LOGGER.info('Setting ... R Install folder: {}'.format(aVal))
+    if platform.system() == 'Windows':
+        try:
+            aReg = ConnectRegistry(None,HKEY_LOCAL_MACHINE)
+            aKey = OpenKey(aReg, r"SOFTWARE\R-core\R")
+            aVal = os.path.normpath(QueryValueEx(aKey, "InstallPath")[0])
 
-    except EnvironmentError:
+            if os.path.exists(aVal):
+                if r_installfold is not None and r_installfold != aVal:
+                    r_installfold = aVal
+                    write_setting('Processing/Configuration/R_FOLDER', aVal)
+                    LOGGER.info('Setting ... R Install folder: {}'.format(aVal))
+            r_installed = True
+        except EnvironmentError:
+            r_installed = False
+            write_setting('Processing/Configuration/R_FOLDER', '')
+            write_setting('Processing/Configuration/ACTIVATE_R', False)
+            return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+    else:
+        # Linux/OSX - https://stackoverflow.com/a/25330049
+        try:
+            subprocess.check_call(['which', 'R'])
+        except subprocess.CalledProcessError:
+            r_installed = False
+        else:
+            r_installed = True
+
+    if not r_installed:
         write_setting('Processing/Configuration/R_FOLDER', '')
         write_setting('Processing/Configuration/ACTIVATE_R', False)
         return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
@@ -80,10 +98,10 @@ def check_R_dependency():
 
     if r_scripts_fold is None:
         return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
-    
+
     files = glob.glob(os.path.join(PLUGIN_DIR,"R-Scripts","*.rsx"))
     files += glob.glob(os.path.join(PLUGIN_DIR,"R-Scripts","*.rsx.help"))
-    
+
     for src_file in files:
 
         dest_file = os.path.join(r_scripts_fold, os.path.basename(src_file))
@@ -111,13 +129,13 @@ def check_gdal_dependency():
     for key, val in sorted(GDAL_WHEELS.iteritems()):
         if parse_version(gdal_ver) <= parse_version(key):
             wheels = val
-    
-    if wheels is None: 
+
+    if wheels is None:
         return gdal_ver, False
-    
+
     return gdal_ver, wheels
-    
-    
+
+
 def check_vesper_dependency(iface=None):
     """ Check for the vesper exe as specified in the pyprecag config.json file. If the exe string is invalid, or does
     not exist it will return None.
@@ -130,32 +148,34 @@ def check_vesper_dependency(iface=None):
         :type iface: QgsInterface
     Returns:
         str() : String containing vesper exe.
-    
+
     """
+    vesper_exe = ''
+    message = ''
+    if platform.system() == 'Windows':
+        vesper_exe = read_setting(PLUGIN_NAME + '/VESPER_EXE')
+        if vesper_exe is None or vesper_exe == '' or not os.path.exists(vesper_exe):
+            # Update if Vesper is installed.
+            if os.path.exists(r'C:/Program Files (x86)/Vesper/Vesper1.6.exe'):
+                vesper_exe = r'C:/Program Files (x86)/Vesper/Vesper1.6.exe'
 
-    vesper_exe = read_setting(PLUGIN_NAME + '/VESPER_EXE')
-    
-    if vesper_exe is None or vesper_exe == '' or not os.path.exists(vesper_exe):
-        # Update if Vesper is installed.
-        if os.path.exists(r'C:/Program Files (x86)/Vesper/Vesper1.6.exe'):
-            vesper_exe = r'C:/Program Files (x86)/Vesper/Vesper1.6.exe'
+            else:  # Otherwise report it.
+                if vesper_exe == '' or vesper_exe == None:
+                    message = 'Vesper*.exe not found. Please install and configure to allow for kriging to occur'
+                elif not os.path.exists(vesper_exe):
+                    message = 'Vesper*.exe at "{}" does not exist. Please install and configure to allow for kriging to occur'.format(
+                            vesper_exe)
 
-        else:  # Otherwise report it.
-            if vesper_exe == '' or vesper_exe == None:
-                message = 'Vesper*.exe not found. Please install and configure to allow for kriging to occur'
-            elif not os.path.exists(vesper_exe):
-                message = 'Vesper*.exe at "{}" does not exist. Please install and configure to allow for kriging to occur'.format(
-                        vesper_exe)
+                vesper_exe = ''
+            write_setting(PLUGIN_NAME + '/VESPER_EXE', vesper_exe)
+    else:
+        message = 'VESPER is only supported on Windows.'
 
-            vesper_exe = ''
-
-            if iface:
-                iface.messageBar().pushMessage("WARNING", message, level=QgsMessageBar.WARNING,
-                                               duration=15)
-            else:
-                LOGGER.warn(message)
-
-        write_setting(PLUGIN_NAME + '/VESPER_EXE', vesper_exe)
+    if message != '':
+        if iface:
+            iface.messageBar().pushMessage("WARNING", message, level=QgsMessageBar.WARNING, duration=15)
+        else:
+            LOGGER.warn(message)
 
     return vesper_exe
 
@@ -250,172 +270,173 @@ def check_python_dependencies(plugin_path, iface):
 
     failDependencyCheck = [key for key, val in packCheck.iteritems() if val['Action'] in ['Install', 'Upgrade']]
 
-    # the install needs to be against the QGIS python package, so set the relevant variables in the bat file.
-    osgeo_path = os.environ['OSGEO4W_ROOT']
-    qgis_prefix_path = win32api.GetLongPathName(os.environ['QGIS_PREFIX_PATH'])
-
-    # check to see if the qgis_customwidgets.py file is in the python folder.
-    custWidFile = os.path.join(win32api.GetLongPathName(osgeo_path), 'apps', 'Python27', 'Lib', 'site-packages',
-                               'PyQt4', 'uic', 'widget-plugins',
-                               'qgis_customwidgets.py')
-
-    tmpDir = os.path.join(tempfile.gettempdir())
-    tempPackPath = os.path.join(tmpDir, 'python_packages')
-
-    if not os.path.exists(custWidFile):
-        failDependencyCheck.append('qgis_customwidgets')
-        print('qgis_customwidgets does not exist')
-
-    if platform.system() != 'Windows': return False
-
-    # get the install file.
+    # the name of the install file.
     title = 'Install_PAT_Extras'
-    uninstall_file = os.path.join(plugin_path, 'python_packages', 'Un{}.bat'.format(title))
+    if platform.system() == 'Windows':
 
-    if len(failDependencyCheck) == 0:  # if passes always create the file in plugin path anyway as a reference
-        install_file = os.path.join(plugin_path, 'python_packages', title + '.bat')
-    else:
-        install_file = os.path.join(tempPackPath, title + '.bat')
-        # copy python_packages folder to temp
-        if os.path.exists(tempPackPath):
-            shutil.rmtree(tempPackPath, ignore_errors=True)
+        # the install needs to be against the QGIS python package, so set the relevant variables in the bat file.
+        osgeo_path = os.environ['OSGEO4W_ROOT']
+        qgis_prefix_path = win32api.GetLongPathName(os.environ['QGIS_PREFIX_PATH'])
 
-        shutil.copytree(os.path.join(plugin_path, 'python_packages'), tempPackPath)
+        # check to see if the qgis_customwidgets.py file is in the python folder.
+        custWidFile = os.path.join(win32api.GetLongPathName(osgeo_path), 'apps', 'Python27', 'Lib', 'site-packages',
+                                   'PyQt4', 'uic', 'widget-plugins',
+                                   'qgis_customwidgets.py')
 
-    bat_logfile = os.path.join(plugin_path, 'python_packages', 'dependency.log')
-    user_path = os.path.join(os.path.expanduser('~'))
-    shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
-    python_version = struct.calcsize("P") * 8  # this will return 64 or 32
+        tmpDir = os.path.join(tempfile.gettempdir())
+        tempPackPath = os.path.join(tmpDir, 'python_packages')
 
-    # write the headers for both files at once.
-    with open(uninstall_file, 'w') as wUnFile, open(install_file, 'w') as wInFile:
-        # Write to both files.
-        writeLineToFileS("@echo off\n", [wUnFile, wInFile])
-        writeLineToFileS('cd %~dp0 \n', [wUnFile, wInFile])
+        if not os.path.exists(custWidFile):
+            failDependencyCheck.append('qgis_customwidgets')
+            print('qgis_customwidgets does not exist')
 
-        # Check to see if qgis is running before un/installing
-        writeLineToFileS(r'tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL' + '\n',
-                         [wUnFile, wInFile])
-        writeLineToFileS(r'if "%ERRORLEVEL%"=="0" ( ' + '\n', [wUnFile, wInFile])
-        writeLineToFileS('   echo QGIS is Currently Running. Please save your work and close \n   pause\n',
-                         [wUnFile, wInFile])
-        writeLineToFileS(r'   tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL' + '\n',
-                         [wUnFile, wInFile])
-        writeLineToFileS(
-            '   if "%ERRORLEVEL%"=="0" (\n   ECHO QGIS is Still taskkill /FI "IMAGENAME eq qgis* Running. Proceeding to Kill QGIS without saving.\n',
-            [wUnFile, wInFile])
-        writeLineToFileS(r'      taskkill /FI "IMAGENAME eq qgis*" /F' + '\n        ) \n    )\n\n',
-                         [wUnFile, wInFile])
+        uninstall_file = os.path.join(plugin_path, 'python_packages', 'Un{}.bat'.format(title))
 
-        # this will write to console.
-        wUnFile.write('ECHO. & ECHO Uninstalling dependencies for QGIS PAT Plugin .... Please Wait\n')
-        wInFile.write('ECHO. & ECHO Installing dependencies for QGIS PAT Plugin .... Please Wait\n')
-        writeLineToFileS('ECHO Dependencies Log:{}\n'.format(bat_logfile), [wUnFile, wInFile])
-        writeLineToFileS(
-            'ECHO. & ECHO ----------------------------------------------------------------------------\n\n',
-            [wUnFile, wInFile])
+        if len(failDependencyCheck) == 0:  # if passes always create the file in plugin path anyway as a reference
+            install_file = os.path.join(plugin_path, 'python_packages', title + '.bat')
+        else:
+            install_file = os.path.join(tempPackPath, title + '.bat')
+            # copy python_packages folder to temp
+            if os.path.exists(tempPackPath):
+                shutil.rmtree(tempPackPath, ignore_errors=True)
 
-        # Create an empty file to log to....
-        writeLineToFileS('type NUL > {}\n'.format(bat_logfile), [wUnFile, wInFile])
-        writeLineToFileS('CALL :PROCESS > {}\n'.format(bat_logfile), [wUnFile, wInFile])
-        writeLineToFileS('GOTO :END \n', [wUnFile, wInFile])
-        writeLineToFileS('\n\n', [wUnFile, wInFile])
+            shutil.copytree(os.path.join(plugin_path, 'python_packages'), tempPackPath)
 
-        writeLineToFileS(':PROCESS\n', [wUnFile, wInFile])
-        # this will add it to the dependencies log
-        wUnFile.write('ECHO Uninstalling dependencies for QGIS PAT Plugin\n\n')
-        wInFile.write('ECHO Installing dependencies for QGIS PAT Plugin\n\n')
+        bat_logfile = os.path.join(plugin_path, 'python_packages', 'dependency.log')
+        user_path = os.path.join(os.path.expanduser('~'))
+        shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
+        python_version = struct.calcsize("P") * 8  # this will return 64 or 32
 
-        writeLineToFileS("   SET OSGEO4W_ROOT={}\n".format(osgeo_path), [wUnFile, wInFile])
-        if not os.environ.get('GDAL_VERSION', None):
-            writeLineToFileS("   SET GDAL_VERSION={}\n".format(gdal_ver), [wUnFile, wInFile])
+        # write the headers for both files at once.
+        with open(uninstall_file, 'w') as wUnFile, open(install_file, 'w') as wInFile:
+            # Write to both files.
+            writeLineToFileS("@echo off\n", [wUnFile, wInFile])
+            writeLineToFileS('cd %~dp0 \n', [wUnFile, wInFile])
 
-        # any line containing a path needs to be a raw string, and the end-of-line added separately
-        writeLineToFileS(r'   call "%OSGEO4W_ROOT%"\bin\o4w_env.bat' + '\n', [wUnFile, wInFile])
-        writeLineToFileS(r"   set QGIS_PREFIX_PATH={}".format(qgis_prefix_path) + '\n', [wUnFile, wInFile])
-        writeLineToFileS(r"   path %PATH%;%QGIS_PREFIX_PATH%\bin" + '\n', [wUnFile, wInFile])
-        writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%QGIS_PREFIX_PATH%\python" + '\n', [wUnFile, wInFile])
-        writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%OSGEO4W_ROOT%\apps\Python27\Lib\site-packages" + '\n\n',
-                         [wUnFile, wInFile])
+            # Check to see if qgis is running before un/installing
+            writeLineToFileS(r'tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL' + '\n',
+                             [wUnFile, wInFile])
+            writeLineToFileS(r'if "%ERRORLEVEL%"=="0" ( ' + '\n', [wUnFile, wInFile])
+            writeLineToFileS('   echo QGIS is Currently Running. Please save your work and close \n   pause\n',
+                             [wUnFile, wInFile])
+            writeLineToFileS(r'   tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL' + '\n',
+                             [wUnFile, wInFile])
+            writeLineToFileS(
+                '   if "%ERRORLEVEL%"=="0" (\n   ECHO QGIS is Still taskkill /FI "IMAGENAME eq qgis* Running. Proceeding to Kill QGIS without saving.\n',
+                [wUnFile, wInFile])
+            writeLineToFileS(r'      taskkill /FI "IMAGENAME eq qgis*" /F' + '\n        ) \n    )\n\n',
+                             [wUnFile, wInFile])
 
-        wUnFile.write('   ECHO Y|python -m pip uninstall pyprecag  --disable-pip-version-check\n')
-        wUnFile.write('   ECHO Y|python -m pip uninstall rasterio  --disable-pip-version-check\n')
-        wUnFile.write('   ECHO Y|python -m pip uninstall fiona  --disable-pip-version-check\n')
-        
-        wUnFile.write('\n:END \n')
-        wUnFile.write('   type {} \n'.format(bat_logfile))
-        wUnFile.write('   goto:eof')
-        wUnFile.close()
+            # this will write to console.
+            wUnFile.write('ECHO. & ECHO Uninstalling dependencies for QGIS PAT Plugin .... Please Wait\n')
+            wInFile.write('ECHO. & ECHO Installing dependencies for QGIS PAT Plugin .... Please Wait\n')
+            writeLineToFileS('ECHO Dependencies Log:{}\n'.format(bat_logfile), [wUnFile, wInFile])
+            writeLineToFileS(
+                'ECHO. & ECHO ----------------------------------------------------------------------------\n\n',
+                [wUnFile, wInFile])
 
-        if not os.path.exists(custWidFile) or len(failDependencyCheck) == 0:
-            if len(failDependencyCheck) > 0: LOGGER.warning('Missing Dependency: {} '.format(custWidFile))
-            wInFile.write('   ECHO Missing Dependency: {} \n'.format(custWidFile))
-            wInFile.write('   ECHO Copying qgis_customwidgets.py \n')
-            wInFile.write(
-                r'   ECHO F|xcopy "%QGIS_PREFIX_PATH%\python\PyQt4\uic\widget-plugins\qgis_customwidgets.py" "'
-                + custWidFile + '" /y \n')
+            # Create an empty file to log to....
+            writeLineToFileS('type NUL > {}\n'.format(bat_logfile), [wUnFile, wInFile])
+            writeLineToFileS('CALL :PROCESS > {}\n'.format(bat_logfile), [wUnFile, wInFile])
+            writeLineToFileS('GOTO :END \n', [wUnFile, wInFile])
+            writeLineToFileS('\n\n', [wUnFile, wInFile])
 
-        wInFile.write(
-            '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
+            writeLineToFileS(':PROCESS\n', [wUnFile, wInFile])
+            # this will add it to the dependencies log
+            wUnFile.write('ECHO Uninstalling dependencies for QGIS PAT Plugin\n\n')
+            wInFile.write('ECHO Installing dependencies for QGIS PAT Plugin\n\n')
 
-        for ea_pack in ['fiona','rasterio', 'pyprecag']:
-            
-            if ea_pack in failDependencyCheck or len(failDependencyCheck) == 0:
+            writeLineToFileS("   SET OSGEO4W_ROOT={}\n".format(osgeo_path), [wUnFile, wInFile])
+            if not os.environ.get('GDAL_VERSION', None):
+                writeLineToFileS("   SET GDAL_VERSION={}\n".format(gdal_ver), [wUnFile, wInFile])
+
+            # any line containing a path needs to be a raw string, and the end-of-line added separately
+            writeLineToFileS(r'   call "%OSGEO4W_ROOT%"\bin\o4w_env.bat' + '\n', [wUnFile, wInFile])
+            writeLineToFileS(r"   set QGIS_PREFIX_PATH={}".format(qgis_prefix_path) + '\n', [wUnFile, wInFile])
+            writeLineToFileS(r"   path %PATH%;%QGIS_PREFIX_PATH%\bin" + '\n', [wUnFile, wInFile])
+            writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%QGIS_PREFIX_PATH%\python" + '\n', [wUnFile, wInFile])
+            writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%OSGEO4W_ROOT%\apps\Python27\Lib\site-packages" + '\n\n',
+                             [wUnFile, wInFile])
+
+            wUnFile.write('   ECHO Y|python -m pip uninstall pyprecag  --disable-pip-version-check\n')
+            wUnFile.write('   ECHO Y|python -m pip uninstall rasterio  --disable-pip-version-check\n')
+            wUnFile.write('   ECHO Y|python -m pip uninstall fiona  --disable-pip-version-check\n')
+
+            wUnFile.write('\n:END \n')
+            wUnFile.write('   type {} \n'.format(bat_logfile))
+            wUnFile.write('   goto:eof')
+            wUnFile.close()
+
+            if not os.path.exists(custWidFile) or len(failDependencyCheck) == 0:
+                if len(failDependencyCheck) > 0: LOGGER.warning('Missing Dependency: {} '.format(custWidFile))
+                wInFile.write('   ECHO Missing Dependency: {} \n'.format(custWidFile))
+                wInFile.write('   ECHO Copying qgis_customwidgets.py \n')
                 wInFile.write(
-                    '\n\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
-                wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
-                                                                                      python_version,ea_pack))
-                if ea_pack == 'pyprecag':
-                    if packCheck[ea_pack]['Action'] == 'Upgrade':
-                        whl_file = 'pyprecag --upgrade'
-                    else: 
-                        whl_file = 'pyprecag'
-                else:
-                    if python_version == 32:
-                        whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win32.whl')
+                    r'   ECHO F|xcopy "%QGIS_PREFIX_PATH%\python\PyQt4\uic\widget-plugins\qgis_customwidgets.py" "'
+                    + custWidFile + '" /y \n')
+
+            wInFile.write(
+                '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
+
+            for ea_pack in ['fiona','rasterio', 'pyprecag']:
+
+                if ea_pack in failDependencyCheck or len(failDependencyCheck) == 0:
+                    wInFile.write(
+                        '\n\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
+                    wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
+                                                                                          python_version,ea_pack))
+                    if ea_pack == 'pyprecag':
+                        if packCheck[ea_pack]['Action'] == 'Upgrade':
+                            whl_file = 'pyprecag --upgrade'
+                        else:
+                            whl_file = 'pyprecag'
                     else:
-                        whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win_amd64.whl')
+                        if python_version == 32:
+                            whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win32.whl')
+                        else:
+                            whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win_amd64.whl')
 
-                wInFile.write(r'   python -m pip install {} --disable-pip-version-check'.format(whl_file) + '\n')
+                    wInFile.write(r'   python -m pip install {} --disable-pip-version-check'.format(whl_file) + '\n')
 
-        wInFile.write(
-            '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
-        wInFile.write('\n' + r'   EXIT /B' + '\n')  # will return to the position where you used CALL
+            wInFile.write(
+                '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
+            wInFile.write('\n' + r'   EXIT /B' + '\n')  # will return to the position where you used CALL
 
-        wInFile.write('\n:END \n')
-        wInFile.write('   cls\n')  # clear the cmd window of all text
-        wInFile.write('   type {} \n'.format(bat_logfile))  # then print the logfile to screen
+            wInFile.write('\n:END \n')
+            wInFile.write('   cls\n')  # clear the cmd window of all text
+            wInFile.write('   type {} \n'.format(bat_logfile))  # then print the logfile to screen
 
-        wInFile.write(
-            '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
+            wInFile.write(
+                '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
 
-        wInFile.write('   ECHO.\n')
-        wInFile.write('   ECHO All files and folders used in this install will self destruct.\n')
-        wInFile.write('   ECHO.\n')
-        wInFile.write('   ECHO ** Please restart QGIS to complete installation.\n')
-        wInFile.write(
-            '   ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.\n')
-        wInFile.write('   ECHO.\n')
-        wInFile.write('   pause\n')
-        wInFile.write('   ECHO.\n')
+            wInFile.write('   ECHO.\n')
+            wInFile.write('   ECHO All files and folders used in this install will self destruct.\n')
+            wInFile.write('   ECHO.\n')
+            wInFile.write('   ECHO ** Please restart QGIS to complete installation.\n')
+            wInFile.write(
+                '   ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.\n')
+            wInFile.write('   ECHO.\n')
+            wInFile.write('   pause\n')
+            wInFile.write('   ECHO.\n')
 
-        if len(failDependencyCheck) > 0:
-            wInFile.write('   ECHO Deleting desktop shortcut\n')
-            wInFile.write('   DEL "{}"\n'.format(shortcutPath))
-            wInFile.write('   ECHO Deleting {}\n'.format(tempPackPath))
-            wInFile.write('   (goto) 2>nul & rmdir /S /Q "{}"\n'.format(tempPackPath))
+            if len(failDependencyCheck) > 0:
+                wInFile.write('   ECHO Deleting desktop shortcut\n')
+                wInFile.write('   DEL "{}"\n'.format(shortcutPath))
+                wInFile.write('   ECHO Deleting {}\n'.format(tempPackPath))
+                wInFile.write('   (goto) 2>nul & rmdir /S /Q "{}"\n'.format(tempPackPath))
 
-        wInFile.write('   goto:eof')
+            wInFile.write('   goto:eof')
 
     # Create a shortcut on desktop with admin privileges.
     # Source:https://stackoverflow.com/questions/37049108/create-windows-explorer-shortcut-with-run-as-administrator
     if len(failDependencyCheck) > 0:
-        # TODO: Implement running the BAT file from within QGIS see https://jira.csiro.au/browse/PA-67
-        LOGGER.critical(
-            "Failed Dependency Check. Please run the shortcut {} or the following bat file as administrator {}".format(
-                shortcutPath, install_file))
+        if platform.system() == 'Windows':
+            # TODO: Implement running the BAT file from within QGIS see https://jira.csiro.au/browse/PA-67
+            LOGGER.critical(
+                "Failed Dependency Check. Please run the shortcut {} or the following bat file as administrator {}".format(
+                    shortcutPath, install_file))
 
-        create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin", user_path, True)
+            create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin", user_path, True)
 
         message = 'Please quit QGIS and run {} located on your desktop to install ' \
                   'dependencies. Dependencies not met are {}'.format(title, ', '.join(failDependencyCheck))
