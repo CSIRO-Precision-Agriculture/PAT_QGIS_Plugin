@@ -34,9 +34,9 @@ about=<dl><dt>This plugin includes the following tools
            11. Create Zones using <i>k</i>-means Clustering
            12. Create Strip Trial Points
            13. Whole-of-block Analysis</dd></dt></dl>
-
+   <b><font color="red">This is a Windows only plugin</font></b>
    <b><font color="red">This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. </font></b>
-   <br><font size=2>NOTE: if required you will be provided a shortcut <b>Install_PrecisionAg_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
+   <br><font size=2>NOTE: if required you will be provided a shortcut <b>Install_PAT_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
 
    <p>Developed by the CSIRO Precision Agriculture Team.
    This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.</font>
@@ -65,4 +65,5 @@ update_date=2019-02-15T11:51:41.573000
 changelog=<dl><dt><font size=1>
     Version 0.1.0
         <dd>First release to QGIS Plugin repository</dd>
+        <dd>Applied windows only checks and warnings</dd>
  </font></dt></dl>
