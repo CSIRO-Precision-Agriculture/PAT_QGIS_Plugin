@@ -7,7 +7,7 @@
         begin      : 2017-05-25
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -26,8 +26,9 @@ except ImportError:
     import ConfigParser as configparser
 
 import os
-import site
 import sys
+import site
+import platform
 import tempfile
 import osgeo.gdal
 import logging
@@ -51,6 +52,7 @@ if PLUGIN_DIR not in sys.path:
 # if os.path.join(PLUGIN_DIR, 'ext-libs') not in sys.path:
 #     site.addsitedir(os.path.join(PLUGIN_DIR, 'ext-libs'))
 
+
 def classFactory(iface):
     """Load pat_toolbar class from file pat_toolbar.
 
@@ -58,6 +60,16 @@ def classFactory(iface):
     :type iface: QgsInterface
     """
 
+    if platform.system() != 'Windows':
+        message = 'PAT is only available for Windows'
+        
+        iface.messageBar().pushMessage("ERROR", message, 
+                                       level=QgsMessageBar.CRITICAL,
+                                       duration=0)
+        
+        QMessageBox.critical(None, 'Error', message)
+        sys.exit(message)
+        
     if not os.path.exists(TEMPDIR):
         os.mkdir(TEMPDIR)
 
@@ -103,6 +115,7 @@ def classFactory(iface):
     #from util.check_dependencies import check_python_dependencies, check_vesper_dependency
         
     check_python_dependencies(PLUGIN_DIR, iface)
+
     vesper_exe = check_vesper_dependency()
 
     # Retrieve values from the plugin metadata file
