@@ -56,7 +56,7 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 # max version of GDAL supported via the specified wheel.
 GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
                          'rasterio': 'rasterio-1.0.13-cp27-cp27m',
-                         'pyprecag': 'pyprecag-0.2.1'}}
+                         'pyprecag': 'pyprecag-0.2.2'}}
 
 def check_R_dependency():
 
@@ -191,9 +191,12 @@ def writeLineToFileS(line, openFileList=[]):
 def check_package(package):
     """Check to see if a package is installed and what version it is.
 
-    If a package is missing, a dictionary of {'Action': 'Install', 'Version': ''} is returned.
-    otherwise {'Action': '', 'Version': 'package version'} is returned.
-
+    Returns a dictionary containing:
+        Action is Install, Upgrade or None 
+        Version is the installed version, if not installed will be ''
+        Wheel the wheel file or version.
+    for each package
+    
     Args:
         package (str): the name of the package
 
@@ -203,10 +206,14 @@ def check_package(package):
     _, wheels = check_gdal_dependency()
     
     try:
-        pack_dict = pack_dict = {'Action': '','Version': get_distribution(package).version, 'Wheel':''}
+        pack_dict = pack_dict = {'Action': 'None', 
+                                 'Version': get_distribution(package).version,
+                                 'Wheel': wheels[package]}
     except DistributionNotFound:
         if package in wheels:
-            pack_dict = pack_dict = {'Action': 'Install', 'Version': '', 'Wheel' : wheels[package]}
+            pack_dict = pack_dict = {'Action': 'Install',
+                                     'Version': '',
+                                     'Wheel': wheels[package]}
 
     # Check for upgraded packages
     if pack_dict['Action'] != 'Install' and package in wheels:
@@ -275,7 +282,7 @@ def check_python_dependencies(plugin_path, iface):
     if platform.system() == 'Windows':
 
         # the install needs to be against the QGIS python package, so set the relevant variables in the bat file.
-        osgeo_path = os.environ['OSGEO4W_ROOT']
+        osgeo_path = win32api.GetLongPathName(os.environ['OSGEO4W_ROOT'])
         qgis_prefix_path = win32api.GetLongPathName(os.environ['QGIS_PREFIX_PATH'])
 
         # check to see if the qgis_customwidgets.py file is in the python folder.
@@ -361,6 +368,10 @@ def check_python_dependencies(plugin_path, iface):
             wUnFile.write('   ECHO Y|python -m pip uninstall pyprecag  --disable-pip-version-check\n')
             wUnFile.write('   ECHO Y|python -m pip uninstall rasterio  --disable-pip-version-check\n')
             wUnFile.write('   ECHO Y|python -m pip uninstall fiona  --disable-pip-version-check\n')
+            
+            # if we are uninstalling fiona then uninstall geopandas 
+            wUnFile.write('   ECHO Y|python -m pip uninstall fiona  --disable-pip-version-check\n')
+            wUnFile.write('   ECHO Y|python -m pip uninstall geopandas  --disable-pip-version-check\n')
 
             wUnFile.write('\n:END \n')
             wUnFile.write('   type {} \n'.format(bat_logfile))
@@ -381,20 +392,18 @@ def check_python_dependencies(plugin_path, iface):
             for ea_pack in ['fiona','rasterio', 'pyprecag']:
 
                 if ea_pack in failDependencyCheck or len(failDependencyCheck) == 0:
+                    wheel =  packCheck[ea_pack]['Wheel']
                     wInFile.write(
                         '\n\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
                     wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
                                                                                           python_version,ea_pack))
                     if ea_pack == 'pyprecag':
-                        if packCheck[ea_pack]['Action'] == 'Upgrade':
-                            whl_file = 'pyprecag --upgrade'
-                        else:
-                            whl_file = 'pyprecag'
+                        whl_file = 'pyprecag=={}'.format(wheel.split('-')[1])
                     else:
                         if python_version == 32:
-                            whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win32.whl')
+                            whl_file = os.path.join(ea_pack, wheel + '-win32.whl')
                         else:
-                            whl_file = os.path.join(ea_pack, packCheck[ea_pack]['Wheel'] + '-win_amd64.whl')
+                            whl_file = os.path.join(ea_pack, wheel + '-win_amd64.whl')
 
                     wInFile.write(r'   python -m pip install {} --disable-pip-version-check'.format(whl_file) + '\n')
 
@@ -431,15 +440,14 @@ def check_python_dependencies(plugin_path, iface):
     # Source:https://stackoverflow.com/questions/37049108/create-windows-explorer-shortcut-with-run-as-administrator
     if len(failDependencyCheck) > 0:
         if platform.system() == 'Windows':
-            # TODO: Implement running the BAT file from within QGIS see https://jira.csiro.au/browse/PA-67
             LOGGER.critical(
                 "Failed Dependency Check. Please run the shortcut {} or the following bat file as administrator {}".format(
                     shortcutPath, install_file))
 
             create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin", user_path, True)
 
-        message = 'Please quit QGIS and run {} located on your desktop to install ' \
-                  'dependencies. Dependencies not met are {}'.format(title, ', '.join(failDependencyCheck))
+        message = 'Installation or updates are required for {}.\n\nPlease quit QGIS and run {} ' \
+                  'located on your desktop.'.format(', '.join(failDependencyCheck), title)
         iface.messageBar().pushMessage("ERROR Failed Dependency Check", message, level=QgsMessageBar.CRITICAL,
                                        duration=0)
         QMessageBox.critical(None, 'Failed Dependency Check', message)
