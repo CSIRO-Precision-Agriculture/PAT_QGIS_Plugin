@@ -451,7 +451,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             lyr_line = self.mcboLineLayer.currentLayer()
 
             if self.chkUseSelected.isChecked():
-                line_shapefile = os.path.join(TEMPDIR , lyr_line.name() + '_lines.shp')
+                line_shapefile = os.path.join(TEMPDIR, lyr_line.name() + '_lines.shp')
 
                 if os.path.exists(line_shapefile):  removeFileFromQGIS(line_shapefile)
 
@@ -475,18 +475,17 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             _ = create_points_along_line(gdf_lines, lines_desc.crs, self.dsbDistBtwnPoints.value(),
                                          self.dsbLineOffsetDist.value(), epsgOut,
                                          out_points_shapefile=self.lneSavePointsFile.text(),
-                                         out_lines_shapefile = out_lines)
+                                         out_lines_shapefile=out_lines)
 
             out_lyr_points = addVectorFileToQGIS(self.lneSavePointsFile.text(), atTop=True, layer_name=
                                                  os.path.splitext(os.path.basename(self.lneSavePointsFile.text()))[0])
-            vector_apply_unique_value_renderer(out_lyr_points, 'Side')
+            vector_apply_unique_value_renderer(out_lyr_points, 'Transect')
             
             if self.chkSaveLinesFile.isChecked():
                 out_lyr_lines = addVectorFileToQGIS(self.lneSaveLinesFile.text(), atTop=True,
-                                                    layer_name=
-                                                    os.path.splitext(os.path.basename(self.lneSaveLinesFile.text()))[
-                                                        0])
-                vector_apply_unique_value_renderer(out_lyr_lines, 'Side')
+                                                    layer_name=os.path.splitext(os.path.basename(self.lneSaveLinesFile.text()))[0])
+
+                vector_apply_unique_value_renderer(out_lyr_lines, 'Transect')
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)

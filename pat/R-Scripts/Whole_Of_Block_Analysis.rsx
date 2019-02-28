@@ -11,8 +11,8 @@
 ##Input_Neighbourhood_Size_in_Metre=number 30
 ##Save_Output=folder
 
-#source(paste0("C:/Users/",Sys.info()['user'],"/.qgis2/python/plugins/pat_plugin/R-Scripts/_cokrige_Whole_of_Block_Analysis.R"))
-source(paste0(Sys.getenv("USERPROFILE"),"/.qgis2/python/plugins/pat_plugin/R-Scripts/_cokrige_Whole_of_Block_Analysis.R"))
+#source(paste0("C:/Users/",Sys.info()['user'],"/.qgis2/python/plugins/pat/R-Scripts/_cokrige_Whole_of_Block_Analysis.R"))
+source(paste0(Sys.getenv("USERPROFILE"),"/.qgis2/python/plugins/pat/R-Scripts/_cokrige_Whole_of_Block_Analysis.R"))
 if(dirname(Save_Output)!=""){
 path <- paste0(dirname(Save_Output),"/",basename(Save_Output),"/")
 }

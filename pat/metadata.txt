@@ -13,9 +13,9 @@
 name=PAT - Precision Agriculture Tools
 description=A collection of tools for processing precision agriculture data.
 
-qgisMinimumVersion=2.18.12
+qgisMinimumVersion=2.18.21
 qgisMaximumVersion=2.18.26
-version=0.1.0
+version=0.1.1
 
 author=Christina Ratcliff
 email=PAT@csiro.au
@@ -50,7 +50,7 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # Recommended items:
 
 # Tags are comma separated with spaces allowed
-tags=raster, vector, kriging, agriculture
+tags=raster, vector, kriging, agriculture, precision agriculture
 category=PAT Menu and Toolbar
 icon=icons/icon.png
 
@@ -60,10 +60,14 @@ experimental=True
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
 
-update_date=2019-02-15T11:51:41.573000
+update_date=2019-02-28T14:23:26.966000
 
 changelog=<dl><dt><font size=1>
+    Version 0.1.1
+        <dd>Bug Fixes to
+            - Create Strip Trial Points
+            - Whole-of-block Analysis</dd>
     Version 0.1.0
-        <dd>First release to QGIS Plugin repository</dd>
-        <dd>Applied windows only checks and warnings</dd>
+        <dd>First release to QGIS Plugin repository
+        Applied windows only checks and warnings</dd>
  </font></dt></dl>

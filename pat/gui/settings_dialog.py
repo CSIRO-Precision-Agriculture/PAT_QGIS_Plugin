@@ -25,8 +25,9 @@
 import logging
 import os
 import sys
-
+import platform
 import configparser
+from pkg_resources import get_distribution
 import qgis
 
 from pat import PLUGIN_NAME
@@ -146,13 +147,7 @@ class SettingsDialog(BASE, WIDGET):
         cfg = configparser.SafeConfigParser()
         cfg.read(os.path.join(pluginPath, 'metadata.txt'))
         version = cfg.get('general', 'version')
-
-        from util.check_dependencies import check_package
-        packCheck = {}
-        # Check for the listed modules.
-        for argCheck in ['geopandas', 'fiona', 'rasterio', 'pyprecag']:
-            packCheck[argCheck] = check_package(argCheck)
-        
+       
         """TODO: Make the paths clickable links to open folder
         def create_path_link(path):
             path = os.path.normpath(path)
@@ -161,20 +156,28 @@ class SettingsDialog(BASE, WIDGET):
         """
         
         self.pteVersions.setText( 'QGIS Environment:')
+        
         self.pteVersions.append('    {:20}\t{}'.format('QGIS :', qgis.utils.QGis.QGIS_VERSION))
-        self.pteVersions.append('    {:20}\t{}'.format('Python :',  sys.version))
-        self.pteVersions.append('    {:20}\t{}'.format('GDAL :', os.environ.get('GDAL_VERSION', None)))
+        if platform.system() == 'Windows':
+            import win32file            
+            self.pteVersions.append('    {:20}\t{}'.format('Install Path : ',
+                                                           win32file.GetLongPathName(qgis.core.QgsApplication.prefixPath())))
+        else:
+            self.pteVersions.append('    {:20}\t{}'.format('Install Path : ', qgis.core.QgsApplication.prefixPath()))
 
-        self.pteVersions.append('    {:20}\t{}'.format('User Path:', os.path.normpath(os.path.expanduser('~'))))
         self.pteVersions.append('    {:20}\t{}'.format('Plugin Dir:',  os.path.normpath(PLUGIN_DIR)))
         self.pteVersions.append('    {:20}\t{}'.format('Temp Folder:',  os.path.normpath(TEMPDIR)))
         
+        self.pteVersions.append('    {:20}\t{}'.format('Python :',  sys.version))
+        self.pteVersions.append('    {:20}\t{}'.format('GDAL :', os.environ.get('GDAL_VERSION', None)))
+
+        
         self.pteVersions.append('\nPAT Version:')
         self.pteVersions.append('    {:20}\t{}'.format('PAT:', version))
-        self.pteVersions.append('    {:20}\t{}'.format('pyPrecAg:', packCheck['pyprecag']['Version']))
-        self.pteVersions.append('    {:20}\t{}'.format('GeoPandas:', packCheck['geopandas']['Version']))
-        self.pteVersions.append('    {:20}\t{}'.format('RasterIO:', packCheck['rasterio']['Version']))
-        self.pteVersions.append('    {:20}\t{}'.format('Fiona:', packCheck['fiona']['Version']))
+        self.pteVersions.append('    {:20}\t{}'.format('pyPrecAg:', get_distribution('pyprecag').version))
+        self.pteVersions.append('    {:20}\t{}'.format('Geopandas:', get_distribution('geopandas').version))
+        self.pteVersions.append('    {:20}\t{}'.format('Rasterio:',  get_distribution('rasterio').version))
+        self.pteVersions.append('    {:20}\t{}'.format('Fiona:',  get_distribution('fiona').version))
 
         self.pteVersions.append('\nR Configuration')
         self.pteVersions.append('    {:20}\t{}'.format('R Active :', read_setting('Processing/Configuration/ACTIVATE_R')))
