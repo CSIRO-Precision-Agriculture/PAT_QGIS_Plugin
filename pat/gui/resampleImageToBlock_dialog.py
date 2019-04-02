@@ -88,6 +88,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
         # GUI Runtime Customisation -----------------------------------------------
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_resampleToBlock.svg'))
         self.chkAddToDisplay.setChecked(False)
+        self.add_blank_field_to_cbo()
         # self.chkAddToDisplay.hide()
 
     def cleanMessageBars(self, AllBars=True):
@@ -244,7 +245,15 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
                 'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
                 level=QgsMessageBar.CRITICAL, duration=5)
         return
-
+    
+    def add_blank_field_to_cbo(self,set=True):
+        """ Add a blank string to the field combo box.  Fixed in qgis 3"""
+             
+        if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
+            self.mFieldComboBox.addItem(u'')
+            if set == True:
+                self.mFieldComboBox.setField(u'')
+                
     def on_mcboRasterLayer_layerChanged(self):
         self.updateRaster()
         self.autoSetCoordinateSystem()
@@ -255,16 +264,23 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
 
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
         self.chkUsePoly.setChecked(True)
+        
+        self.add_blank_field_to_cbo()
 
     @QtCore.pyqtSlot(int)
     def on_chkUsePoly_stateChanged(self, state):
-        if not state:
-            # work around for not having a physical blank in the list. Fixed in qgis 3 
-            self.mFieldComboBox.setField(u'')
+        self.add_blank_field_to_cbo()
 
         self.mFieldComboBox.setEnabled(state)
         self.lblGroupByField.setEnabled(state)
-
+        
+#     def on_mFieldComboBox_fieldChanged(self, field):
+#         # Problem : after selecting a field, the blank is removed from the pick list. 
+#         # Solution: Add it again.... but this doesn't work.
+#         if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
+#             # work around for not having a physical blank in the list. Fixed in qgis 3 
+#             self.mFieldComboBox.addItem(u'')
+    
     def on_chkUseSelected_stateChanged(self, state):
         if self.chkUseSelected.isChecked():
             self.chkUsePoly.setChecked(True)
@@ -412,14 +428,16 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
                 if self.chkUseSelected.isChecked():
                     settingsStr += '\n    {:20}\t{} with {} selected features'.format('Layer:',
                                                                                       self.mcboPolygonLayer.currentLayer().name(),
-                                                                                      len(
-                                                                                          self.mcboPolygonLayer.currentLayer().selectedFeatures()))
+                                                                                      len(self.mcboPolygonLayer.currentLayer().selectedFeatures()))
                 else:
                     settingsStr += '\n    {:20}\t{}'.format('Boundary layer:',
                                                             self.mcboPolygonLayer.currentLayer().name())
 
                 if self.mFieldComboBox.currentField():
                     settingsStr += '\n    {:20}\t{}'.format('Block ID field:', self.mFieldComboBox.currentField())
+            else:
+                settingsStr += '\n    {:20}\t{}'.format('Boundary layer:','')
+                settingsStr += '\n    {:20}\t{}'.format('Block ID field:','')
 
             settingsStr += '\n    {:20}\t{}'.format('Resample pixel size: ', self.dsbPixelSize.value())
 
