@@ -94,7 +94,9 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
         # GUI Runtime Customisation -----------------------------------------------
         self.chkAddToDisplay.setChecked(False)
         # self.chkAddToDisplay.hide()
-
+        
+        self.add_blank_field_to_cbo()
+            
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_calcImgIndices.svg'))
 
     def cleanMessageBars(self, AllBars=True):
@@ -289,7 +291,15 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
                 level=QgsMessageBar.CRITICAL, duration=5)
 
         return
-
+    
+    def add_blank_field_to_cbo(self,set=True):
+        """ Add a blank string to the field combo box.  Fixed in qgis 3"""
+             
+        if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
+            self.mFieldComboBox.addItem(u'')
+            if set == True:
+                self.mFieldComboBox.setField(u'')
+            
     def on_mcboRasterLayer_layerChanged(self):
         self.updateRaster()
         self.autoSetCoordinateSystem()
@@ -300,6 +310,8 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
         self.chkUsePoly.setChecked(True)
+        
+        self.add_blank_field_to_cbo()        
 
     def on_cboBandRed_currentIndexChanged(self, index):
         band_num = 0
@@ -347,9 +359,8 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(int)
     def on_chkUsePoly_stateChanged(self, state):
-        if not state:
-            # work around for not having a physical blank in the list. Fixed in qgis 3 
-            self.mFieldComboBox.setField(u'')
+
+        self.add_blank_field_to_cbo()
 
         self.mFieldComboBox.setEnabled(state)
         self.lblGroupByField.setEnabled(state)
