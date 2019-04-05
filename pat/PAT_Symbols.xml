@@ -110,7 +110,7 @@
     </symbol>
   </symbols>
   <colorramps>
-    <colorramp type="gradient" name="PCD 5 Colours">
+    <colorramp type="gradient" name="Imagery 5 Colours">
       <prop k="color1" v="255,0,0,255"/>
       <prop k="color2" v="0,92,230,255"/>
       <prop k="discrete" v="1"/>

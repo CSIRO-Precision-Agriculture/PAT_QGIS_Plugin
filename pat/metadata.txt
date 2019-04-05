@@ -1,45 +1,27 @@
-# This file contains metadata for your plugin. Since version 2.0 of QGIS this is the proper way to supply information
-# about a plugin. The old method of embedding metadata in __init__.py will is no longer supported since version 2.0.
-#
-# Supported html tags include <p> new line,    <b></b> bold text,     <font color="red"></font> change font color
-#    <dl><dt> <dd> to create a table for indenting text   <u></u> underline <i></i> italics
-# https://docs.qgis.org/2.18/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata
-#
-# This file should be included when you package your plugin.
+# This file contains metadata for your plugin. Since version 2.0 of QGIS this is the proper way to supply
+# information about a plugin. The old method of embedding metadata in __init__.py will is no longer supported since version 2.0.
 
+# This file should be included when you package your plugin.
 # Mandatory items:
 
 [general]
 name=PAT - Precision Agriculture Tools
-description=A collection of tools for processing precision agriculture data.
+description=A collection of tools for processing precision agriculture data.  
 
-qgisMinimumVersion=2.18.21
+about=PAT is a QGIS plugin for tools required for processing and analysing precision agriculture data. It includes tools for data cleaning and map interpolation to create TIFF's from high spatial density on-the-go sensor data such as yield monitor or EM38 soil sensor data. There are also tools for analysis of remotely sensed imagery and for the clustering of multiple datasets.
+      .
+      This is a Windows only plugin, This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. Full installation instructions are provided in the manual available at: https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf
+      .
+      Developed by the CSIRO Precision Agriculture Team, this project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.
+
+qgisMinimumVersion=2.18
 qgisMaximumVersion=2.18.26
-version=0.1.1
+
+version=0.1.2
+experimental=True
 
 author=Christina Ratcliff
 email=PAT@csiro.au
-
-about=<dl><dt>This plugin includes the following tools
-           <dd>1. Create Block Grid
-            2. Clean Trim and Normalize Points
-            3. Run Kriging using VESPER
-            4. Import VESPER Results
-            5. Create Polygon from on-the-go GPS Point Trail Data
-            6. Generate Random Pixel Selection
-            7. Normalise/Rescale(standardise) Raster
-            8. Extract Pixel Statistics for Points
-            9. Calculate Image Indices for Blocks
-           10. Resample Image Band to Blocks
-           11. Create Zones using <i>k</i>-means Clustering
-           12. Create Strip Trial Points
-           13. Whole-of-block Analysis</dd></dt></dl>
-   <b><font color="red">This is a Windows only plugin</font></b>
-   <b><font color="red">This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. </font></b>
-   <br><font size=2>NOTE: if required you will be provided a shortcut <b>Install_PAT_Extras</b> on your desktop to install or upgrade the dependencies. Close QGIS, run the shortcut. If the PAT menu and toolbar are not present then reinstall and/or activate it using the plugin manager.
-
-   <p>Developed by the CSIRO Precision Agriculture Team.
-   This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.</font>
 
 homepage=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 tracker=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/issues
@@ -48,26 +30,18 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # End of mandatory metadata
 
 # Recommended items:
-
+update_date=2019-04-05T13:27:21.487000
 # Tags are comma separated with spaces allowed
 tags=raster, vector, kriging, agriculture, precision agriculture
-category=PAT Menu and Toolbar
+# category=PAT Menu and Toolbar
 icon=icons/icon.png
 
-# experimental flag
-experimental=True
-
 # deprecated flag (applies to the whole plugin, not just a single version)
-deprecated=False
+# deprecated=False
 
-update_date=2019-02-28T14:23:26.966000
+# Uncomment the following line and add your changelog:
 
-changelog=<dl><dt><font size=1>
-    Version 0.1.1
-        <dd>Bug Fixes to
-            - Create Strip Trial Points
-            - Whole-of-block Analysis</dd>
-    Version 0.1.0
-        <dd>First release to QGIS Plugin repository
-        Applied windows only checks and warnings</dd>
- </font></dt></dl>
+changelog= 
+  0.1.2: Bug fix to Resample & calculate Image tools, Updated User manual
+  0.1.1: Bug Fixes to Create Strip Trial Points and Whole-of-block Analysis
+  0.1.0: First release to QGIS Plugin repository, Applied windows only checks and warnings
