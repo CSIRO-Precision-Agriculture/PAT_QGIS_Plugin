@@ -275,6 +275,10 @@ def check_python_dependencies(plugin_path, iface):
     for argCheck in ['fiona', 'rasterio', 'pyprecag']:
         packCheck[argCheck] = check_package(argCheck)
 
+    # Install via a tar wheel file prior to publishing via pip to test pyprecag bug fixes
+    if len(glob.glob1(os.path.join(plugin_path, 'python_packages'),"pyprecag*")) == 1:
+        packCheck['pyprecag']['Action'] = 'Upgrade' 
+
     failDependencyCheck = [key for key, val in packCheck.iteritems() if val['Action'] in ['Install', 'Upgrade']]
 
     # the name of the install file.
@@ -398,7 +402,12 @@ def check_python_dependencies(plugin_path, iface):
                     wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
                                                                                           python_version,ea_pack))
                     if ea_pack == 'pyprecag':
-                        whl_file = 'pyprecag=={}'.format(wheel.split('-')[1])
+                        # Install via a tar wheel file prior to publishing via pip
+                        upgrade_file = glob.glob1(tempPackPath,ea_pack + "*")
+                        if len(upgrade_file) == 1:
+                            whl_file = upgrade_file[0]
+                        else:
+                            whl_file = 'pyprecag=={}'.format(wheel.split('-')[1])
                     else:
                         if python_version == 32:
                             whl_file = os.path.join(ea_pack, wheel + '-win32.whl')
@@ -406,7 +415,16 @@ def check_python_dependencies(plugin_path, iface):
                             whl_file = os.path.join(ea_pack, wheel + '-win_amd64.whl')
 
                     wInFile.write(r'   python -m pip install {} --disable-pip-version-check'.format(whl_file) + '\n')
-
+                    
+                    if ea_pack == 'pyprecag' and len(upgrade_file) == 1:
+                        bug_fix_fold =  os.path.join(plugin_path, 'python_packages','installed_bugfix')
+                        if not os.path.exists( bug_fix_fold):
+                            os.makedirs(bug_fix_fold)
+                            
+                        # after installing, move the file otherwise you will always be prompted to upgrade
+                        wInFile.write(r'    move {} {}'.format(os.path.join(plugin_path, 'python_packages',upgrade_file[0]),
+                                    bug_fix_fold) + '\n')
+                        
             wInFile.write(
                 '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
             wInFile.write('\n' + r'   EXIT /B' + '\n')  # will return to the position where you used CALL

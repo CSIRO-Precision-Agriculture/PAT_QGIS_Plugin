@@ -531,7 +531,10 @@ boundary</string>
             </sizepolicy>
            </property>
            <property name="text">
-            <string>Block ID column:</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Block ID column:(optional)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="wordWrap">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
