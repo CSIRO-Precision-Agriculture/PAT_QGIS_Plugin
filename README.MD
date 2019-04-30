@@ -18,10 +18,10 @@ makes use of the CSIRO developed pyPrecAg python module.
 >   This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.
 
 
-Installation
+Requirements and Installation
 ------------
-PAT is only available using QGIS Long Term Release for Windows versions 2.18.21 to 2.18.26.
-PAT is not currently available in QGIS 3.
+PAT is only available using QGIS Long Term Release versions 2.18.21 to 2.18.26 for Windows [32bit](http://download.osgeo.org/qgis/win64/QGIS-OSGeo4W-2.18.26-1-Setup-x86.exe) or [64bit](http://download.osgeo.org/qgis/win64/QGIS-OSGeo4W-2.18.26-1-Setup-x86_64.exe). PAT is not currently available in QGIS 3.
 
-Installation instructions can be found in the appropriate chapter of the [PAT user manual](https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf).
+To fully use the on-the-go data workflow, users must also download and install VESPER from https://sydney.edu.au/agriculture/pal/software/vesper.shtml.
 
+Once QGIS is installed follow the PAT installation instructions found in chapter 1 of the [PAT user manual](https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf).
