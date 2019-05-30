@@ -47,7 +47,7 @@ from unidecode import unidecode
 from pyprecag import processing, crs as pyprecag_crs, config, convert, describe
 from util.custom_logging import errorCatcher, openLogPanel
 from util.gdal_util import GDAL_COMPAT
-from util.qgis_common import copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, saveAsDialog
+from util.qgis_common import copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, save_as_dialog
 from util.settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -644,9 +644,9 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         else:
             filename = self.lneLayerName.text() + '_points.shp'
 
-        s = saveAsDialog(self, self.tr("Save Points As"),
+        s = save_as_dialog(self, self.tr("Save Points As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
         if s == '' or s is None:
             return
 
@@ -670,9 +670,9 @@ class PointTrailToPolygonDialog(QtGui.QDialog, FORM_CLASS):
         else:
             filename = self.lneLayerName.text() + '_polygon.shp'
 
-        s = saveAsDialog(self, self.tr("Save Polygon As"),
+        s = save_as_dialog(self, self.tr("Save Polygon As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return

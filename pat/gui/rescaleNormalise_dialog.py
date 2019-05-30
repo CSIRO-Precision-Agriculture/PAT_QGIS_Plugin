@@ -35,7 +35,7 @@ from qgis.gui import QgsMessageBar
 import rasterio
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, saveAsDialog
+from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, save_as_dialog
 from util.settings import read_setting, write_setting
 
 from pyprecag.raster_ops import rescale, normalise
@@ -186,9 +186,9 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
 
         filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("Tiff") + " (*.tif);;",
-                         defaultName=os.path.join(lastFolder, filename + '.tif'))
+                         default_name=os.path.join(lastFolder, filename + '.tif'))
 
         if s == '' or s is None:
             return

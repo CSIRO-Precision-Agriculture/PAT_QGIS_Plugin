@@ -48,7 +48,7 @@ from pyprecag import processing, describe, crs as pyprecag_crs, convert, config
 from util.custom_logging import errorCatcher, openLogPanel
 from util.gdal_util import GDAL_COMPAT
 from util.qgis_common import copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, \
-    saveAsDialog
+    save_as_dialog
 from util.qgis_symbology import vector_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
@@ -678,9 +678,9 @@ class CleanTrimPointsDialog(QtGui.QDialog, FORM_CLASS):
         # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
         filename = re.sub(r"_+", "_", filename)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return
@@ -728,9 +728,9 @@ class CleanTrimPointsDialog(QtGui.QDialog, FORM_CLASS):
         # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
         filename = re.sub(r"_+", "_", filename)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("Comma Delimited") + " (*.csv);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return

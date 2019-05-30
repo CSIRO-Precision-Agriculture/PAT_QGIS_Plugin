@@ -35,7 +35,7 @@ from qgis.gui import QgsMessageBar
 
 from pyprecag import processing, crs as pyprecag_crs
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import removeFileFromQGIS, saveAsDialog, addVectorFileToQGIS
+from util.qgis_common import removeFileFromQGIS, save_as_dialog, addVectorFileToQGIS
 from util.settings import read_setting, write_setting
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -173,9 +173,9 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
 
         filename = self.mcboTargetLayer.currentText() + '_{}randompts'.format(int(self.dsbSize.value()))
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return

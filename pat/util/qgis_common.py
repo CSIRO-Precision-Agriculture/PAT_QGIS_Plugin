@@ -22,7 +22,6 @@
 
 import logging
 import os
-
 import re
 from urlparse import urlparse
 
@@ -44,9 +43,9 @@ def saveAsDialog(dialog, caption, file_filter, defaultName=''):
     s,f = QFileDialog.getSaveFileNameAndFilter(
             dialog,
             caption,
-            defaultName, 
+            default_name,
             file_filter)
-    
+
     if s == '' or s is None :
         return
 
@@ -59,29 +58,30 @@ def saveAsDialog(dialog, caption, file_filter, defaultName=''):
         s = s + filterExt
     elif sExt != filterExt:
         s = s.replace(os.path.splitext(s)[-1],filterExt)
-    
+
     return s
 
 
-def file_in_use(filename, displayMsgBox=True):
+def file_in_use(filename, display_msgbox=True):
     """ Check to see if a file is in use within QGIS.
 
-    This is done by trying to open the file for writing then checking each layers source for the filename.
+    Trying to open the file for writing then checking each layers source for the filename.
 
     Args:
         filename ():
-        displayMsgBox ():
+        display_msgbox ():
     """
-    if not os.path.exists(filename): 
+    if not os.path.exists(filename):
         return False
-    
+
     try:
-        # Try and open the file. If it is open it will throw a IOError: [Errno 13] Permission denied error
+        # Try and open the file. If in use creates IOError: [Errno 13] Permission denied error
         open(filename, "a")
     except IOError:
         reply = QMessageBox.question(None, 'File in Use',
-                                     '{} is currently in use.\nPlease close the file or use a different name'.format(
-                                         os.path.basename(filename)), QMessageBox.Ok)
+                                     '{} is currently in use.\nPlease close the file or use a'
+                                     ' different name'.format(os.path.basename(filename)),
+                                     QMessageBox.Ok)
         return True
 
     # also check to see if it's loaded into QGIS
@@ -98,10 +98,12 @@ def file_in_use(filename, displayMsgBox=True):
             if os.path.normpath(layer.source()) == os.path.normpath(filename):
                 foundLyrs += [layer.name()]
 
-    if displayMsgBox and len(foundLyrs) > 0:
-        reply = QMessageBox.question(None, 'File in Use',
-                                     'File <b><i>{}</i></b><br /> is currently in use in QGIS layer(s)<dd><b>{}</b></dd><br/>Please remove the file from QGIS or use a different name'.format(
-                                         os.path.basename(filename), '<dd><b>'.join(foundLyrs)))
+    if display_msgbox and len(foundLyrs) > 0:
+        message = 'File <b><i>{}</i></b><br /> is currently in use in QGIS layer(s)<dd>' \
+                  '<b>{}</b></dd><br/>Please remove the file from QGIS or use a ' \
+                  'different name'.format(os.path.basename(filename), '<dd><b>'.join(foundLyrs))
+
+        reply = QMessageBox.question(None, 'File in Use',message)
 
     return len(foundLyrs) > 0
 
@@ -112,8 +114,10 @@ def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     Args:
         filename (str): the file to load
         layer_name (str): The name to apply to the vector layer
-        group_layer_name (str):  Add the layer to a group. Use path separators to create multiple groups
-        atTop (bool): Load to top of the table of contents. if false it will load above the active layer.
+        group_layer_name (str):  Add the layer to a group. Use path separators to create
+              multiple groups
+        atTop (bool): Load to top of the table of contents. if false it will load above
+              the active layer.
     Return:
          Vector Layer: The layer which has been loaded into QGIS
     """
@@ -135,8 +139,10 @@ def addRasterFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     Args:
         filename (str): the file to load
         layer_name (str): The name to apply to the raster layer
-        group_layer_name (str):  Add the layer to a group. Use path separators to create multiple groups
-        atTop (bool): Load to top of the table of contents. if false it will load above the active layer.
+        group_layer_name (str):  Add the layer to a group. Use path separators to create
+                multiple groups
+        atTop (bool): Load to top of the table of contents. if false it will load above the
+                active layer.
 
     Returns:
         Raster Layer: The layer which has been loaded into QGIS
@@ -162,7 +168,8 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
 
     Args:
         layer (QGSLayer): The layer to add
-        group_layer_name (str): Add to a group layer. path separators can be used for nested group layers
+        group_layer_name (str): Add to a group layer. path separators can be used for nested
+                     group layers
         atTop (str):
 
     """
@@ -171,12 +178,12 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
     root = QgsProject.instance().layerTreeRoot()
 
     # create group layers first:
-    
+
     if group_layer_name != "":
-    
+
         if os.path.sep in group_layer_name:
             grplist = group_layer_name.split(os.path.sep)
-        else: 
+        else:
             grplist = [group_layer_name]
         current_grp = root
         for ea_grp in grplist:
@@ -184,12 +191,12 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
             if group_layer is None:
                 if atTop:
                     group_layer = current_grp.insertGroup(0,ea_grp)
-                else: 
+                else:
                     group_layer = current_grp.addGroup(ea_grp)
             current_grp = group_layer
-        
+
         node_layer = current_grp.addLayer(layer)
-    
+
     else:
         if atTop:
             root.insertLayer(0, layer)
@@ -229,20 +236,21 @@ def getGeometryTypeAsString(intGeomType):
     Returns: string representing Geometry type
 
     """
-    geomTypeStr = {0: 'Unknown', 1: 'Point', 2: 'LineString', 3: 'Polygon', 4: 'MultiPoint', 5: 'MultiLineString',
-                   6: 'MultiPolygon', 7: 'GeometryCollection', 8: 'CircularString', 9: 'CompoundCurve',
-                   10: 'CurvePolygon', 11: 'MultiCurve', 12: 'MultiSurface', 100: 'NoGeometry', 1001: 'PointZ',
-                   1002: 'LineStringZ', 1003: 'PolygonZ', 1004: 'MultiPointZ', 1005: 'MultiLineStringZ',
-                   1006: 'MultiPolygonZ', 1007: 'GeometryCollectionZ', 1008: 'CircularStringZ', 1009: 'CompoundCurveZ',
-                   1010: 'CurvePolygonZ', 1011: 'MultiCurveZ', 1012: 'MultiSurfaceZ', 2001: 'PointM',
-                   2002: 'LineStringM',
-                   2003: 'PolygonM', 2004: 'MultiPointM', 2005: 'MultiLineStringM', 2006: 'MultiPolygonM',
-                   2007: 'GeometryCollectionM', 2008: 'CircularStringM', 2009: 'CompoundCurveM', 2010: 'CurvePolygonM',
-                   2011: 'MultiCurveM', 2012: 'MultiSurfaceM', 3001: 'PointZM', 3002: 'LineStringZM', 3003: 'PolygonZM',
-                   3004: 'MultiPointZM', 3005: 'MultiLineStringZM', 3006: 'MultiPolygonZM',
-                   3007: 'GeometryCollectionZM',
-                   3008: 'CircularStringZM', 3009: 'CompoundCurveZM', 3010: 'CurvePolygonZM', 3011: 'MultiCurveZM',
-                   3012: 'MultiSurfaceZM'}
+    geomTypeStr = {0: 'Unknown', 1: 'Point', 2: 'LineString', 3: 'Polygon', 4: 'MultiPoint',
+                   5: 'MultiLineString', 6: 'MultiPolygon', 7: 'GeometryCollection',
+                   8: 'CircularString', 9: 'CompoundCurve', 10: 'CurvePolygon', 11: 'MultiCurve',
+                   12: 'MultiSurface', 100: 'NoGeometry', 1001: 'PointZ', 1002: 'LineStringZ',
+                   1003: 'PolygonZ', 1004: 'MultiPointZ', 1005: 'MultiLineStringZ',
+                   1006: 'MultiPolygonZ', 1007: 'GeometryCollectionZ', 1008: 'CircularStringZ',
+                   1009: 'CompoundCurveZ', 1010: 'CurvePolygonZ', 1011: 'MultiCurveZ',
+                   1012: 'MultiSurfaceZ', 2001: 'PointM', 2002: 'LineStringM', 2003: 'PolygonM',
+                   2004: 'MultiPointM', 2005: 'MultiLineStringM', 2006: 'MultiPolygonM',
+                   2007:'GeometryCollectionM', 2008: 'CircularStringM', 2009: 'CompoundCurveM',
+                   2010: 'CurvePolygonM', 2011: 'MultiCurveM', 2012: 'MultiSurfaceM',
+                   3001: 'PointZM', 3002: 'LineStringZM', 3003: 'PolygonZM', 3004: 'MultiPointZM',
+                   3005:'MultiLineStringZM', 3006: 'MultiPolygonZM', 3007: 'GeometryCollectionZM',
+                   3008: 'CircularStringZM', 3009: 'CompoundCurveZM', 3010: 'CurvePolygonZM',
+                   3011: 'MultiCurveZM', 3012: 'MultiSurfaceZM'}
     # , 0x80000001: 'Point25D', : 'LineString25D', : 'Polygon25D', : 'MultiPoint25D', : 'MultiLineString25D', : 'MultiPolygon25D'}
     return geomTypeStr[intGeomType]
 

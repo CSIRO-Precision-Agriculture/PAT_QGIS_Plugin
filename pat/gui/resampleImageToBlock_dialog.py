@@ -27,7 +27,7 @@ import traceback
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
+from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS, addRasterFileToQGIS
 from util.settings import read_setting, write_setting
 
@@ -245,15 +245,15 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
                 'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
                 level=QgsMessageBar.CRITICAL, duration=5)
         return
-    
+
     def add_blank_field_to_cbo(self,set=True):
         """ Add a blank string to the field combo box.  Fixed in qgis 3"""
-             
+
         if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
             self.mFieldComboBox.addItem(u'')
             if set == True:
                 self.mFieldComboBox.setField(u'')
-                
+
     def on_mcboRasterLayer_layerChanged(self):
         self.updateRaster()
         self.autoSetCoordinateSystem()
@@ -264,7 +264,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
 
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
         self.chkUsePoly.setChecked(True)
-        
+
         self.add_blank_field_to_cbo()
 
     @QtCore.pyqtSlot(int)
@@ -273,14 +273,14 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
 
         self.mFieldComboBox.setEnabled(state)
         self.lblGroupByField.setEnabled(state)
-        
+
 #     def on_mFieldComboBox_fieldChanged(self, field):
-#         # Problem : after selecting a field, the blank is removed from the pick list. 
+#         # Problem : after selecting a field, the blank is removed from the pick list.
 #         # Solution: Add it again.... but this doesn't work.
 #         if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
-#             # work around for not having a physical blank in the list. Fixed in qgis 3 
+#             # work around for not having a physical blank in the list. Fixed in qgis 3
 #             self.mFieldComboBox.addItem(u'')
-    
+
     def on_chkUseSelected_stateChanged(self, state):
         if self.chkUseSelected.isChecked():
             self.chkUsePoly.setChecked(True)
