@@ -25,12 +25,16 @@ import os
 import re
 from urlparse import urlparse
 
+import pandas as pd
+import geopandas as gpd
+from shapely import wkt
+
 from PyQt4.QtCore import QVariant
 from PyQt4.QtGui import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import (QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
-                       QgsFeature, QgsField, QgsProject)
+from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
+                       QgsFeature, QgsField, QgsProject, QgsUnitTypes)
 
 from pat import LOGGER_NAME
 
@@ -38,8 +42,85 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
 
-def saveAsDialog(dialog, caption, file_filter, defaultName=''):
-    
+def check_for_overlap(rect1, rect2, crs1='', crs2=''):
+    """ Check for overlap between two rectangles.
+    Rectangles should be provided as wkt strings."""
+    if crs1 != '':
+        gdf1 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect1)]},crs=crs1)
+    else:
+        gdf1 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect1)]})
+
+    if crs2 != '':
+        gdf2 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect2)]},crs=crs2)
+    else:
+        gdf2 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect2)]})
+
+    return gdf1.intersects(gdf2)[0]
+
+
+def get_pixel_size(layer):
+    """Get the pixel size and pixel size and units from raster layer.
+    """
+
+    if layer is None or layer.type() != QgsMapLayer.RasterLayer:
+        return None, None
+
+    if layer.crs().geographicFlag():
+        ft = 'f'  # this will convert 1.99348e-05 to 0.000020
+    else:
+        ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
+
+    pixel_units = QgsUnitTypes.encodeUnit(layer.crs().mapUnits())
+    # Adjust for Aust/UK spelling
+    pixel_units = pixel_units.replace('meters', 'metres')
+    pixel_size = format(layer.rasterUnitsPerPixelX(), ft)
+
+    return pixel_size, pixel_units
+
+
+def build_layer_table():
+    """Build a table of layer properties.
+    Can be used inconjuction with selecting layers to exclude from mapcomboboxes
+    """
+    df_layers = pd.DataFrame()
+    layermap = QgsMapLayerRegistry.instance().mapLayers()
+    new_rows=[]
+    for name, layer in layermap.iteritems():
+
+        if layer.type() not in [QgsMapLayer.VectorLayer,QgsMapLayer.RasterLayer]:
+            continue
+
+        rowDict={'layer_name': layer.name(),
+                 'layer_id': layer.id(),
+                 'layer_type': layer.type(),
+                 'source': layer.source(),
+                 'epsg': layer.crs().authid(),
+                 'crs_name': layer.crs().description(),
+                 'is_projected': not layer.crs().geographicFlag(),
+                 'extent': layer.extent().asWktPolygon(),
+                 'provider':   layer.providerType() }
+
+        if layer.type() == QgsMapLayer.RasterLayer:
+            pixel_size =get_pixel_size(layer)
+            rowDict.update({'layer_type_desc': 'RasterLayer',
+                            'bandcount': layer.bandCount(),
+                            'pixel_size': pixel_size[0],
+                            'pixel_text': '{} {}'.format(*pixel_size),
+                           })
+        new_rows.append(rowDict)
+
+    if len(new_rows) == 0:
+        return df_layers
+    # for pandas 0.23.4 add sort=False to prevent row and column orders to change.
+    try:
+        df_layers = df_layers.append(new_rows, ignore_index=True, sort=False)
+    except:
+        df_layers = df_layers.append(new_rows, ignore_index=True)
+    return df_layers
+
+
+def save_as_dialog(dialog, caption, file_filter, default_name=''):
+
     s,f = QFileDialog.getSaveFileNameAndFilter(
             dialog,
             caption,

@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 
+
 try:
     import ConfigParser as configparser
 except ImportError:
@@ -38,7 +39,7 @@ from pkg_resources import parse_version
 
 from PyQt4.Qt import QLabel
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
-from PyQt4.QtGui import QAction, QIcon, QMenu, QDockWidget, QToolButton, QMessageBox
+from PyQt4.QtGui import QAction, QIcon, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton
 from qgis.core import QgsMapLayerRegistry, QgsMessageLog
 from qgis.gui import QgsMessageBar
 
@@ -61,7 +62,7 @@ from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 from gui.kMeansCluster_dialog import KMeansClusterDialog
 from gui.stripTrialPoints_dialog import StripTrialPointsDialog
-
+from gui.tTestAnalysis_dialog import tTestAnalysisDialog
 from util.check_dependencies import check_vesper_dependency, check_R_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
@@ -322,6 +323,15 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
+            icon_path=':/plugins/pat/icons/icon_t-test.svg',
+            text=self.tr(u'Run strip trial t-test analysis'),
+            tool_tip=self.tr(u'Run strip trial t-test analysis'),
+            status_tip=self.tr(u'Run strip trial t-test analysis'),
+            add_to_toolbar=True,
+            callback=self.run_tTestAnalysis,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
             icon_path=':/plugins/pat/icons/icon_wholeOfBlockExp.svg',
             text=self.tr(u'Whole-of-block analysis'),
             tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
@@ -384,10 +394,9 @@ class pat_toolbar:
 
         if len(self.vesper_queue) > 0:
             replyQuit = QMessageBox.information(self.iface.mainWindow(),
-                                                "Quit QGIS",
-                                                "Quitting QGIS with {} tasks in the VESPER queue.\n\t{}".format(
-                                                    len(self.vesper_queue),
-                                                    '\n\t'.join([ea['control_file'] for ea in self.vesper_queue])),
+                                                "Quit QGIS", "Quitting QGIS with {} tasks in the "
+                                                "VESPER queue.\n\t{}".format(len(self.vesper_queue),
+                                                '\n\t'.join([ea['control_file'] for ea in self.vesper_queue])),
                                                 QMessageBox.Ok)
 
         stop_logging('pyprecag')
@@ -424,10 +433,12 @@ class pat_toolbar:
     def queueAddTo(self, vesp_dict):
         """ Add a control file to the VESPER queue"""
 
-        if next((x for x in self.vesper_queue if x['control_file'] == vesp_dict["control_file"]), None) is not None:
-            self.iface.messageBar().pushMessage(
-                'Control file is already in the VESPER queue. {}'.format(vesp_dict['control_file']),
-                level=QgsMessageBar.WARNING, duration=15)
+        if next((x for x in self.vesper_queue if x['control_file'] == vesp_dict["control_file"])
+                , None) is not None:
+
+            self.iface.messageBar().pushMessage('Control file is already in the VESPER queue. {}'.format(
+                vesp_dict['control_file']),level=QgsMessageBar.WARNING, duration=15)
+
             self.queueDisplay()
 
         else:
@@ -452,17 +463,16 @@ class pat_toolbar:
         ctrl_width = len(max([os.path.basename(ea['control_file']) for ea in self.vesper_queue], key=len))
         epsg_width = len(max([str(ea['epsg']) for ea in self.vesper_queue], key=len))
 
-        header = '{:3}\t{:<{cw}}\t{:5}\t{:>{ew}} {}'.format('#', 'Control File', 'Import', 'EPSG', 'Folder',
-                                                            cw=ctrl_width + 10, ew=epsg_width + 10)
+        header = '{:3}\t{:<{cw}}\t{:5}\t{:>{ew}} {}'.format(
+            '#', 'Control File', 'Import', 'EPSG', 'Folder', cw=ctrl_width + 10, ew=epsg_width + 10)
 
         print('\n' + '-' * len(header))
         print(header)
         print('-' * len(header))
         for i, ea in enumerate(self.vesper_queue):
-            print('{:3}\t{:<{cw}}\t{:5}\t{:>{ew}}\t{}'.format(i + 1, os.path.basename(ea['control_file']),
-                                                              str(bool(ea['epsg'] > 0)), ea['epsg'],
-                                                              os.path.dirname(ea['control_file']), cw=ctrl_width + 10,
-                                                              ew=epsg_width + 10))
+            print('{:3}\t{:<{cw}}\t{:5}\t{:>{ew}}\t{}'.format(
+                i + 1, os.path.basename(ea['control_file']), str(bool(ea['epsg'] > 0)), ea['epsg'],
+                os.path.dirname(ea['control_file']), cw=ctrl_width + 10, ew=epsg_width + 10))
 
         print('\n')
 
@@ -518,9 +528,10 @@ class pat_toolbar:
         self.vesper_run_time = time.time()
         if self.processVesper is None:
             self.processVesper = QProcess()
-
-            self.processVesper.started.connect(self.processStartedVesper)  # sets a duration variable
-            self.processVesper.finished.connect(self.processFinishedVesper)  # sets a task for when finished.
+            # set a duration variable
+            self.processVesper.started.connect(self.processStartedVesper)
+            # sets a task for when finished.
+            self.processVesper.finished.connect(self.processFinishedVesper)
 
         self.queueStatusBarShow()
 
@@ -551,17 +562,18 @@ class pat_toolbar:
                     removeFileFromQGIS(out_SETif)
                     addRasterFileToQGIS(out_SETif, atTop=False)
 
-                    message = "Completed VESPER kriging for {}\t Duration H:M:SS - {dur}".format(
-                        os.path.basename(currentTask['control_file']),
-                        dur=datetime.timedelta(seconds=time.time() - self.vesper_run_time))
-                    self.iface.messageBar().pushMessage(message, level=QgsMessageBar.INFO, duration=15)
-                    LOGGER.info(message)
-
                 except Exception as err:
-                    message = "Could not import from VESPER to raster TIFF possibly due to a VESPER error.\n{}".format(
-                        os.path.basename(currentTask['control_file']))
+                    message = "Could not import from VESPER to raster TIFF possibly due to a " \
+                              "VESPER error.\n{}".format(os.path.basename(currentTask['control_file']))
 
                     LOGGER.error(message)
+
+            message = "Completed VESPER kriging for {}\t Duration H:M:SS - {dur}".format(
+                        os.path.basename(currentTask['control_file']),
+                        dur=datetime.timedelta(seconds=time.time() - self.vesper_run_time))
+            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.INFO, duration=15)
+            LOGGER.info(message)
+
         else:
             message = "Error occurred with VESPER kriging for {}".format(currentTask['control_file'])
             self.iface.messageBar().pushMessage(message, level=QgsMessageBar.CRITICAL, duration=0)
@@ -606,16 +618,16 @@ class pat_toolbar:
             cw.runAlgorithm(alg)
 
         # if proc_alg_mess.alg_name == '' then cancel was clicked
-            
+
         if proc_alg_mess.error:
             self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
                                                 level=QgsMessageBar.CRITICAL, duration=0)
         elif proc_alg_mess.alg_name != '':
             data_column = proc_alg_mess.parameters['Data_Column']
-            
+
             # load rasters into qgis as grouped layers.
             for key, val in proc_alg_mess.output_files.items():
-                
+
                 grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
 
                 for ea_file in val['files']:
@@ -630,10 +642,11 @@ class pat_toolbar:
         del proc_alg_mess
 
     def run_stripTrialPoints(self):
-        
+
         if parse_version(pyprecag.__version__) < parse_version('0.2.0'):
-            self.iface.messageBar().pushMessage("Create strip trial points tool is not supported in pyprecag {}. Upgrade to version 0.2.0+".format(pyprecag.__version__),
-                                                 level=QgsMessageBar.WARNING, duration=15)
+            self.iface.messageBar().pushMessage("Create strip trial points tool is not supported "
+                                                "in pyprecag {}. Upgrade to version 0.2.0+".format(
+                pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
             return
 
         """Run method for the Strip trial points dialog"""
@@ -653,6 +666,53 @@ class pat_toolbar:
         # Refresh QGIS
         QCoreApplication.processEvents()
 
+    def run_tTestAnalysis(self):
+        if parse_version(pyprecag.__version__) < parse_version('0.2.1'):
+            self.iface.messageBar().pushMessage("Create t-test analysis tool is not supported in "
+                                                "pyprecag {}. Upgrade to version 0.2.0+".format(
+                pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
+            return
+
+        """Run method for the Strip trial points dialog"""
+        dlg_tTestAnalysis = tTestAnalysisDialog(self.iface)
+
+        # Show the dialog
+        dlg_tTestAnalysis.show()
+
+        if dlg_tTestAnalysis.exec_():
+            output_folder = dlg_tTestAnalysis.lneOutputFolder.text()
+            import webbrowser
+            try:
+                from urllib import pathname2url         # Python 2.x
+            except:
+                from urllib.request import pathname2url # Python 3.x
+
+            def open_folder():
+                url = 'file:{}'.format(pathname2url(os.path.abspath(output_folder)))
+                webbrowser.open(url)
+
+            message = 'Strip trial t-test analysis completed!'
+
+            # Add hyperlink to messagebar - this works but it places the text on the right, not left.
+            # variation of QGIS-master\python\plugins\db_manager\db_tree.py
+            # msgLabel = QLabel(self.tr('{0} <a href="{1}">{1}</a>'.format(message, output_folder)), self.iface.messageBar())
+            # msgLabel.linkActivated.connect(open_folder)
+            # self.iface.messageBar().pushWidget(msgLabel,level=QgsMessageBar.SUCCESS, duration=15)
+
+            # so use a button instead
+            widget = self.iface.messageBar().createMessage('', message)
+            button = QPushButton(widget)
+            button.setText('Open Folder')
+            button.pressed.connect(open_folder)
+            widget.layout().addWidget(button)
+            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
+            LOGGER.info(message)
+
+        # Close Dialog
+        dlg_tTestAnalysis.deleteLater()
+
+        # Refresh QGIS
+        QCoreApplication.processEvents()
 
     def run_kMeansClustering(self):
         """Run method for the Calculate Image Indices dialog"""
@@ -716,8 +776,26 @@ class pat_toolbar:
         dlgGridExtract.show()
 
         if dlgGridExtract.exec_():
+            output_file = dlgGridExtract.lneSaveCSVFile.text()
+
+            import webbrowser
+            try:
+                from urllib import pathname2url  # Python 2.x
+            except:
+                from urllib.request import pathname2url  # Python 3.x
+
+            def open_folder():
+                url = 'file:{}'.format(pathname2url(os.path.abspath(output_file)))
+                webbrowser.open(url)
+
             message = 'Raster statistics for points extracted successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            #add a button to open the file outside qgis
+            widget = self.iface.messageBar().createMessage('', message)
+            button = QPushButton(widget)
+            button.setText('Open File')
+            button.pressed.connect(open_folder)
+            widget.layout().addWidget(button)
+            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
             LOGGER.info(message)
 
         # Close Dialog

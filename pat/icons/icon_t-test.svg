@@ -1,0 +1,528 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="128px"
+   height="128px"
+   viewBox="0 0 128 128"
+   version="1.1"
+   id="SVGRoot"
+   sodipodi:docname="icon_t-test.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="4.8165459"
+     inkscape:cx="33.233975"
+     inkscape:cy="34.743204"
+     inkscape:document-units="px"
+     inkscape:current-layer="flowRoot4721"
+     showgrid="true"
+     inkscape:window-width="1920"
+     inkscape:window-height="1137"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:grid-bbox="true"
+     inkscape:snap-grids="false"
+     inkscape:snap-to-guides="false"
+     showguides="true"
+     inkscape:guide-bbox="true">
+    <inkscape:grid
+       type="xygrid"
+       id="grid1374"
+       spacingx="0.8"
+       spacingy="0.8"
+       enabled="true" />
+    <sodipodi:guide
+       position="-59.341553,64.000172"
+       orientation="0,1"
+       id="guide1317"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="64.066047,40.685243"
+       orientation="1,0"
+       id="guide1319"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs815">
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker4115"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path4113"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path2838"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.4) rotate(180) translate(10,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker4059"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path4057"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.2) rotate(180) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mend"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path2856"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) rotate(180) translate(0,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Tail"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="marker3863"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <g
+         id="g3861"
+         transform="scale(-1.2)"
+         style="stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1">
+        <path
+           id="path3849"
+           d="M -3.8048674,-3.9585227 L 0.54352094,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3851"
+           d="M -1.2866832,-3.9585227 L 3.0617053,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3853"
+           d="M 1.3053582,-3.9585227 L 5.6537466,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3855"
+           d="M -3.8048674,4.1775838 L 0.54352094,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3857"
+           d="M -1.2866832,4.1775838 L 3.0617053,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path3859"
+           d="M 1.3053582,4.1775838 L 5.6537466,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+      </g>
+    </marker>
+    <marker
+       inkscape:stockid="Tail"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Tail"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <g
+         id="g2877"
+         transform="scale(-1.2)"
+         style="stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1">
+        <path
+           id="path2865"
+           d="M -3.8048674,-3.9585227 L 0.54352094,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2867"
+           d="M -1.2866832,-3.9585227 L 3.0617053,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2869"
+           d="M 1.3053582,-3.9585227 L 5.6537466,0"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2871"
+           d="M -3.8048674,4.1775838 L 0.54352094,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2873"
+           d="M -1.2866832,4.1775838 L 3.0617053,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+        <path
+           id="path2875"
+           d="M 1.3053582,4.1775838 L 5.6537466,0.21974226"
+           style="fill:#000000;fill-rule:evenodd;stroke:#000000;stroke-width:0.8;stroke-linecap:round;stroke-opacity:1;fill-opacity:1" />
+      </g>
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Send"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Send"
+       style="overflow:visible;"
+       inkscape:isstock="true">
+      <path
+         id="path2844"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.2) rotate(180) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Sstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Sstart"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path2841"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         transform="scale(0.2) translate(6,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow2Mstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow2Mstart"
+       style="overflow:visible"
+       inkscape:isstock="true">
+      <path
+         id="path2853"
+         style="fill-rule:evenodd;stroke-width:0.625;stroke-linejoin:round;stroke:#000000;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 8.7185878,4.0337352 L -2.2072895,0.016013256 L 8.7185884,-4.0017078 C 6.9730900,-1.6296469 6.9831476,1.6157441 8.7185878,4.0337352 z "
+         transform="scale(0.6) translate(0,0)" />
+    </marker>
+    <pattern
+       inkscape:collect="always"
+       xlink:href="#Checkerboard"
+       id="pattern2819"
+       patternTransform="scale(4.0337866)" />
+    <pattern
+       inkscape:stockid="Checkerboard"
+       id="Checkerboard"
+       patternTransform="translate(0,0) scale(10,10)"
+       height="2"
+       width="2"
+       patternUnits="userSpaceOnUse"
+       inkscape:collect="always"
+       inkscape:isstock="true">
+      <rect
+         id="rect2169"
+         height="1"
+         width="1"
+         y="0"
+         x="0"
+         style="fill:black;stroke:none" />
+      <rect
+         id="rect2171"
+         height="1"
+         width="1"
+         y="1"
+         x="1"
+         style="fill:black;stroke:none" />
+    </pattern>
+  </defs>
+  <metadata
+     id="metadata818">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <g
+       aria-label="t"
+       transform="matrix(1.7187401,0,0,1.4566465,434.8238,2.1372102)"
+       style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:85.33333588px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold Italic';letter-spacing:0px;word-spacing:0px;fill:#37c837;fill-opacity:1;stroke:none;stroke-opacity:1"
+       id="flowRoot4721">
+      <g
+         id="g6304"
+         inkscape:label="Black Dots">
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3742"
+           cx="205.44949"
+           cy="156.43489" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="154.5757"
+           cx="170.76393"
+           id="circle3744"
+           style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="155.81517"
+           cx="193.88763"
+           id="circle3752"
+           style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3754"
+           cx="182.32578"
+           cy="155.19543" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="157.05463"
+           cx="217.01134"
+           id="circle3756"
+           style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3758"
+           cx="159.20207"
+           cy="153.95598" />
+      </g>
+      <g
+         id="g6296"
+         inkscape:label="Red Dots">
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3742-4"
+           cx="206.28809"
+           cy="141.17836" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="139.25539"
+           cx="171.58546"
+           id="circle3744-8"
+           style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="140.53737"
+           cx="194.72054"
+           id="circle3752-8"
+           style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3754-6"
+           cx="183.153"
+           cy="139.89639" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="141.81937"
+           cx="217.85562"
+           id="circle3756-1"
+           style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3758-1"
+           cx="160.01793"
+           cy="138.6144" />
+      </g>
+      <g
+         id="g6288"
+         inkscape:label="Blue Dots">
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3742-9"
+           cx="204.59737"
+           cy="171.93474" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="170.05431"
+           cx="169.93359"
+           id="circle3744-6"
+           style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="171.30792"
+           cx="193.04277"
+           id="circle3752-5"
+           style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3754-8"
+           cx="181.48817"
+           cy="170.68112" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           cy="172.56155"
+           cx="216.15196"
+           id="circle3756-7"
+           style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+        <ellipse
+           ry="3.8469336"
+           rx="3.9161875"
+           transform="matrix(-0.60498398,0.79623764,-0.68696636,-0.72668922,0,0)"
+           inkscape:export-ydpi="96"
+           inkscape:export-xdpi="96"
+           inkscape:export-filename="C:\data\_projects\_working_copy\PrecisionAg_Plugin\documentation\Pictures\manual\icons\icon_randomPixel.png"
+           style="opacity:1;fill:#0000ff;fill-opacity:1;stroke:none;stroke-width:1.56449473;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="circle3758-2"
+           cx="158.379"
+           cy="169.42751" />
+      </g>
+      <rect
+         y="154.98613"
+         x="-147.28838"
+         height="79.495552"
+         width="1.5380037"
+         id="rect2495"
+         style="opacity:1;fill:#121215;fill-opacity:1;stroke:none;stroke-width:1.56160283;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         transform="matrix(0.64654419,0.76287653,-0.64654419,0.76287653,0,0)" />
+      <rect
+         y="155.08226"
+         x="-155.07451"
+         height="79.303307"
+         width="17.110291"
+         id="rect2495-3"
+         style="opacity:1;fill:#121215;fill-opacity:0.32663317;stroke:none;stroke-width:5.20229292;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+         transform="matrix(0.64654419,0.76287653,-0.64654419,0.76287653,0,0)" />
+      <text
+         xml:space="preserve"
+         style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:79.22070312px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.9805094"
+         x="-242.90601"
+         y="73.757797"
+         id="text3093"
+         transform="scale(0.86427429,1.1570401)"><tspan
+           y="73.757797"
+           x="-242.90601"
+           sodipodi:role="line"
+           id="tspan879"
+           style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:'Berlin Sans FB Demi';-inkscape-font-specification:'Berlin Sans FB Demi Bold Italic';stroke-width:1.9805094"
+           transform="matrix(1,0,0,1.081317,0,-5.8019951)">t</tspan></text>
+    </g>
+  </g>
+</svg>
