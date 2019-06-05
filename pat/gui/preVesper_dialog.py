@@ -462,6 +462,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 message = 'Successfully created files for Vesper kriging. The control file is {}'.format(ctrl_file)
                 self.send_to_messagebar(message, level=QgsMessageBar.SUCCESS, duration=0, addToLog=True,
                                         core_QGIS=True)
+                LOGGER.info ('Successfully created files for Vesper kriging')
 
             QtGui.qApp.restoreOverrideCursor()
             return super(PreVesperDialog, self).accept(*args, **kwargs)

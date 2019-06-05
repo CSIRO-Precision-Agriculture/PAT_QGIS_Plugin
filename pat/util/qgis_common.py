@@ -22,16 +22,19 @@
 
 import logging
 import os
-
 import re
 from urlparse import urlparse
+
+import pandas as pd
+import geopandas as gpd
+from shapely import wkt
 
 from PyQt4.QtCore import QVariant
 from PyQt4.QtGui import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import (QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
-                       QgsFeature, QgsField, QgsProject)
+from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
+                       QgsFeature, QgsField, QgsProject, QgsUnitTypes)
 
 from pat import LOGGER_NAME
 
@@ -39,14 +42,91 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
 
-def saveAsDialog(dialog, caption, file_filter, defaultName=''):
-    
+def check_for_overlap(rect1, rect2, crs1='', crs2=''):
+    """ Check for overlap between two rectangles.
+    Rectangles should be provided as wkt strings."""
+    if crs1 != '':
+        gdf1 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect1)]},crs=crs1)
+    else:
+        gdf1 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect1)]})
+
+    if crs2 != '':
+        gdf2 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect2)]},crs=crs2)
+    else:
+        gdf2 = gpd.GeoDataFrame({'geometry':[wkt.loads(rect2)]})
+
+    return gdf1.intersects(gdf2)[0]
+
+
+def get_pixel_size(layer):
+    """Get the pixel size and pixel size and units from raster layer.
+    """
+
+    if layer is None or layer.type() != QgsMapLayer.RasterLayer:
+        return None, None
+
+    if layer.crs().geographicFlag():
+        ft = 'f'  # this will convert 1.99348e-05 to 0.000020
+    else:
+        ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
+
+    pixel_units = QgsUnitTypes.encodeUnit(layer.crs().mapUnits())
+    # Adjust for Aust/UK spelling
+    pixel_units = pixel_units.replace('meters', 'metres')
+    pixel_size = format(layer.rasterUnitsPerPixelX(), ft)
+
+    return pixel_size, pixel_units
+
+
+def build_layer_table():
+    """Build a table of layer properties.
+    Can be used inconjuction with selecting layers to exclude from mapcomboboxes
+    """
+    df_layers = pd.DataFrame()
+    layermap = QgsMapLayerRegistry.instance().mapLayers()
+    new_rows=[]
+    for name, layer in layermap.iteritems():
+
+        if layer.type() not in [QgsMapLayer.VectorLayer,QgsMapLayer.RasterLayer]:
+            continue
+
+        rowDict={'layer_name': layer.name(),
+                 'layer_id': layer.id(),
+                 'layer_type': layer.type(),
+                 'source': layer.source(),
+                 'epsg': layer.crs().authid(),
+                 'crs_name': layer.crs().description(),
+                 'is_projected': not layer.crs().geographicFlag(),
+                 'extent': layer.extent().asWktPolygon(),
+                 'provider':   layer.providerType() }
+
+        if layer.type() == QgsMapLayer.RasterLayer:
+            pixel_size =get_pixel_size(layer)
+            rowDict.update({'layer_type_desc': 'RasterLayer',
+                            'bandcount': layer.bandCount(),
+                            'pixel_size': pixel_size[0],
+                            'pixel_text': '{} {}'.format(*pixel_size),
+                           })
+        new_rows.append(rowDict)
+
+    if len(new_rows) == 0:
+        return df_layers
+    # for pandas 0.23.4 add sort=False to prevent row and column orders to change.
+    try:
+        df_layers = df_layers.append(new_rows, ignore_index=True, sort=False)
+    except:
+        df_layers = df_layers.append(new_rows, ignore_index=True)
+    return df_layers
+
+
+def save_as_dialog(dialog, caption, file_filter, default_name=''):
+
     s,f = QFileDialog.getSaveFileNameAndFilter(
             dialog,
             caption,
-            defaultName, 
+            default_name,
             file_filter)
-    
+
     if s == '' or s is None :
         return
 
@@ -59,29 +139,30 @@ def saveAsDialog(dialog, caption, file_filter, defaultName=''):
         s = s + filterExt
     elif sExt != filterExt:
         s = s.replace(os.path.splitext(s)[-1],filterExt)
-    
+
     return s
 
 
-def file_in_use(filename, displayMsgBox=True):
+def file_in_use(filename, display_msgbox=True):
     """ Check to see if a file is in use within QGIS.
 
-    This is done by trying to open the file for writing then checking each layers source for the filename.
+    Trying to open the file for writing then checking each layers source for the filename.
 
     Args:
         filename ():
-        displayMsgBox ():
+        display_msgbox ():
     """
-    if not os.path.exists(filename): 
+    if not os.path.exists(filename):
         return False
-    
+
     try:
-        # Try and open the file. If it is open it will throw a IOError: [Errno 13] Permission denied error
+        # Try and open the file. If in use creates IOError: [Errno 13] Permission denied error
         open(filename, "a")
     except IOError:
         reply = QMessageBox.question(None, 'File in Use',
-                                     '{} is currently in use.\nPlease close the file or use a different name'.format(
-                                         os.path.basename(filename)), QMessageBox.Ok)
+                                     '{} is currently in use.\nPlease close the file or use a'
+                                     ' different name'.format(os.path.basename(filename)),
+                                     QMessageBox.Ok)
         return True
 
     # also check to see if it's loaded into QGIS
@@ -98,10 +179,12 @@ def file_in_use(filename, displayMsgBox=True):
             if os.path.normpath(layer.source()) == os.path.normpath(filename):
                 foundLyrs += [layer.name()]
 
-    if displayMsgBox and len(foundLyrs) > 0:
-        reply = QMessageBox.question(None, 'File in Use',
-                                     'File <b><i>{}</i></b><br /> is currently in use in QGIS layer(s)<dd><b>{}</b></dd><br/>Please remove the file from QGIS or use a different name'.format(
-                                         os.path.basename(filename), '<dd><b>'.join(foundLyrs)))
+    if display_msgbox and len(foundLyrs) > 0:
+        message = 'File <b><i>{}</i></b><br /> is currently in use in QGIS layer(s)<dd>' \
+                  '<b>{}</b></dd><br/>Please remove the file from QGIS or use a ' \
+                  'different name'.format(os.path.basename(filename), '<dd><b>'.join(foundLyrs))
+
+        reply = QMessageBox.question(None, 'File in Use',message)
 
     return len(foundLyrs) > 0
 
@@ -112,8 +195,10 @@ def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     Args:
         filename (str): the file to load
         layer_name (str): The name to apply to the vector layer
-        group_layer_name (str):  Add the layer to a group. Use path separators to create multiple groups
-        atTop (bool): Load to top of the table of contents. if false it will load above the active layer.
+        group_layer_name (str):  Add the layer to a group. Use path separators to create
+              multiple groups
+        atTop (bool): Load to top of the table of contents. if false it will load above
+              the active layer.
     Return:
          Vector Layer: The layer which has been loaded into QGIS
     """
@@ -135,8 +220,10 @@ def addRasterFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     Args:
         filename (str): the file to load
         layer_name (str): The name to apply to the raster layer
-        group_layer_name (str):  Add the layer to a group. Use path separators to create multiple groups
-        atTop (bool): Load to top of the table of contents. if false it will load above the active layer.
+        group_layer_name (str):  Add the layer to a group. Use path separators to create
+                multiple groups
+        atTop (bool): Load to top of the table of contents. if false it will load above the
+                active layer.
 
     Returns:
         Raster Layer: The layer which has been loaded into QGIS
@@ -162,7 +249,8 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
 
     Args:
         layer (QGSLayer): The layer to add
-        group_layer_name (str): Add to a group layer. path separators can be used for nested group layers
+        group_layer_name (str): Add to a group layer. path separators can be used for nested
+                     group layers
         atTop (str):
 
     """
@@ -171,12 +259,12 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
     root = QgsProject.instance().layerTreeRoot()
 
     # create group layers first:
-    
+
     if group_layer_name != "":
-    
+
         if os.path.sep in group_layer_name:
             grplist = group_layer_name.split(os.path.sep)
-        else: 
+        else:
             grplist = [group_layer_name]
         current_grp = root
         for ea_grp in grplist:
@@ -184,12 +272,12 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
             if group_layer is None:
                 if atTop:
                     group_layer = current_grp.insertGroup(0,ea_grp)
-                else: 
+                else:
                     group_layer = current_grp.addGroup(ea_grp)
             current_grp = group_layer
-        
+
         node_layer = current_grp.addLayer(layer)
-    
+
     else:
         if atTop:
             root.insertLayer(0, layer)
@@ -229,20 +317,21 @@ def getGeometryTypeAsString(intGeomType):
     Returns: string representing Geometry type
 
     """
-    geomTypeStr = {0: 'Unknown', 1: 'Point', 2: 'LineString', 3: 'Polygon', 4: 'MultiPoint', 5: 'MultiLineString',
-                   6: 'MultiPolygon', 7: 'GeometryCollection', 8: 'CircularString', 9: 'CompoundCurve',
-                   10: 'CurvePolygon', 11: 'MultiCurve', 12: 'MultiSurface', 100: 'NoGeometry', 1001: 'PointZ',
-                   1002: 'LineStringZ', 1003: 'PolygonZ', 1004: 'MultiPointZ', 1005: 'MultiLineStringZ',
-                   1006: 'MultiPolygonZ', 1007: 'GeometryCollectionZ', 1008: 'CircularStringZ', 1009: 'CompoundCurveZ',
-                   1010: 'CurvePolygonZ', 1011: 'MultiCurveZ', 1012: 'MultiSurfaceZ', 2001: 'PointM',
-                   2002: 'LineStringM',
-                   2003: 'PolygonM', 2004: 'MultiPointM', 2005: 'MultiLineStringM', 2006: 'MultiPolygonM',
-                   2007: 'GeometryCollectionM', 2008: 'CircularStringM', 2009: 'CompoundCurveM', 2010: 'CurvePolygonM',
-                   2011: 'MultiCurveM', 2012: 'MultiSurfaceM', 3001: 'PointZM', 3002: 'LineStringZM', 3003: 'PolygonZM',
-                   3004: 'MultiPointZM', 3005: 'MultiLineStringZM', 3006: 'MultiPolygonZM',
-                   3007: 'GeometryCollectionZM',
-                   3008: 'CircularStringZM', 3009: 'CompoundCurveZM', 3010: 'CurvePolygonZM', 3011: 'MultiCurveZM',
-                   3012: 'MultiSurfaceZM'}
+    geomTypeStr = {0: 'Unknown', 1: 'Point', 2: 'LineString', 3: 'Polygon', 4: 'MultiPoint',
+                   5: 'MultiLineString', 6: 'MultiPolygon', 7: 'GeometryCollection',
+                   8: 'CircularString', 9: 'CompoundCurve', 10: 'CurvePolygon', 11: 'MultiCurve',
+                   12: 'MultiSurface', 100: 'NoGeometry', 1001: 'PointZ', 1002: 'LineStringZ',
+                   1003: 'PolygonZ', 1004: 'MultiPointZ', 1005: 'MultiLineStringZ',
+                   1006: 'MultiPolygonZ', 1007: 'GeometryCollectionZ', 1008: 'CircularStringZ',
+                   1009: 'CompoundCurveZ', 1010: 'CurvePolygonZ', 1011: 'MultiCurveZ',
+                   1012: 'MultiSurfaceZ', 2001: 'PointM', 2002: 'LineStringM', 2003: 'PolygonM',
+                   2004: 'MultiPointM', 2005: 'MultiLineStringM', 2006: 'MultiPolygonM',
+                   2007:'GeometryCollectionM', 2008: 'CircularStringM', 2009: 'CompoundCurveM',
+                   2010: 'CurvePolygonM', 2011: 'MultiCurveM', 2012: 'MultiSurfaceM',
+                   3001: 'PointZM', 3002: 'LineStringZM', 3003: 'PolygonZM', 3004: 'MultiPointZM',
+                   3005:'MultiLineStringZM', 3006: 'MultiPolygonZM', 3007: 'GeometryCollectionZM',
+                   3008: 'CircularStringZM', 3009: 'CompoundCurveZM', 3010: 'CurvePolygonZM',
+                   3011: 'MultiCurveZM', 3012: 'MultiSurfaceZM'}
     # , 0x80000001: 'Point25D', : 'LineString25D', : 'Polygon25D', : 'MultiPoint25D', : 'MultiLineString25D', : 'MultiPolygon25D'}
     return geomTypeStr[intGeomType]
 

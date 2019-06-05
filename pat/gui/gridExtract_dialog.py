@@ -30,7 +30,7 @@ import traceback
 import numpy as np
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import saveAsDialog, file_in_use
+from util.qgis_common import save_as_dialog, file_in_use
 from util.settings import read_setting, write_setting
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QTableWidgetItem, QPushButton
@@ -241,7 +241,7 @@ class GridExtractDialog(QtGui.QDialog, FORM_CLASS):
 
         if rowPosition == 0:
             # get the pixel units from the coordinate systems as a string  ie degrees, metres etc.
-            # for QGIS 3  see the following functions 
+            # for QGIS 3  see the following functions
             # .toAbbreviatedString()      https://www.qgis.org/api/classQgsUnitTypes.html#a7d09b9df11b6dcc2fe29928f5de296a4
             # and /or DistanceValue       https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
 
@@ -330,9 +330,9 @@ class GridExtractDialog(QtGui.QDialog, FORM_CLASS):
         # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
         filename = re.sub(r"_+", "_", filename)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("Comma Delimited") + " (*.csv);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return

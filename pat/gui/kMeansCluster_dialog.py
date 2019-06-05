@@ -34,7 +34,7 @@ from pyprecag import raster_ops, config, processing, describe
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS
+from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS
 from util.qgis_symbology import raster_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
@@ -84,7 +84,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
 
         # GUI Runtime Customisation -----------------------------------------------
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_kMeansCluster.svg'))
-        
+
         self.tabList.setColumnCount(2)
         self.tabList.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))
         self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("0 Raster(s)"))
@@ -174,21 +174,21 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             # Only Load Raster layers with valid internal coordinate system or matching pixel size
             if layer.type() != QgsMapLayer.RasterLayer:
                 continue
-            
+
             if rasterio.open(layer.source()).crs is None:
-                check_crs.append(layer.name()) 
+                check_crs.append(layer.name())
                 exlayer_list.append(layer)
                 continue
-            
+
             if self.pixel_size == 0: continue
-            
+
             if layer.crs().geographicFlag():
                 ft = 'f'
             else:
                 ft = 'g'
-                
+
             lyrPixelSize = format(layer.rasterUnitsPerPixelX(), ft)
-            
+
             if float(self.pixel_size) > 0 and lyrPixelSize != self.pixel_size:
                 exlayer_list.append(layer)
                 continue
@@ -200,19 +200,19 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
                     continue
 
         self.mcboRasterLayer.setExceptedLayerList(exlayer_list)
-        
+
         if len(check_crs) > 0 and self.pixel_size == 0:
             self.send_to_messagebar('{} raster(s) are missing coordinate systems. Click view for details.'.format(len(check_crs)),
                                     level=QgsMessageBar.WARNING, duration=15, showLogPanel = True)
-            
-            
+
+
             LOGGER.warn('WARNING: {} raster(s) are missing internal coordinate systems.\n\t{}\n '\
                         'Please use Assign Projection tool from the Raster -> Projection menu if these layers '\
                         'are required for clustering\n'.format(len(check_crs), '\n\t'.join(check_crs)))
-        
+
         # only continue if a pixel size has been set ie a layer has been added to the list
-        if self.pixel_size == 0: return  
-        
+        if self.pixel_size == 0: return
+
         self.tabList.horizontalHeader().setStyleSheet('color:black')
         self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabList.rowCount())))
 
@@ -233,17 +233,17 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
 
         rowPosition = self.tabList.rowCount()
         self.tabList.insertRow(rowPosition)
-        
+
         ## Save the id of the layer to a column used to get a layer object later on.
         ## adapted from https://gis.stackexchange.com/questions/165415/activating-layer-by-its-name-in-pyqgis
         rio_crs = rasterio.open(self.mcboRasterLayer.currentLayer().source()).crs
-        
+
         self.tabList.setItem(rowPosition, 0, QtGui.QTableWidgetItem(self.mcboRasterLayer.currentLayer().id()))
         self.tabList.setItem(rowPosition, 1, QtGui.QTableWidgetItem(self.mcboRasterLayer.currentLayer().name()))
 
         if rowPosition == 0:
             # get the pixel units from the coordinate systems as a string  ie degrees, metres etc.
-            # for QGIS 3  see the following functions 
+            # for QGIS 3  see the following functions
             # .toAbbreviatedString()      https://www.qgis.org/api/classQgsUnitTypes.html#a7d09b9df11b6dcc2fe29928f5de296a4
             # and /or DistanceValue       https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
 
@@ -257,7 +257,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             else:
                 ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
 
-            # keep a copy of the old message. 
+            # keep a copy of the old message.
             if self.pixel_size_message == '':
                 self.pixel_size_message = self.lblPixelFilter.text()
 
@@ -323,14 +323,14 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
         # get first layer in the list
         str_pixel_size = numeric_pixelsize_to_string(float(self.pixel_size))
         filename = 'k-means_{}clusters_{}rasters_{}'.format(self.spnClusters.value(), self.tabList.rowCount(),  str_pixel_size)
-                
+
         # replace more than one instance of underscore with a single one.
         # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
         filename = re.sub(r"_+", "_", filename)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("Tiff") + " (*.tif);;",
-                         defaultName=os.path.join(lastFolder, filename + '.tif'))
+                         default_name=os.path.join(lastFolder, filename + '.tif'))
 
         if s == '' or s is None:
             return
@@ -351,22 +351,22 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
         self.cleanMessageBars(AllBars=True)
         try:
             errorList = []
-            
+
             if self.tabList.rowCount() > 0:
                 self.cmdAdd.setStyleSheet('color:black')
                 self.tabList.horizontalHeader().setStyleSheet('color:black')
                 self.lblRasterLayer.setStyleSheet('color:black')
-    
+
             elif self.mcboRasterLayer.currentLayer() is None or self.tabList.rowCount() == 0:
                 self.cmdAdd.setStyleSheet('color:red')
                 self.tabList.horizontalHeader().setStyleSheet('color:red')
                 self.lblRasterLayer.setStyleSheet('color:red')
-    
+
                 if self.tabList.rowCount() < 2:
                     errorList.append(self.tr('Please add at least TWO raster to analyse'))
                 else:
                     errorList.append(self.tr('No raster layers to process. Please add a RASTER layer into QGIS'))
-    
+
             if self.lneSaveFile.text() == '':
                 self.lneSaveFile.setStyleSheet('color:red')
                 self.lblSaveFile.setStyleSheet('color:red')
@@ -383,58 +383,58 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             else:
                 self.lneSaveFile.setStyleSheet('color:black')
                 self.lblSaveFile.setStyleSheet('color:black')
-    
+
             if len(errorList) > 0:
                 raise ValueError(errorList)
-    
+
         except ValueError as e:
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
                     self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
                 return False
-    
+
         return True
-    
+
     def accept(self, *args, **kwargs):
         try:
             if not self.validate():
                 return False
-    
+
             # disable form via a frame, this will still allow interaction with the message bar
             self.fraMain.setDisabled(True)
-    
+
             # clean gui and Qgis messagebars
             self.cleanMessageBars(True)
-    
+
             # Change cursor to Wait cursor
             QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
-    
+
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
                                     level=QgsMessageBar.WARNING,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
-    
+
             registry = QgsMapLayerRegistry.instance()
             rasterSource = [registry.mapLayer(self.tabList.item(row, 0).text()).source() for row in
                             range(0, self.tabList.rowCount())]
-            
+
             rasterLyrNames = [registry.mapLayer(self.tabList.item(row, 0).text()).name() for row in
                               range(0, self.tabList.rowCount())]
-    
+
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
-    
+
             if len(rasterSource) == 1:
                 settingsStr += '\n    {:20}\t{}'.format('Rasters: ', rasterLyrNames[0])
             else:
                 settingsStr += '\n    {:20}\t{}'.format('Rasters: ', len(rasterLyrNames))
                 settingsStr += '\n\t\t' + '\n\t\t'.join(rasterLyrNames)
-    
+
             settingsStr += '\n    {:20}\t{}'.format('Number of Clusters ', self.spnClusters.value())
             settingsStr += '\n    {:20}\t{}\n'.format('Output TIFF File:', self.lneSaveFile.text())
-    
+
             LOGGER.info(settingsStr)
             _ = processing.kmeans_clustering(rasterSource, self.lneSaveFile.text(), self.spnClusters.value())
 
@@ -442,24 +442,24 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             raster_apply_unique_value_renderer(raster_layer,1)
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
-    
+
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
             QtGui.qApp.restoreOverrideCursor()
-            
+
             return super(KMeansClusterDialog, self).accept(*args, **kwargs)
-        
+
         except Exception as err:
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
             err_mess = str(err)
             exc_info = sys.exc_info()
-    
+
             if isinstance(err, IOError) and err.filename == self.lneSaveFile.text():
                 err_mess = 'Output File in Use - IOError {} '.format(err.strerror)
                 exc_info = None
-    
+
             self.send_to_messagebar(err_mess, level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
                                     showLogPanel=True, exc_info=exc_info)
             QtGui.qApp.restoreOverrideCursor()

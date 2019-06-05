@@ -36,7 +36,7 @@ from qgis.gui import QgsMessageBar
 
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS, \
-     saveAsDialog
+     save_as_dialog
 from util.qgis_symbology import raster_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
@@ -212,9 +212,9 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         filename = '{}_BlockGrid_{}'.format(self.mcboTargetLayer.currentText(), pixel_size_str)
         filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("Tiff") + " (*.tif);;",
-                         defaultName=os.path.join(lastFolder, filename + '.tif'))
+                         default_name=os.path.join(lastFolder, filename + '.tif'))
 
         if s == '' or s is None:
             return
@@ -322,7 +322,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             if self.chkDisplayResults.isChecked():
                 rasterLyr = addRasterFileToQGIS(rasterFile, atTop=False)
                 raster_apply_unique_value_renderer(rasterLyr, 1)
-              
+
 
             QtGui.qApp.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
