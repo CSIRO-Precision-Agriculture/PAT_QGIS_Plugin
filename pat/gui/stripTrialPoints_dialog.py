@@ -3,7 +3,7 @@
 /***************************************************************************
   CSIRO Precision Agriculture Tools (PAT) Plugin
 
-  StripTrialPointsDialog  - Create points along and at an offset to a line. 
+  StripTrialPointsDialog  - Create points along and at an offset to a line.
            -------------------
         begin      : 2019-01-29
         git sha    : $Format:%H$
@@ -27,11 +27,11 @@ import traceback
 import warnings
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import saveAsDialog, file_in_use, removeFileFromQGIS, \
+from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS
 from util.qgis_symbology import vector_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
-    
+
 from PyQt4 import QtGui, uic, QtCore
 from PyQt4.QtGui import QPushButton
 
@@ -41,17 +41,18 @@ from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'stripTrialPoints_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
-LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
+LOGGER.addHandler(logging.NullHandler())
 
 import pyprecag
 from pyprecag import config, crs, describe
 
 # check to see if new version of pyprecag is required
-try: 
+try:
     from pyprecag.processing import create_points_along_line
 except ImportError:
-    LOGGER.warning(" Create strip trial points tool is not supported by pyprecag {}. Upgrade to version 0.2.0+".format(pyprecag.__version__))
-    
+    LOGGER.warning(" Create strip trial points tool is not supported by pyprecag {}. "
+                   "Upgrade to version 0.2.0+".format(pyprecag.__version__))
+
 
 class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
     """Extract statistics from a list of rasters at set locations."""
@@ -199,7 +200,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
     def autoSetCoordinateSystem(self):
         if self.mcboLineLayer.count() == 0:
             return
-        
+
         self.cleanMessageBars()
         line_lyr = self.mcboLineLayer.currentLayer()
 
@@ -260,16 +261,16 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cmdSavePointsFile_clicked')
     def on_cmdSavePointsFile_clicked(self):
         self.messageBar.clearWidgets()
- 
+
         lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
 
         filename = self.mcboLineLayer.currentText() + '_strip-trial-points'
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return
@@ -280,7 +281,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         self.lneSavePointsFile.setText(s)
         self.lblSavePointsFile.setStyleSheet('color:black')
         self.lneSavePointsFile.setStyleSheet('color:black')
-    
+
     @QtCore.pyqtSlot(int)
     def on_chkSaveLinesFile_stateChanged(self, state):
         self.lneSaveLinesFile.setEnabled(state)
@@ -288,24 +289,24 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
             if lastFolder is None or not os.path.exists(lastFolder):
                 lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
-    
+
             if self.lneSavePointsFile.text() == '':
                 filename = os.path.join(lastFolder, self.mcboLineLayer.currentText() + '_strip-trial-lines.shp')
             else:
                 path, file = os.path.split(self.lneSavePointsFile.text())
                 file, ext = os.path.splitext(file)
                 filename = os.path.join(path, file.replace('-points', '') + '-lines' + ext)
-            
+
             self.lneSaveLinesFile.setText(filename)
             self.chkSaveLinesFile.setStyleSheet('color:black')
             self.lneSaveLinesFile.setStyleSheet('color:black')
         else:
             self.lneSaveLinesFile.setText('')
-            
+
     @QtCore.pyqtSlot(name='on_cmdSaveLinesFile_clicked')
     def on_cmdSaveLinesFile_clicked(self):
         self.messageBar.clearWidgets()
- 
+
         lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
@@ -319,9 +320,9 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             file, ext = os.path.splitext(file)
             filename = os.path.join(path, file.replace('-points', '') + '-lines' + ext)
 
-        s = saveAsDialog(self, self.tr("Save As"),
+        s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
-                         defaultName=os.path.join(lastFolder, filename))
+                         default_name=os.path.join(lastFolder, filename))
 
         if s == '' or s is None:
             return
@@ -333,7 +334,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         self.lneSaveLinesFile.setText(s)
         self.chkSaveLinesFile.setStyleSheet('color:black')
         self.lneSaveLinesFile.setStyleSheet('color:black')
-        
+
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
         self.messageBar.clearWidgets()
@@ -431,14 +432,17 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
 
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
-            settingsStr += '\n    {:20}\t{}'.format('Line layer:', self.mcboLineLayer.currentLayer().name())
-            settingsStr += '\n    {:20}\t{}'.format('Distance between points (m):', self.dsbDistBtwnPoints.value())
-            settingsStr += '\n    {:20}\t{}'.format('Line offset distance (m):', self.dsbLineOffsetDist.value())
+            settingsStr += '\n    {:20}\t{}'.format('Line layer:',
+                                                    self.mcboLineLayer.currentLayer().name())
+            settingsStr += '\n    {:20}\t{}'.format('Distance between points (m):',
+                                                    self.dsbDistBtwnPoints.value())
+            settingsStr += '\n    {:20}\t{}'.format('Line offset distance (m):',
+                                                    self.dsbLineOffsetDist.value())
 
             if self.chkUseSelected.isChecked():
-                settingsStr += '\n    {:20}\t{} with {} selected features'.format('Layer:',
-                                                                                  self.mcboLineLayer.currentLayer().name(),
-                                                                                  len(self.mcboLineLayer.currentLayer().selectedFeatures()))
+                settingsStr += '\n    {:20}\t{} with {} selected features'.format(
+                    'Layer:', self.mcboLineLayer.currentLayer().name(),
+                    len(self.mcboLineLayer.currentLayer().selectedFeatures()))
 
             settingsStr += '\n    {:30}\t{}'.format('Output coordinate system:', self.lblOutCRS.text())
             settingsStr += '\n    {:30}\t{}'.format('Output points :', self.lneSavePointsFile.text())
@@ -467,11 +471,11 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             lines_desc = describe.VectorDescribe(line_shapefile)
             gdf_lines = lines_desc.open_geo_dataframe()
             epsgOut = int(self.outQgsCRS.authid().replace('EPSG:', ''))
-            
+
             out_lines = None
             if self.chkSaveLinesFile.isChecked():
-                out_lines = self.lneSaveLinesFile.text() 
-            
+                out_lines = self.lneSaveLinesFile.text()
+
             _ = create_points_along_line(gdf_lines, lines_desc.crs, self.dsbDistBtwnPoints.value(),
                                          self.dsbLineOffsetDist.value(), epsgOut,
                                          out_points_shapefile=self.lneSavePointsFile.text(),
@@ -479,13 +483,13 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
 
             out_lyr_points = addVectorFileToQGIS(self.lneSavePointsFile.text(), atTop=True, layer_name=
                                                  os.path.splitext(os.path.basename(self.lneSavePointsFile.text()))[0])
-            vector_apply_unique_value_renderer(out_lyr_points, 'Transect')
-            
+            vector_apply_unique_value_renderer(out_lyr_points, 'Strip_Name')
+
             if self.chkSaveLinesFile.isChecked():
                 out_lyr_lines = addVectorFileToQGIS(self.lneSaveLinesFile.text(), atTop=True,
                                                     layer_name=os.path.splitext(os.path.basename(self.lneSaveLinesFile.text()))[0])
 
-                vector_apply_unique_value_renderer(out_lyr_lines, 'Transect')
+                vector_apply_unique_value_renderer(out_lyr_lines, 'Strip_Name')
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
