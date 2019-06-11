@@ -63,6 +63,7 @@ from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 from gui.kMeansCluster_dialog import KMeansClusterDialog
 from gui.stripTrialPoints_dialog import StripTrialPointsDialog
 from gui.tTestAnalysis_dialog import tTestAnalysisDialog
+from gui.persistor_dialog import PersistorDialog
 from util.check_dependencies import check_vesper_dependency, check_R_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
@@ -341,6 +342,15 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
+            icon_path=':/plugins/pat/icons/icon_persistor.svg',
+            text=self.tr(u'Persistor'),
+            tool_tip=self.tr(u'Persistence over years'),
+            status_tip=self.tr(u'Persistence over years'),
+            add_to_toolbar=True,
+            callback=self.run_persistor,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
             icon_path=':/plugins/pat/icons/icon_help.svg',
             text=self.tr(u'Help'),
             tool_tip=self.tr(u'Help'),
@@ -594,13 +604,39 @@ class pat_toolbar:
 
         return
 
+    def run_persistor(self):
+        """Run method for the Calculate Image Indices dialog"""
+
+        if parse_version(pyprecag.__version__) < parse_version('0.3.0'):
+            self.iface.messageBar().pushMessage("Create t-test analysis tool is not supported in "
+                                                "pyprecag {}. Upgrade to version 0.3.0+".format(
+                pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
+            return
+
+        dlgPersistor = PersistorDialog(self.iface)
+
+        # Show the dialog
+        dlgPersistor.show()
+
+        if dlgPersistor.exec_():
+            message = 'Persistor completed successfully !'
+            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            # LOGGER.info(message)
+
+        # Close Dialog
+        dlgPersistor.deleteLater()
+
+        # Refresh QGIS
+        QCoreApplication.processEvents()
+
     def run_wholeOfBlockAnalysis(self):
         """Run method for the fit to block grid dialog"""
         # https://gis.stackexchange.com/a/160146
 
         result = check_R_dependency()
         if result is not True:
-            self.iface.messageBar().pushMessage("R configuration", result, level=QgsMessageBar.WARNING, duration=15)
+            self.iface.messageBar().pushMessage("R configuration", result,
+                                                level=QgsMessageBar.WARNING, duration=15)
             return
 
         proc_alg_mess = ProcessingAlgMessages(self.iface)
@@ -609,8 +645,8 @@ class pat_toolbar:
         # Then get the algorithm you're interested in (for instance, Join Attributes):
         alg = Processing.getAlgorithm("r:wholeofblockanalysis")
         if alg is None:
-            self.iface.messageBar().pushMessage("Whole-of-block analysis algorithm could not be found",
-                                                level=QgsMessageBar.CRITICAL)
+            self.iface.messageBar().pushMessage("Whole-of-block analysis algorithm could not"
+                                                " be found", level=QgsMessageBar.CRITICAL)
             return
         # Instantiate the commander window and open the algorithm's interface
         cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
@@ -644,9 +680,10 @@ class pat_toolbar:
     def run_stripTrialPoints(self):
 
         if parse_version(pyprecag.__version__) < parse_version('0.2.0'):
-            self.iface.messageBar().pushMessage("Create strip trial points tool is not supported "
-                                                "in pyprecag {}. Upgrade to version 0.2.0+".format(
-                pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
+            self.iface.messageBar().pushMessage(
+                "Create strip trial points tool is not supported in pyprecag {}. "
+                "Upgrade to version 0.2.0+".format(pyprecag.__version__),
+                level=QgsMessageBar.WARNING, duration=15)
             return
 
         """Run method for the Strip trial points dialog"""
@@ -667,9 +704,9 @@ class pat_toolbar:
         QCoreApplication.processEvents()
 
     def run_tTestAnalysis(self):
-        if parse_version(pyprecag.__version__) < parse_version('0.2.1'):
+        if parse_version(pyprecag.__version__) < parse_version('0.3.0'):
             self.iface.messageBar().pushMessage("Create t-test analysis tool is not supported in "
-                                                "pyprecag {}. Upgrade to version 0.2.0+".format(
+                                                "pyprecag {}. Upgrade to version 0.3.0+".format(
                 pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
             return
 
