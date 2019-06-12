@@ -605,10 +605,10 @@ class pat_toolbar:
         return
 
     def run_persistor(self):
-        """Run method for the Calculate Image Indices dialog"""
+        """Run method for the Persistor dialog"""
 
         if parse_version(pyprecag.__version__) < parse_version('0.3.0'):
-            self.iface.messageBar().pushMessage("Create t-test analysis tool is not supported in "
+            self.iface.messageBar().pushMessage("Persistor is not supported in "
                                                 "pyprecag {}. Upgrade to version 0.3.0+".format(
                 pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
             return
