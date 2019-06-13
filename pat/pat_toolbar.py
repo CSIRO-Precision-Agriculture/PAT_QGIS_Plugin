@@ -49,21 +49,23 @@ from processing.gui.CommanderWindow import CommanderWindow
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from gui.about_dialog import AboutDialog
-from gui.settings_dialog import SettingsDialog
 from gui.blockGrid_dialog import BlockGridDialog
+from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 from gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
 from gui.gridExtract_dialog import GridExtractDialog
+from gui.kMeansCluster_dialog import KMeansClusterDialog
+from gui.persistor_dialog import PersistorDialog
 from gui.pointTrailToPolygon_dialog import PointTrailToPolygonDialog
 from gui.postVesper_dialog import PostVesperDialog
 from gui.preVesper_dialog import PreVesperDialog
 from gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
-from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
-from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
+from gui.rasterSymbology_dialog import RasterSymbologyDialog
 from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
-from gui.kMeansCluster_dialog import KMeansClusterDialog
+from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
 from gui.stripTrialPoints_dialog import StripTrialPointsDialog
+from gui.settings_dialog import SettingsDialog
 from gui.tTestAnalysis_dialog import tTestAnalysisDialog
-from gui.persistor_dialog import PersistorDialog
+
 from util.check_dependencies import check_vesper_dependency, check_R_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
@@ -348,6 +350,15 @@ class pat_toolbar:
             status_tip=self.tr(u'Persistence over years'),
             add_to_toolbar=True,
             callback=self.run_persistor,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
+            icon_path=':/plugins/pat/icons/icon_rasterSymbology.svg',
+            text=self.tr(u'Apply Raster Symbology'),
+            tool_tip=self.tr(u'Apply Raster Symbology'),
+            status_tip=self.tr(u'Apply Raster Symbology'),
+            add_to_toolbar=True,
+            callback=self.run_rasterSymbology,
             parent=self.iface.mainWindow())
 
         self.add_action(
@@ -957,6 +968,7 @@ class pat_toolbar:
         # Refresh QGIS
         QCoreApplication.processEvents()
 
+
     def run_pointTrailToPolygon(self):
         """Run method for pointTrailToPolygon dialog"""
         dlgPointTrailToPolygon = PointTrailToPolygonDialog(self.iface)
@@ -971,6 +983,22 @@ class pat_toolbar:
 
         # Close Dialog
         dlgPointTrailToPolygon.deleteLater()
+
+        # Refresh QGIS
+        QCoreApplication.processEvents()
+
+    def run_rasterSymbology(self):
+        """Run method for the Raster Symbology dialog"""
+        dlgRasterSymbology = RasterSymbologyDialog(self.iface)
+
+        # Show the dialog
+        dlgRasterSymbology.show()
+
+        if dlgRasterSymbology.exec_():
+            pass
+
+        # Close Dialog
+        dlgRasterSymbology.deleteLater()
 
         # Refresh QGIS
         QCoreApplication.processEvents()

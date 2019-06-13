@@ -21,13 +21,31 @@
 """
 
 import random
-
+from collections import OrderedDict
 import numpy as np
 import rasterio
 from PyQt4.QtGui import QColor
-from qgis.core import (QgsSimpleFillSymbolLayerV2, QgsSymbolV2,
+from numpy import ma
+from qgis.core import (QgsSimpleFillSymbolLayerV2, QgsSymbolV2, QgsStyleV2,
                        QgsRendererCategoryV2, QgsCategorizedSymbolRendererV2,
-                       QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer)
+                       QgsRaster, QgsRasterShader, QgsColorRampShader,
+                       QgsSingleBandPseudoColorRenderer,QgsRasterShader, QgsColorRampShader,
+                       QgsContrastEnhancement)
+from scipy import stats
+
+RASTER_SYMBOLOGY = OrderedDict([('Yield', {'type': "Equal Interval",
+                                           'colour_ramp': 'Yield 7 Colours'}),
+                                ('Image Indices (ie NDVI)', {'type': 'Quantile',
+                                                             'colour_ramp': 'Imagery 5 Colours'}),
+                                ('Zones', {'type': 'unique random', 'colour_ramp': ''}),
+                                ('Block Grid', {'type': 'unique random', 'colour_ramp': ''}),
+                                ('Persistor', {'type': 'unique random', 'colour_ramp': ''})])
+
+                                # Not implemented yet
+                                # ('Persistor - Target Probability', {'type': 'unique',
+                                #                                    'colour_ramp': 'RdYlGn'}),
+                                # ('Persistor - All Years', {'type': 'unique',
+                                #                           'colour_ramp': 'Virdis'}),
 
 
 def random_colour(mix=(255, 255, 255)):
@@ -40,6 +58,68 @@ def random_colour(mix=(255, 255, 255)):
     green = (green + g) / 2
     blue = (blue + b) / 2
     return red, green, blue
+
+
+def raster_apply_classified_renderer(raster_layer,rend_type, color_ramp, band_num=1,
+                                     n_decimals=1):
+
+    # get an existing color ramp
+    myStyles = QgsStyleV2().defaultStyle()
+    ramp = myStyles.colorRamp(color_ramp)
+
+    # use the number of colors in the ramp as the bins minus the duplicated colour
+    num_classes = ramp.count() - 1
+
+    colors = [ramp.color1()]
+    colors += [ea.color for ea in ramp.stops()]
+
+    band = rasterio.open(raster_layer.source()).read(band_num, masked=True)
+
+    classes = []
+    if rend_type.lower() == 'quantile':
+        classes = np.interp(np.linspace(0, ma.count(band), num_classes + 1),
+                            np.arange( ma.count(band)), np.sort(ma.compressed(band)))
+
+    elif rend_type.lower() == 'equal interval':
+        classes, bin_width = np.linspace(np.nanmin(band), np.nanmax(band), num_classes + 1,
+                                         endpoint=True, retstep=True)
+
+    classes = [float('{:.3g}'.format(ea)) for ea in classes]
+
+    del band
+
+    #Apply raster layer enhancement/stretch
+    stretch = QgsContrastEnhancement.StretchToMinimumMaximum
+    limits = QgsRaster.ContrastEnhancementMinMax
+    raster_layer.setContrastEnhancement(stretch, limits)
+
+    # Create the symbology
+    color_ramp_shd = QgsColorRampShader()
+    color_ramp_shd.setColorRampType(QgsColorRampShader.DISCRETE)
+    qri = QgsColorRampShader.ColorRampItem
+
+    sym_classes = []
+    low_class = 0
+
+    for class_color, up_class in zip(colors, classes[1:]):
+        if low_class == 0:
+            sym_classes.append(qri(up_class, class_color, '<= {} '.format(up_class)))
+        elif up_class == classes[-1]:
+            sym_classes.append(qri(float("inf"),class_color, '> {} '.format(low_class)))
+        else:
+            sym_classes.append(qri(up_class, class_color, '{} - {} '.format(low_class,up_class)))
+
+        low_class = up_class
+
+    color_ramp_shd.setColorRampItemList(sym_classes)
+
+    #Apply symbology to layer
+    raster_shader = QgsRasterShader()
+    raster_shader.setRasterShaderFunction(color_ramp_shd)
+    pseudo_renderer = QgsSingleBandPseudoColorRenderer(raster_layer.dataProvider(),
+                                                       1, raster_shader)
+    raster_layer.setRenderer(pseudo_renderer)
+    raster_layer.triggerRepaint()
 
 
 def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0):

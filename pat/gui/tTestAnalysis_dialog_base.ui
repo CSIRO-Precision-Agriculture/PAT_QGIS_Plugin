@@ -256,8 +256,8 @@
       <item row="4" column="0">
        <widget class="QCheckBox" name="chkCtrlRasterLayer">
         <property name="text">
-         <string>Use a control 
-values raster:</string>
+         <string>Use a strip removed 
+ raster:</string>
         </property>
        </widget>
       </item>
