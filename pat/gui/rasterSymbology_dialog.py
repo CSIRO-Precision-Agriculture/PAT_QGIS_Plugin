@@ -207,14 +207,16 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
         try:
             rast_sym = rs.RASTER_SYMBOLOGY[self.cboType.currentText()]
             QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            if rast_sym['type'] == 'unique random':
-                rs.raster_apply_unique_value_renderer(self.mcboTargetLayer.currentLayer(),1)
-            elif rast_sym['type'] == 'unique from ramp':
-                pass
+            if rast_sym['type'] == 'unique':
+                rs.raster_apply_unique_value_renderer(self.mcboTargetLayer.currentLayer(),1,
+                                                      color_ramp=rast_sym['colour_ramp'] ,
+                                                      invert=rast_sym['invert'])
             else:
+                
                 rs.raster_apply_classified_renderer(self.mcboTargetLayer.currentLayer(),
-                                                    rast_sym['type'],
-                                                    rast_sym['colour_ramp'])
+                                                    rend_type=rast_sym['type'],
+                                                    num_classes=rast_sym['num_classes'],
+                                                    color_ramp=rast_sym['colour_ramp'])
 
             QtGui.qApp.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()

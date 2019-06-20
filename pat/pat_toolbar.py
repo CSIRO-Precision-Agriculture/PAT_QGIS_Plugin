@@ -71,7 +71,8 @@ from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from util.settings import read_setting, write_setting
 from util.processing_alg_logging import ProcessingAlgMessages
-from util.qgis_symbology import raster_apply_unique_value_renderer
+from util.qgis_symbology import raster_apply_unique_value_renderer, RASTER_SYMBOLOGY, \
+    raster_apply_classified_renderer
 
 import pyprecag
 from pyprecag import config
@@ -578,8 +579,15 @@ class pat_toolbar:
                     out_PredTif, out_SETif, out_CITxt = vesper_text_to_raster(currentTask['control_file'],
                                                                               currentTask['epsg'])
 
+                    raster_sym = RASTER_SYMBOLOGY['Yield']
+
                     removeFileFromQGIS(out_PredTif)
-                    addRasterFileToQGIS(out_PredTif, atTop=False)
+                    rasterLyr = addRasterFileToQGIS(out_PredTif, atTop=False)
+                    raster_apply_classified_renderer(rasterLyr,
+                                    rend_type=raster_sym['type'],
+                                    num_classes=raster_sym['num_classes'],
+                                    color_ramp=raster_sym['colour_ramp'])
+
                     removeFileFromQGIS(out_SETif)
                     addRasterFileToQGIS(out_SETif, atTop=False)
 
@@ -618,7 +626,7 @@ class pat_toolbar:
     def run_persistor(self):
         """Run method for the Persistor dialog"""
 
-        if parse_version(pyprecag.__version__) < parse_version('0.3.0'):
+        if parse_version(pyprecag.__version__) < parse_version('0.2.0'):
             self.iface.messageBar().pushMessage("Persistor is not supported in "
                                                 "pyprecag {}. Upgrade to version 0.3.0+".format(
                 pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)

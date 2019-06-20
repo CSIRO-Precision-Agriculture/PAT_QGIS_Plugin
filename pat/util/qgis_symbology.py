@@ -25,6 +25,8 @@ from collections import OrderedDict
 import numpy as np
 import rasterio
 from PyQt4.QtGui import QColor
+import matplotlib as mpl
+import matplotlib.colors as colors
 from numpy import ma
 from qgis.core import (QgsSimpleFillSymbolLayerV2, QgsSymbolV2, QgsStyleV2,
                        QgsRendererCategoryV2, QgsCategorizedSymbolRendererV2,
@@ -34,22 +36,30 @@ from qgis.core import (QgsSimpleFillSymbolLayerV2, QgsSymbolV2, QgsStyleV2,
 from scipy import stats
 
 RASTER_SYMBOLOGY = OrderedDict([('Yield', {'type': "Equal Interval",
-                                           'colour_ramp': 'Yield 7 Colours'}),
-                                ('Image Indices (ie NDVI)', {'type': 'Quantile',
-                                                             'colour_ramp': 'Imagery 5 Colours'}),
-                                ('Zones', {'type': 'unique random', 'colour_ramp': ''}),
-                                ('Block Grid', {'type': 'unique random', 'colour_ramp': ''}),
-                                ('Persistor', {'type': 'unique random', 'colour_ramp': ''})])
-
-                                # Not implemented yet
-                                # ('Persistor - Target Probability', {'type': 'unique',
-                                #                                    'colour_ramp': 'RdYlGn'}),
-                                # ('Persistor - All Years', {'type': 'unique',
-                                #                           'colour_ramp': 'Virdis'}),
+                                           'num_classes':7,
+                                           'colour_ramp': 'Yield 7 Colours',
+                                           'invert':False}),
+                                ('Image Indices (ie PCD, NDVI)', {'type': 'Quantile',
+                                                             'num_classes':5,
+                                                             'colour_ramp': 'Imagery 5 Colours',
+                                                             'invert':False}),
+                                ('Zones', {'type': 'unique', 
+                                           'colour_ramp': '',
+                                           'invert':False}),
+                                ('Block Grid', {'type': 'unique', 
+                                                'colour_ramp': '',
+                                                'invert':False}),
+                                ('Persistor - Target Probability', {'type': 'unique',
+                                                                   'colour_ramp': 'RdYlGn',
+                                                                   'invert':False}),
+                                ('Persistor - All Years', {'type': 'unique',
+                                                          'colour_ramp': 'Viridis',
+                                                          'invert':True})])
 
 
 def random_colour(mix=(255, 255, 255)):
     """ Create a random RBG color """
+
     red = random.randrange(0, 256)
     green = random.randrange(0, 256)
     blue = random.randrange(0, 256)
@@ -60,19 +70,27 @@ def random_colour(mix=(255, 255, 255)):
     return red, green, blue
 
 
-def raster_apply_classified_renderer(raster_layer,rend_type, color_ramp, band_num=1,
-                                     n_decimals=1):
+def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color_ramp, invert=False, band_num=1):
 
     # get an existing color ramp
-    myStyles = QgsStyleV2().defaultStyle()
-    ramp = myStyles.colorRamp(color_ramp)
+    qgsStyles = QgsStyleV2().defaultStyle()
+    ramp = QgsStyleV2().defaultStyle().colorRamp(color_ramp)
 
-    # use the number of colors in the ramp as the bins minus the duplicated colour
-    num_classes = ramp.count() - 1
-
-    colors = [ramp.color1()]
-    colors += [ea.color for ea in ramp.stops()]
-
+    
+    ramp = qgsStyles.colorRamp(color_ramp)
+    
+    rmp_colors = [ramp.color1().name()]   # the first 
+    rmp_colors += [ea.color.name() for ea in  ramp.stops()]
+    
+    # check that the last colors not already there
+    if rmp_colors[-1] != ramp.color2().name():
+        rmp_colors += [ramp.color2().name()]
+    if invert:
+        rmp_colors = list(reversed(rmp_colors))
+    
+    # convert to qcolor
+    rmp_colors = [QColor(col) for col in rmp_colors]
+    
     band = rasterio.open(raster_layer.source()).read(band_num, masked=True)
 
     classes = []
@@ -101,7 +119,7 @@ def raster_apply_classified_renderer(raster_layer,rend_type, color_ramp, band_nu
     sym_classes = []
     low_class = 0
 
-    for class_color, up_class in zip(colors, classes[1:]):
+    for class_color, up_class in zip(rmp_colors, classes[1:]):
         if low_class == 0:
             sym_classes.append(qri(up_class, class_color, '<= {} '.format(up_class)))
         elif up_class == classes[-1]:
@@ -122,7 +140,8 @@ def raster_apply_classified_renderer(raster_layer,rend_type, color_ramp, band_nu
     raster_layer.triggerRepaint()
 
 
-def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0):
+def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0, 
+                                       color_ramp='', invert=False):
     """
     Apply a random colour to each each unique value for a raster band.
 
@@ -141,6 +160,30 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0):
     if n_decimals > 0:
         uniq_vals = np.around(list(uniq_vals), decimals=3)
 
+    if color_ramp == '':
+        rmp_colors = [QColor(*random_colour()) for class_val in uniq_vals]
+    else:
+        # get an existing color ramp
+        myStyles = QgsStyleV2().defaultStyle()
+        ramp = myStyles.colorRamp(color_ramp)
+        
+        rmp_colors = [ramp.color1().name()]   # the first 
+        rmp_colors += [ea.color.name() for ea in  ramp.stops()]
+        
+        # check that the last colors not already there
+        if rmp_colors[-1] != ramp.color2().name():
+            rmp_colors += [ramp.color2().name()]
+        
+        if invert:
+            rmp_colors = list(reversed(rmp_colors))
+            
+        #use this to create a matplotlib color ramp
+        cmSeg = colors.LinearSegmentedColormap.from_list('myramp', rmp_colors, N=256)
+
+        # get the colors distributed evenly across the ramp
+        rmp_colors = [QColor(*cmSeg(idx,bytes=True)) for idx in np.linspace(0, 1, len(uniq_vals))]
+
+
     # instantiate the specialized ramp shader object
     col_rmp_shd = QgsColorRampShader()
 
@@ -149,10 +192,8 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0):
     qri = QgsColorRampShader.ColorRampItem
 
     sym_classes = []
-    for class_val in uniq_vals:
-        # apply unique values renderer.
-        r, g, b = random_colour()
-        sym_classes.append(qri(class_val, QColor(r, g, b, 255), str(class_val)))
+    for class_val, class_color in zip(uniq_vals, rmp_colors):
+        sym_classes.append(qri(class_val, class_color, str(class_val)))
 
     # assign the color ramp to our shader:
     col_rmp_shd.setColorRampItemList(sym_classes)
