@@ -49,27 +49,30 @@ from processing.gui.CommanderWindow import CommanderWindow
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from gui.about_dialog import AboutDialog
-from gui.settings_dialog import SettingsDialog
 from gui.blockGrid_dialog import BlockGridDialog
+from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 from gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
 from gui.gridExtract_dialog import GridExtractDialog
+from gui.kMeansCluster_dialog import KMeansClusterDialog
+from gui.persistor_dialog import PersistorDialog
 from gui.pointTrailToPolygon_dialog import PointTrailToPolygonDialog
 from gui.postVesper_dialog import PostVesperDialog
 from gui.preVesper_dialog import PreVesperDialog
 from gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
-from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
-from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
+from gui.rasterSymbology_dialog import RasterSymbologyDialog
 from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
-from gui.kMeansCluster_dialog import KMeansClusterDialog
+from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
 from gui.stripTrialPoints_dialog import StripTrialPointsDialog
+from gui.settings_dialog import SettingsDialog
 from gui.tTestAnalysis_dialog import tTestAnalysisDialog
-from gui.persistor_dialog import PersistorDialog
+
 from util.check_dependencies import check_vesper_dependency, check_R_dependency
 from util.custom_logging import stop_logging
 from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from util.settings import read_setting, write_setting
 from util.processing_alg_logging import ProcessingAlgMessages
-from util.qgis_symbology import raster_apply_unique_value_renderer
+from util.qgis_symbology import raster_apply_unique_value_renderer, RASTER_SYMBOLOGY, \
+    raster_apply_classified_renderer
 
 import pyprecag
 from pyprecag import config
@@ -351,6 +354,15 @@ class pat_toolbar:
             parent=self.iface.mainWindow())
 
         self.add_action(
+            icon_path=':/plugins/pat/icons/icon_rasterSymbology.svg',
+            text=self.tr(u'Apply Raster Symbology'),
+            tool_tip=self.tr(u'Apply Raster Symbology'),
+            status_tip=self.tr(u'Apply Raster Symbology'),
+            add_to_toolbar=True,
+            callback=self.run_rasterSymbology,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
             icon_path=':/plugins/pat/icons/icon_help.svg',
             text=self.tr(u'Help'),
             tool_tip=self.tr(u'Help'),
@@ -567,8 +579,15 @@ class pat_toolbar:
                     out_PredTif, out_SETif, out_CITxt = vesper_text_to_raster(currentTask['control_file'],
                                                                               currentTask['epsg'])
 
+                    raster_sym = RASTER_SYMBOLOGY['Yield']
+
                     removeFileFromQGIS(out_PredTif)
-                    addRasterFileToQGIS(out_PredTif, atTop=False)
+                    rasterLyr = addRasterFileToQGIS(out_PredTif, atTop=False)
+                    raster_apply_classified_renderer(rasterLyr,
+                                    rend_type=raster_sym['type'],
+                                    num_classes=raster_sym['num_classes'],
+                                    color_ramp=raster_sym['colour_ramp'])
+
                     removeFileFromQGIS(out_SETif)
                     addRasterFileToQGIS(out_SETif, atTop=False)
 
@@ -607,7 +626,7 @@ class pat_toolbar:
     def run_persistor(self):
         """Run method for the Persistor dialog"""
 
-        if parse_version(pyprecag.__version__) < parse_version('0.3.0'):
+        if parse_version(pyprecag.__version__) < parse_version('0.2.0'):
             self.iface.messageBar().pushMessage("Persistor is not supported in "
                                                 "pyprecag {}. Upgrade to version 0.3.0+".format(
                 pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
@@ -929,8 +948,26 @@ class pat_toolbar:
         dlgCleanTrimPoints.show()
 
         if dlgCleanTrimPoints.exec_():
+            output_folder = os.path.dirname(dlgCleanTrimPoints.lneSaveCSVFile.text())
+            import webbrowser
+            try:
+                from urllib import pathname2url  # Python 2.x
+            except:
+                from urllib.request import pathname2url  # Python 3.x
+
+            def open_folder():
+                url = 'file:{}'.format(pathname2url(os.path.abspath(output_folder)))
+                webbrowser.open(url)
+
             message = 'Cleaned and trimmed points successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+
+            widget = self.iface.messageBar().createMessage('', message)
+            button = QPushButton(widget)
+            button.setText('Open Folder')
+            button.pressed.connect(open_folder)
+            widget.layout().addWidget(button)
+
+            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -957,6 +994,7 @@ class pat_toolbar:
         # Refresh QGIS
         QCoreApplication.processEvents()
 
+
     def run_pointTrailToPolygon(self):
         """Run method for pointTrailToPolygon dialog"""
         dlgPointTrailToPolygon = PointTrailToPolygonDialog(self.iface)
@@ -971,6 +1009,22 @@ class pat_toolbar:
 
         # Close Dialog
         dlgPointTrailToPolygon.deleteLater()
+
+        # Refresh QGIS
+        QCoreApplication.processEvents()
+
+    def run_rasterSymbology(self):
+        """Run method for the Raster Symbology dialog"""
+        dlgRasterSymbology = RasterSymbologyDialog(self.iface)
+
+        # Show the dialog
+        dlgRasterSymbology.show()
+
+        if dlgRasterSymbology.exec_():
+            pass
+
+        # Close Dialog
+        dlgRasterSymbology.deleteLater()
 
         # Refresh QGIS
         QCoreApplication.processEvents()

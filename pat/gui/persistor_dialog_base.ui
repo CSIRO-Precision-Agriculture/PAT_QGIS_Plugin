@@ -466,7 +466,7 @@ p, li { white-space: pre-wrap; }
          <enum>QFrame::NoFrame</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="pgeTargetProb">
          <layout class="QGridLayout" name="gridLayout_8">
@@ -497,7 +497,7 @@ p, li { white-space: pre-wrap; }
             <item>
              <widget class="QLabel" name="lblUpperMean">
               <property name="text">
-               <string>chance of result &gt; mean</string>
+               <string>chance of result &gt;= mean</string>
               </property>
              </widget>
             </item>

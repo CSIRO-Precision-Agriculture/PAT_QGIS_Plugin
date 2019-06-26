@@ -43,7 +43,7 @@ from qgis.core import QgsMapLayerRegistry, QgsMapLayer, QgsMessageLog, QgsVector
 from qgis.gui import QgsMessageBar
 
 from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addRasterFileToQGIS
-from util.qgis_symbology import raster_apply_unique_value_renderer
+import util.qgis_symbology as rs
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'persistor_dialog_base.ui'))
@@ -299,7 +299,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
         self.lblUpper.setHidden(index)
         self.lblLower.setHidden(index)
         self.lineSplitter.setHidden(index)
-     
+
         self.setMapLayers()
 
     @QtCore.pyqtSlot(name='on_cmdAdd_clicked')
@@ -560,16 +560,20 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
                                                  int(self.cboLowerPerc.currentText().strip('%')),
                                                  int(self.cboLowerProb.currentText().strip('%')),
                                                  self.lneSaveFile.text())
+                raster_sym = rs.RASTER_SYMBOLOGY['Persistor - Target Probability']
 
             else:
                 _ = persistor_all_years(upper_src,
                                         self.lneSaveFile.text(),
                                         self.optGreaterThan.isChecked(),
                                         int(self.cboAllYearTargetPerc.currentText().strip('%')))
+                
+                raster_sym = rs.RASTER_SYMBOLOGY['Persistor - All Years']
 
-            rasterLyr = addRasterFileToQGIS(
-                self.lneSaveFile.text(), atTop=False)
-            raster_apply_unique_value_renderer(rasterLyr, 1)
+            rasterLyr = addRasterFileToQGIS(self.lneSaveFile.text(), atTop=False)
+            rs.raster_apply_unique_value_renderer(rasterLyr,1,
+                                                  color_ramp=raster_sym['colour_ramp'],
+                                                  invert=raster_sym['invert'])
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)

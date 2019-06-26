@@ -32,6 +32,7 @@ from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS, addRasterFileToQGIS
 from util.settings import read_setting, write_setting
 
+from util.qgis_symbology import RASTER_SYMBOLOGY, raster_apply_classified_renderer
 from pyprecag import config, crs
 from pyprecag.bandops import BandMapping, CalculateIndices
 
@@ -575,8 +576,13 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
             if self.chkAddToDisplay.isChecked():
                 for ea_file in files:
-                    addRasterFileToQGIS(ea_file, group_layer_name=os.path.basename(os.path.dirname(ea_file)),
-                                        atTop=False)
+                    raster_sym = RASTER_SYMBOLOGY['Image Indices (ie PCD, NDVI)']
+                    raster_lyr = addRasterFileToQGIS(ea_file,atTop=False,
+                                         group_layer_name=os.path.basename(os.path.dirname(ea_file)))
+                    raster_apply_classified_renderer(raster_lyr,
+                                    rend_type=raster_sym['type'],
+                                    num_classes=raster_sym['num_classes'],
+                                    color_ramp=raster_sym['colour_ramp'])
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)

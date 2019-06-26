@@ -42,6 +42,7 @@ from util.settings import read_setting, write_setting
 
 from pyprecag import config, processing
 from pyprecag.convert import numeric_pixelsize_to_string
+from pat.util.qgis_symbology import RASTER_SYMBOLOGY
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'blockGrid_dialog_base.ui'))
@@ -320,8 +321,11 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
                                   overwrite=True)  # The saveAS dialog takes care of the overwrite issue.
 
             if self.chkDisplayResults.isChecked():
-                rasterLyr = addRasterFileToQGIS(rasterFile, atTop=False)
-                raster_apply_unique_value_renderer(rasterLyr, 1)
+                raster_layer = addRasterFileToQGIS(rasterFile, atTop=False)
+                raster_sym = RASTER_SYMBOLOGY['Block Grid']
+                raster_apply_unique_value_renderer(raster_layer,1,
+                                               color_ramp=raster_sym['colour_ramp'],
+                                               invert=raster_sym['invert'])
 
 
             QtGui.qApp.restoreOverrideCursor()
