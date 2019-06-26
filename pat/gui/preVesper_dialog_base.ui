@@ -107,7 +107,7 @@
            <item row="0" column="1" colspan="2">
             <widget class="QLineEdit" name="lneVesperFold">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Folder used for Vesper processing. A sub-folder called &lt;span style=&quot; font-weight:600;&quot;&gt;Vesper&lt;/span&gt; will be created.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Folder used for VESPER processing. A sub-folder called &lt;span style=&quot; font-weight:600;&quot;&gt;Vesper&lt;/span&gt; will be created.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
@@ -152,7 +152,7 @@
            <item row="1" column="1">
             <widget class="QLineEdit" name="lneCtrlFile">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Folder used for Vesper processing. A sub-folder called &lt;span style=&quot; font-weight:600;&quot;&gt;Vesper&lt;/span&gt; will be created.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string/>
              </property>
             </widget>
            </item>
@@ -359,6 +359,19 @@
                  <property name="leftMargin">
                   <number>0</number>
                  </property>
+                 <item row="0" column="1" colspan="3">
+                  <widget class="QLineEdit" name="lneVariogramFile">
+                   <property name="toolTip">
+                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Vesper Grid file (&lt;span style=&quot; font-weight:600;&quot;&gt;*_v.txt&lt;/span&gt;) created using the Block Grid tool representing the area to Krig&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   </property>
+                   <property name="whatsThis">
+                    <string/>
+                   </property>
+                   <property name="readOnly">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
                  <item row="0" column="0">
                   <widget class="QLabel" name="lblVariogramFile">
                    <property name="sizePolicy">
@@ -381,19 +394,6 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="1">
-                  <widget class="QLineEdit" name="lneMinPointCount">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="maxLength">
-                    <number>10</number>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="1" column="0">
                   <widget class="QLabel" name="lblMinPoints">
                    <property name="text">
@@ -405,33 +405,7 @@ points to use</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="2" colspan="2">
-                  <spacer name="horizontalSpacer_2">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>338</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item row="0" column="1" colspan="2">
-                  <widget class="QLineEdit" name="lneVariogramFile">
-                   <property name="toolTip">
-                    <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Vesper Grid file (&lt;span style=&quot; font-weight:600;&quot;&gt;*_v.txt&lt;/span&gt;) created using the Block Grid tool representing the area to Krig&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                   </property>
-                   <property name="whatsThis">
-                    <string/>
-                   </property>
-                   <property name="readOnly">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="3">
+                 <item row="0" column="4">
                   <widget class="QPushButton" name="cmdVariogramFile">
                    <property name="enabled">
                     <bool>true</bool>
@@ -459,6 +433,26 @@ points to use</string>
                    </property>
                    <property name="flat">
                     <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QLineEdit" name="lneMinPoint">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="maxLength">
+                    <number>10</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="2" colspan="3">
+                  <widget class="QLabel" name="lblRowCount">
+                   <property name="text">
+                    <string>Point Count</string>
                    </property>
                   </widget>
                  </item>
@@ -700,7 +694,7 @@ system:</string>
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Vesper Grid file (&lt;span style=&quot; font-weight:600;&quot;&gt;*_v.txt&lt;/span&gt;) created using the Block Grid tool representing the area to Krig&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
-              <string>Vesper grid file:
+              <string>VESPER grid file:
 (block grid)</string>
              </property>
              <property name="indent">
