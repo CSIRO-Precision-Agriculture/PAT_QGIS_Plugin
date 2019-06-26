@@ -948,8 +948,26 @@ class pat_toolbar:
         dlgCleanTrimPoints.show()
 
         if dlgCleanTrimPoints.exec_():
+            output_folder = os.path.dirname(dlgCleanTrimPoints.lneSaveCSVFile.text())
+            import webbrowser
+            try:
+                from urllib import pathname2url  # Python 2.x
+            except:
+                from urllib.request import pathname2url  # Python 3.x
+
+            def open_folder():
+                url = 'file:{}'.format(pathname2url(os.path.abspath(output_folder)))
+                webbrowser.open(url)
+
             message = 'Cleaned and trimmed points successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+
+            widget = self.iface.messageBar().createMessage('', message)
+            button = QPushButton(widget)
+            button.setText('Open Folder')
+            button.pressed.connect(open_folder)
+            widget.layout().addWidget(button)
+
+            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
