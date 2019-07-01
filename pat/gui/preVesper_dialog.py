@@ -68,8 +68,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         # The qgis interface
         self.iface = iface
-        self.DISP_TEMP_LAYERS = read_setting(
-            PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
+        self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python
@@ -80,23 +79,19 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
-        self.setWindowIcon(QtGui.QIcon(
-            ':/plugins/pat/icons/icon_vesperKriging.svg'))
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_vesperKriging.svg'))
 
         self.validationLayout = QtGui.QFormLayout(self)
         # source: https://nathanw.net/2013/08/02/death-to-the-message-box-use-the-qgis-messagebar/
         # Add the error messages to top of form via a message bar.
-        # leave this message bar for bailouts
-        self.messageBar = QgsMessageBar(self)
+        self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
 
         if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
-            # create a validation layout so multiple messages can be added and
-            # cleaned up.
+            # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
         else:
-            # for use with Vertical/horizontal layout box
-            self.layout().insertWidget(0, self.messageBar)
+            self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # Set Class default variables -------------------------------------
         self.vesp_dict = None
@@ -110,12 +105,11 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         # To allow only integers for the min number of pts.
         self.onlyInt = QIntValidator()
-        self.lneMinPoint.setValidator(self.onlyInt)
+        self.lneMinPointCount.setValidator(self.onlyInt)
 
         self.vesper_exe = check_vesper_dependency()
         if self.vesper_exe is None or self.vesper_exe == '':
-            self.gbRunVesper.setTitle(
-                'WARNING:Vesper not found please configure using the about dialog.')
+            self.gbRunVesper.setTitle('WARNING:Vesper not found please configure using the about dialog.')
             self.gbRunVesper.setChecked(False)
             self.gbRunVesper.setCheckable(False)
             self.gbRunVesper.setEnabled(False)
@@ -123,7 +117,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
         Args:
-            AllBars (bool): Remove All bars including. Defaults to True
+            AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
         for i in reversed(range(layout.count())):
@@ -214,13 +208,8 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 fld = fld[:10]
                 ctrl_name = re.sub(fld, '', ctrl_name, flags=re.I)
 
-            if self.cboMethod.currentText() == 'High Density Kriging':
-                krig_type = 'HighDensity'
-            else:
-                krig_type = 'LowDensity'
-
             # add the chosen field name to the control filename
-            ctrl_name = '{}_{}_{}_control'.format(ctrl_name[:20], krig_type, fld)
+            ctrl_name = '{}_{}_control'.format(ctrl_name[:20], fld)
 
             # only allow alpha-numeric Underscores and hyphens
             ctrl_name = re.sub('[^A-Za-z0-9_-]+', '', ctrl_name)
@@ -249,117 +238,96 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
         if inFolder is None or not os.path.exists(inFolder):
             inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(self,
-                                              caption=self.tr("Select a CSV file to krige"),
-                                              directory=inFolder,
-                                              filter='{}  (*.csv *.txt);;{}  (*.*);;'.format(
-                                                  self.tr("Comma delimited files"),
-                                                  self.tr("All Files"))
-                                              )
+        s = QtGui.QFileDialog.getOpenFileName(
+            self,
+            caption=self.tr("Select a CSV file to krige"),
+            directory=inFolder,
+            filter=self.tr("Comma delimited files") + " (*.csv *.txt);;" +
+                   self.tr("All Files") + " (*.*);;")
 
         self.cleanMessageBars(self)
-        self.lneInCSVFile.clear()
-
-        # validate files first
-        overlaps, message = self.validate_csv_grid_files(s, self.lneInGridFile.text())
-
-        if not overlaps or message is not None:
+        if s == '':
             self.lblInCSVFile.setStyleSheet('color:red')
-            self.lneInCSVFile.setStyleSheet('color:red')
 
-            self.send_to_messagebar(message,
-                                    level=QgsMessageBar.CRITICAL,
-                                    duration=0, addToLog=True, showLogPanel=True,
-                                    exc_info=sys.exc_info())
-            return
-
-        s = os.path.normpath(s)
-        self.lblInCSVFile.setStyleSheet('color:black')
-        self.lneInCSVFile.setStyleSheet('color:black')
-        self.lneInCSVFile.setText(s)
-
-        descCSV = describe.CsvDescribe(s)
-        self.dfCSV = descCSV.open_pandas_dataframe(nrows=150)
-
-        if len(self.dfCSV) <= 100:
-            self.lneMinPoint.clear()
-            QMessageBox.warning(self, 'Cannot Krige', 'Kriging is not advised for less '
-                                                      'than 100 points')
-
-        self.lneMinPoint.clear()
-        self.cboKrigColumn.clear()
-
-        coord_cols = predictCoordinateColumnNames(self.dfCSV.columns)
-        epsgcols = [col for col in self.dfCSV.columns if 'EPSG' in col.upper()]
-
-        field_names = list(self.dfCSV.drop(coord_cols + epsgcols, axis=1)
-                           .select_dtypes(include=[np.number]).columns.values)
-
-        self.cboKrigColumn.addItems([''] + field_names)
-
-        # To set a coordinate system for vesper2raster, try and get it from
-        # a column in the data.
-        epsg = 0
-        if len(epsgcols) > 0:
-            for col in epsgcols:
-                if self.dfCSV.iloc[0][col] > 0:
-                    epsg = int(self.dfCSV.iloc[0][col])
-                    break
-
-        if epsg > 0:
-            self.in_qgscrs = QgsCoordinateReferenceSystem("EPSG:{}".format(epsg))
-            self.lblInCRS.setText('{}  -  {}'.format(self.in_qgscrs.description(),
-                                                     self.in_qgscrs.authid()))
         else:
-            self.lblInCRS.setText('Unspecified')
+            s = os.path.normpath(s)
+            self.lblInCSVFile.setStyleSheet('color:black')
+            self.lneInCSVFile.setText(s)
 
-        write_setting(PLUGIN_NAME + "/" + self.toolKey +
-                      "/LastCSVFolder", os.path.dirname(s))
-        del descCSV
-        self.updateCtrlFileName()
+            descCSV = describe.CsvDescribe(s)
+            self.dfCSV = descCSV.open_pandas_dataframe(nrows=150)
+
+            if len(self.dfCSV) <= 100:
+                self.cleanMessageBars(self)
+                self.lneMinPointCount.clear()
+                QMessageBox.warning(self, 'Cannot Krige', 'Kriging is not advised for less '
+                                                          'than 100 points')
+
+            self.lneMinPointCount.clear()
+            self.cboKrigColumn.clear()
+
+            coord_cols = predictCoordinateColumnNames(self.dfCSV.columns)
+            epsgcols = [col for col in self.dfCSV.columns if 'EPSG' in col.upper()]
+
+            field_names = list(self.dfCSV.drop(coord_cols + epsgcols,axis=1)
+                               .select_dtypes(include=[np.number]).columns.values)
+
+            self.cboKrigColumn.addItems( [''] + field_names)
+
+            # To set a coordinate system for vesper2raster, try and get it from
+            # a column in the data.
+            epsg = 0
+            if len(epsgcols) > 0:
+                for col in epsgcols:
+                    if self.dfCSV.iloc[0][col] > 0:
+                        epsg = int(self.dfCSV.iloc[0][col])
+                        break
+
+            if epsg > 0:
+                self.in_qgscrs = QgsCoordinateReferenceSystem("EPSG:{}".format(epsg))
+                self.lblInCRS.setText('{}  -  {}'.format(self.in_qgscrs.description(),
+                                                         self.in_qgscrs.authid()))
+            else:
+                self.lblInCRS.setText('Unspecified')
+
+            self.check_grid_csv_overlap()
+
+            write_setting(PLUGIN_NAME + "/" + self.toolKey +
+                          "/LastCSVFolder", os.path.dirname(s))
+            del descCSV
+            self.updateCtrlFileName()
 
     @QtCore.pyqtSlot(name='on_cmdInGridFile_clicked')
     def on_cmdInGridFile_clicked(self):
         self.lneInGridFile.clear()
         self.messageBar.clearWidgets()
 
-        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVesperGridFolder")
-
+        inFolder = read_setting(
+            PLUGIN_NAME + "/" + self.toolKey + "/LastVesperGridFolder")
         if inFolder is None or not os.path.exists(inFolder):
-
-            inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastCSVFolder")
-
+            inFolder = read_setting(
+                PLUGIN_NAME + "/" + self.toolKey + "/LastCSVFolder")
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(self, caption=self.tr("Choose the Vesper Grid File"),
-                                              directory=inFolder,
-                                              filter='{}  (*_v.txt);;{}  (*.*);;'.format(
-                                                  self.tr("Vesper Grid File(s)"),
-                                                  self.tr("All Files"))
-                                              )
+        s = QtGui.QFileDialog.getOpenFileName(
+            self,
+            caption=self.tr("Choose the Vesper Grid File"),
+            directory=inFolder,
+            filter=self.tr("Vesper Grid File(s)") + " (*_v.txt);;" +
+                   self.tr("All Files") + " (*.*);;")
 
         self.cleanMessageBars(self)
-        s = os.path.normpath(s)
-
-        self.lneInGridFile.clear()
-        self.lneInGridFile.setStyleSheet('color:red')
-        self.lblInGridFile.setStyleSheet('color:red')
-
-        overlaps, message = self.validate_csv_grid_files(self.lneInCSVFile.text(), s)
-
-        if overlaps or message is None:
-            self.lneInGridFile.setStyleSheet('color:black')
-            self.lblInGridFile.setStyleSheet('color:black')
-            if overlaps:
-                self.lneInGridFile.setText(s)
-                write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVesperGridFolder",
-                              os.path.dirname(s))
+        if s == '':
+            self.lneInGridFile.setStyleSheet('color:red')
+            self.lblInGridFile.setStyleSheet('color:red')
         else:
-            self.send_to_messagebar(message,
-                                    level=QgsMessageBar.CRITICAL,
-                                    duration=0, addToLog=True, showLogPanel=True,
-                                    exc_info=sys.exc_info())
+            s = os.path.normpath(s)
+            self.lneInGridFile.setText(s)
+            self.check_grid_csv_overlap()
+            write_setting(PLUGIN_NAME + "/" + self.toolKey +"/LastVesperGridFolder",
+                          os.path.dirname(s))
+
 
     @QtCore.pyqtSlot(name='on_cmdVariogramFile_clicked')
     def on_cmdVariogramFile_clicked(self):
@@ -374,13 +342,12 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(self,
-                                              caption=self.tr("Choose the Vesper Variogram File"),
-                                              directory=inFolder,
-                                              filter='{}  (*.txt);;{}  (*.*);;'.format(
-                                                  self.tr("Variogram Text File(s)"),
-                                                  self.tr("All Files"))
-                                              )
+        s = QtGui.QFileDialog.getOpenFileName(
+            self,
+            caption=self.tr("Choose the Vesper Variogram File"),
+            directory=inFolder,
+            filter=self.tr("Variogram Text File(s)") + " (*.txt);;" +
+                   self.tr("All Files") + " (*.*);;")
 
         self.cleanMessageBars(self)
         if s == '':
@@ -394,7 +361,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             self.send_to_messagebar("Invalid Variogram File", level=QgsMessageBar.CRITICAL,
                                     duration=0, addToLog=True, showLogPanel=True,
                                     exc_info=sys.exc_info())
-            # self.lneVariogramFile.clear()
+            #self.lneVariogramFile.clear()
             return
 
         s = os.path.normpath(s)
@@ -421,7 +388,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         s = QtGui.QFileDialog.getExistingDirectory(self, self.tr(
             "Vesper processing folder. A Vesper sub-folder will be created."), outFolder,
-                                                   QtGui.QFileDialog.ShowDirsOnly)
+            QtGui.QFileDialog.ShowDirsOnly)
 
         self.cleanMessageBars(self)
         if s == '' or s is None:
@@ -456,18 +423,19 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                     self.lblInCRS.setStyleSheet('color:black;background:transparent;')
                     self.lblInCRSTitle.setStyleSheet('color:black')
 
+        self.check_grid_csv_overlap()
         self.cleanMessageBars(self)
 
     @QtCore.pyqtSlot(int)
     def on_cboMethod_currentIndexChanged(self, index):
         self.stackedWidget.setCurrentIndex(index)
-        self.updateCtrlFileName()
+
         if self.dfCSV is None:
             return
 
         if len(self.dfCSV) <= 100:
             self.cleanMessageBars(self)
-            self.lneMinPoint.clear()
+            self.lneMinPointCount.clear()
             QMessageBox.warning(
                 self, 'Cannot Krige', 'Kriging is not advised for less than 100 points')
 
@@ -475,11 +443,10 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             if len(self.dfCSV) <= 150:  # only partial file opened so open it all
                 descCSV = describe.CsvDescribe(self.lneInCSVFile.text())
                 self.dfCSV = descCSV.open_pandas_dataframe()
-            self.lblRowCount.setText("The maximum number of points is {}.".format(len(self.dfCSV)))
-            self.lneMinPoint.setText(str(len(self.dfCSV) - 2))
+
+            self.lneMinPointCount.setText(str(len(self.dfCSV) - 2))
         else:
-            self.lneMinPoint.clear()
-            self.lblRowCount.setText('')
+            self.lneMinPointCount.clear()
 
     def parse_variogram_file(self):
 
@@ -500,13 +467,12 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 try:
                     key = int(float(key)) if int(
                         float(key)) == float(key) else float(key)
-                except ValueError:
+                except:
                     key = key.strip()
-
                 try:
                     val = int(float(val)) if int(
                         float(val)) == float(val) else float(val)
-                except ValueError:
+                except:
                     val = val.strip()
 
                 # only return keys required for the control file.
@@ -514,82 +480,51 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 if isinstance(key, basestring):
                     vario_values[key] = val
 
+
         return vario_values
 
-    def validate_csv_grid_files(self, csv_file, grid_file, show_msgbox=True):
-        """ validate the csv and grid files and check for overlap assuming that they are
-        of the same coordinate system if True then message will be blank else a message
-        will be generated
+    def check_grid_csv_overlap(self, show_msgbox=True):
+        """ check for overlap between block grid and CSV file assuming that they are
+        of the same coordinate system
+        if True then message will be blank else a message will be generated
         """
 
-        overlaps = False
+        if os.path.exists(self.lneInGridFile.text()) and os.path.exists(self.lneInCSVFile.text()):
 
-        if csv_file != '':
-            if not os.path.exists(csv_file):
-                return False, 'CSV file does not exist'
+            if self.in_qgscrs:
+                epsg=self.in_qgscrs.authid()
             else:
-                try:
-                    df_csv = pd.read_csv(csv_file)
-                    csvX, csvY = predictCoordinateColumnNames(df_csv.columns)
-                    csv_bbox = box(df_csv[csvX].min(), df_csv[csvY].min(),
-                                   df_csv[csvX].max(), df_csv[csvY].max())
+                epsg=''
+            df_csv = pd.read_csv(self.lneInCSVFile.text())
+            csvX, csvY = predictCoordinateColumnNames(df_csv.columns)
+            csv_bbox = box(df_csv[csvX].min(),df_csv[csvY].min(),
+                           df_csv[csvX].max(),df_csv[csvY].max())
 
-                except Exception as err:
-                    self.lblInCSVFile.setStyleSheet('color:red')
-                    self.lneInCSVFile.setStyleSheet('color:red')
-                    return False, 'Invalid CSV file'
+            df_grid = pd.read_table(self.lneInGridFile.text(),names=['X', 'Y'],
+                                    delimiter=' ', skipinitialspace=True)
 
-        if grid_file != '':
-            if not os.path.exists(grid_file):
-                return False, 'Grid file does not exist'
+            grid_bbox = box(df_grid['X'].min(), df_grid['Y'].min(),
+                            df_grid['X'].max(), df_grid['Y'].max())
+
+
+            overlaps = check_for_overlap(csv_bbox.to_wkt(),grid_bbox.to_wkt(),epsg, epsg)
+            if not overlaps:
+                message = 'There is no overlap between the VESPER Grid file and the CSV file.\n' \
+                          'Please check input files and coordinate systems'
+                if show_msgbox:
+                    QMessageBox.warning(self, 'No Overlap',message)
+                self.lblInGridFile.setStyleSheet('color:red')
+                self.lneInGridFile.setStyleSheet('color:red')
+                self.lblInCSVFile.setStyleSheet('color:red')
+                self.lneInCSVFile.setStyleSheet('color:red')
             else:
-                try:
-                    df_grid = pd.read_table(grid_file, names=['X', 'Y'],
-                                            delimiter=' ', skipinitialspace=True)
+                message= ''
+                self.lblInGridFile.setStyleSheet('color:black')
+                self.lneInGridFile.setStyleSheet('color:black')
+                self.lblInCSVFile.setStyleSheet('color:black')
+                self.lneInCSVFile.setStyleSheet('color:black')
 
-                    grid_bbox = box(df_grid['X'].min(), df_grid['Y'].min(),
-                                    df_grid['X'].max(), df_grid['Y'].max())
-
-                except Exception as err:
-                    self.lblInGridFile.setStyleSheet('color:red')
-                    self.lneInGridFile.setStyleSheet('color:red')
-                    return False, 'Invalid VESPER grid file'
-
-        # only continue if both inputs aren't blank
-        if csv_file == '' or grid_file == '':
-            # if one or the other is blank keep validate as true or it wont write to the GUI
-            return True, None
-
-        if csv_file == grid_file:
-            return False, "VESPER grid file and CSV file cannot be the same file"
-
-        # now we can check for overlap
-
-        if self.in_qgscrs:
-            epsg = self.in_qgscrs.authid()
-        else:
-            epsg = ''
-
-        overlaps = check_for_overlap(csv_bbox.to_wkt(), grid_bbox.to_wkt(), epsg, epsg)
-        if not overlaps:
-            message = 'There is no overlap between the VESPER Grid file and the CSV file.\n' \
-                      'Please check input files and coordinate systems'
-
-            if show_msgbox:
-                QMessageBox.warning(self, 'No Overlap', message)
-
-            self.lblInGridFile.setStyleSheet('color:red')
-            self.lneInGridFile.setStyleSheet('color:red')
-            self.lblInCSVFile.setStyleSheet('color:red')
-            self.lneInCSVFile.setStyleSheet('color:red')
-        else:
-            message = None
-            self.lblInGridFile.setStyleSheet('color:black')
-            self.lneInGridFile.setStyleSheet('color:black')
-            self.lblInCSVFile.setStyleSheet('color:black')
-            self.lneInCSVFile.setStyleSheet('color:black')
-
-        return overlaps, message
+            return message
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
@@ -600,27 +535,21 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
             if self.lneInCSVFile.text() is None or self.lneInCSVFile.text() == '':
                 self.lblInCSVFile.setStyleSheet('color:red')
-                self.lneInCSVFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Select an input csv data file"))
             elif not os.path.exists(self.lneInCSVFile.text()):
                 self.lblInCSVFile.setStyleSheet('color:red')
-                self.lneInCSVFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Input csv data file does not exist"))
             else:
                 self.lblInCSVFile.setStyleSheet('color:black')
-                self.lneInCSVFile.setStyleSheet('color:black')
 
             if self.lneInGridFile.text() is None or self.lneInGridFile.text() == '':
                 self.lblInGridFile.setStyleSheet('color:red')
-                self.lneInGridFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Select a Vesper grid file"))
             elif not os.path.exists(self.lneInGridFile.text()):
                 self.lblInGridFile.setStyleSheet('color:red')
-                self.lneInGridFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Vesper grid file does not exists."))
             else:
                 self.lblInGridFile.setStyleSheet('color:black')
-                self.lneInGridFile.setStyleSheet('color:black')
 
             if self.in_qgscrs is None:
                 self.lblInCRSTitle.setStyleSheet('color:red')
@@ -628,44 +557,18 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 errorList.append(self.tr("Select a coordinate system"))
             else:
                 self.lblInCRSTitle.setStyleSheet('color:black')
-                self.lblInCRS.setStyleSheet('color:black;background:transparent;')
+                self.lblInCRS.setStyleSheet(
+                    'color:black;background:transparent;')
 
-            pass_check, message = self.validate_csv_grid_files(self.lneInCSVFile.text(),
-                                                               self.lneInGridFile.text())
-            if not pass_check:
-                errorList.append(self.tr(message))
-                # errorList.append(self.tr("Input csv file and grid file do not overlap. Could be "
-                #                          "due to differing coordinate systems or invalid files"))
+            if self.check_grid_csv_overlap(show_msgbox=False) != '':
+                errorList.append(self.tr("Input csv file and grid file do not overlap. Could be "\
+                                         "due to differing coordinate systems"))
 
             if self.cboKrigColumn.currentText() == '':
                 self.lblKrigColumn.setStyleSheet('color:red')
                 errorList.append(self.tr("Select a column to krige"))
             else:
                 self.lblKrigColumn.setStyleSheet('color:black')
-
-            if self.cboMethod.currentText() != 'High Density Kriging':
-
-                if self.lneVariogramFile.text() is None or self.lneVariogramFile.text() == '':
-                    self.lblVariogramFile.setStyleSheet('color:red')
-                    self.lneVariogramFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Select a variogram text file"))
-                elif not os.path.exists(self.lneVariogramFile.text()):
-                    self.lblVariogramFile.setStyleSheet('color:red')
-                    self.lneVariogramFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Variogram text file does not exists."))
-                else:
-                    self.lblVariogramFile.setStyleSheet('color:black')
-                    self.lneVariogramFile.setStyleSheet('color:black')
-
-                if int(self.lneMinPoint.text()) >= len(self.dfCSV):
-                    self.lneMinPoint.setStyleSheet('color:red')
-                    self.lneMinPoint.setStyleSheet('color:red')
-                    errorList.append(
-                        self.tr("Minimum number of points should be at least "
-                                "2 less than the dataset count"))
-                else:
-                    self.lneMinPoint.setStyleSheet('color:black')
-                    self.lneMinPoint.setStyleSheet('color:black')
 
             if self.lneVesperFold.text() == '':
                 self.lblVesperFold.setStyleSheet('color:red')
@@ -681,8 +584,9 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             ctrl_file = os.path.join(self.lneVesperFold.text(), self.lneCtrlFile.text())
 
             if os.path.exists(ctrl_file):
-                message = 'Vesper Control File {} already exists. Do you want to' \
-                          ' overwrite?'.format(self.lneCtrlFile.text())
+                message = 'Vesper Control File {} already exists in the output Vesper' \
+                          ' Folder. Do you want to overwrite?'.format(
+                              self.lneCtrlFile.text())
 
                 reply = QMessageBox.question(
                     self, 'Control File', message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
@@ -737,7 +641,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 settingsStr += '\n    {:30}\t{}'.format('Variogram File:',
                                                         self.lneVariogramFile.text())
                 settingsStr += '\n    {:30}\t{}'.format('Min Point Number:',
-                                                        self.lneMinPoint.text())
+                                                        self.lneMinPointCount.text())
 
             settingsStr += '\n    {:30}\t{}'.format(
                 'Display Vesper Graphics:', self.chkDisplayGraphics.isChecked())
@@ -772,7 +676,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 # apply the other keys.
                 vc.update({'jpntkrg': 1,
                            'jlockrg': 0,
-                           'minpts': int(self.lneMinPoint.text()),
+                           'minpts': int(self.lneMinPointCount.text()),
                            'maxpts': len(self.dfCSV),
                            'jcomvar': 0,
                            })
