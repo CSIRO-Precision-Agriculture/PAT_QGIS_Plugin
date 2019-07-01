@@ -16,8 +16,8 @@ makes use of the CSIRO developed [pyPrecAg](https://github.com/CSIRO-Precision-A
 |Persistor |Apply Raster Symbology |
 
 
-<img src="pat/icons/WineAustralia_Logo.png" width="15%" align="right"/>
-<img src="pat/icons/CSIRO_Grad_RGB.png" width="12%" align="left"/>
+<img src="pat/icons/WineAustralia_Logo.png" width="12%" align="right"/>
+<img src="pat/icons/CSIRO_Grad_RGB.png" width="10%" align="left"/>
 <blockquote>  <br> The Precision Agriculture Tools (PAT) is developed by the CSIRO Precision Agriculture team.  
    This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.</blockquote>
 
