@@ -1,8 +1,8 @@
-Precision Agriculture Tools (PAT) Plugin for QGIS
+<img src="/pat/icons/icon.png" width="40" height="48"  align="left"/>Precision Agriculture Tools (PAT) Plugin for QGIS 
 -------------------------------------------------
 
 PAT is a QGIS plugin for tools required for processing and analysing precision agriculture data. It
-makes use of the CSIRO developed [pyPrecAg](https://github.com/CSIRO-Precision-Agriculture/pyprecag) python module.
+makes use of the CSIRO developed [pyPrecAg](https://github.com/CSIRO-Precision-Agriculture/pyprecag#pyprecag) python module.
 
 |Currently it includes:|    |
 | :---|:---|
@@ -25,4 +25,4 @@ PAT is only available using QGIS Long Term Release versions 2.18.21 to 2.18.26 f
 
 To fully use the on-the-go data workflow, users must also download and install VESPER from https://sydney.edu.au/agriculture/pal/software/vesper.shtml.
 
-Once QGIS is installed follow the PAT installation instructions found in chapter 1 of the [PAT user manual](https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf).
+Once QGIS is installed follow the PAT installation instructions found in chapter 1 of the [PAT user manual](/pat/PAT_User_Manual.pdf).
