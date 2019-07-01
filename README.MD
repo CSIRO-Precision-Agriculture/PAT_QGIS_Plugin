@@ -15,9 +15,10 @@ makes use of the CSIRO developed [pyPrecAg](https://github.com/CSIRO-Precision-A
 |Create Strip Trial Points |Run Strip Trial <i>t</i>-test Analysis |
 |Persistor |Apply Raster Symbology |
 
->   The Precision Agriculture Tools (PAT) is developed by the CSIRO Precision Agriculture team.  
->   This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.
-
+<img src="pat/icons/CSIRO_Grad_RGB.png" width="70" height="70" style="float" align="left"/>
+<img src="pat/icons/WineAustralia_Logo.png" width="90" height="90" style="float" align="right"/>
+<blockquote>   The Precision Agriculture Tools (PAT) is developed by the CSIRO Precision Agriculture team.  
+   This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.</blockquote>
 
 Requirements and Installation
 ------------
