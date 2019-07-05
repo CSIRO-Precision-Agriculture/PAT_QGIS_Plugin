@@ -92,14 +92,12 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
         self.setWindowIcon(QtGui.QIcon(
             ':/plugins/pat/icons/icon_persistor.svg'))
 
-        self.cboMethod.addItems(
-            ['Target Probability', 'Target Over All Years'])
-        self.cboMethod.setCurrentIndex(0)
+        self.cboMethod.addItems(['Target Probability', 'Target Over All Years'])
+        self.cboMethod.setCurrentIndex(1)
         for ea_cbo in [self.cboAllYearTargetPerc, self.cboUpperPerc, self.cboLowerPerc]:
             ea_cbo.addItems(['{}%'.format(ea) for ea in range(50, -55,  -5)])
 
-            ea_cbo.setCurrentIndex(ea_cbo.findText(
-                '10%', QtCore.Qt.MatchFixedString))
+            ea_cbo.setCurrentIndex(ea_cbo.findText('10%', QtCore.Qt.MatchFixedString))
 
         self.cboLowerPerc.setCurrentIndex(
             self.cboLowerPerc.findText('-10%', QtCore.Qt.MatchFixedString))
@@ -567,7 +565,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
                                         self.lneSaveFile.text(),
                                         self.optGreaterThan.isChecked(),
                                         int(self.cboAllYearTargetPerc.currentText().strip('%')))
-                
+
                 raster_sym = rs.RASTER_SYMBOLOGY['Persistor - All Years']
 
             rasterLyr = addRasterFileToQGIS(self.lneSaveFile.text(), atTop=False)

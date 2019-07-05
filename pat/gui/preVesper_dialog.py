@@ -252,7 +252,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
         s = QtGui.QFileDialog.getOpenFileName(self,
                                               caption=self.tr("Select a CSV file to krige"),
                                               directory=inFolder,
-                                              filter='{}  (*.csv *.txt);;{}  (*.*);;'.format(
+                                              filter='{}  (*.csv);;{}  (*.*);;'.format(
                                                   self.tr("Comma delimited files"),
                                                   self.tr("All Files"))
                                               )

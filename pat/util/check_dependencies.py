@@ -31,7 +31,8 @@ import tempfile
 import shutil
 import sys
 import logging
-
+from datetime import date
+import requests
 from pkg_resources import parse_version, get_distribution, DistributionNotFound
 
 from PyQt4.QtGui import QMessageBox
@@ -56,10 +57,9 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 # max version of GDAL supported via the specified wheel.
 GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
                          'rasterio': 'rasterio-1.0.13-cp27-cp27m',
-                         'pyprecag': 'pyprecag-0.2.2'}}
+                         'pyprecag': 'pyprecag-0.3.0'}}    # this is the minimum version of pyprecag supported by PAT
 
 def check_R_dependency():
-
     updated = False
     r_installfold = read_setting('Processing/Configuration/R_FOLDER')
     if platform.system() == 'Windows':
@@ -192,21 +192,21 @@ def check_package(package):
     """Check to see if a package is installed and what version it is.
 
     Returns a dictionary containing:
-        Action is Install, Upgrade or None 
+        Action is Install, Upgrade or None
         Version is the installed version, if not installed will be ''
         Wheel the wheel file or version.
     for each package
-    
+
     Args:
         package (str): the name of the package
 
     Returns {dict}: a dictionary containing actions required, and which version is installed.
     """
-    
+
     _, wheels = check_gdal_dependency()
-    
+
     try:
-        pack_dict = pack_dict = {'Action': 'None', 
+        pack_dict = pack_dict = {'Action': 'None',
                                  'Version': get_distribution(package).version,
                                  'Wheel': wheels[package]}
     except DistributionNotFound:
@@ -223,6 +223,18 @@ def check_package(package):
             pack_dict['Wheel'] = wheels[package]
 
     return pack_dict
+
+
+def check_pip_for_update(package):
+    """ Check a package against online pip via json get the most current release
+    version number
+
+    source: https://stackoverflow.com/a/40745656
+    """
+    url = 'https://pypi.python.org/pypi/{}/json'.format(package)
+    releases = requests.get(url).json()['releases']
+    current_version = sorted(releases, key=parse_version, reverse=True)[0]
+    return current_version
 
 
 def get_pip_version(package):
@@ -254,8 +266,8 @@ def get_pip_version(package):
 def check_python_dependencies(plugin_path, iface):
     """ Check for extra python modules which the plugin requires.
 
-    If they are not installed, a windows batch file will be created on the users desktop. Run this as administrator
-    to install relevant packages
+    If they are not installed, a windows batch file will be created on the users desktop.
+    Run this as administrator to install relevant packages
 
     Args:
          iface (): The QGIs gui interface required to add messagebar too.
@@ -277,7 +289,13 @@ def check_python_dependencies(plugin_path, iface):
 
     # Install via a tar wheel file prior to publishing via pip to test pyprecag bug fixes
     if len(glob.glob1(os.path.join(plugin_path, 'python_packages'),"pyprecag*")) == 1:
-        packCheck['pyprecag']['Action'] = 'Upgrade' 
+        packCheck['pyprecag']['Action'] = 'Upgrade'
+
+    if packCheck['pyprecag']['Action'] != 'Install':
+        # check pyprecag against pypi for bug fixes
+        cur_pyprecag_ver = check_pip_for_update('pyprecag')
+        if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
+            packCheck['pyprecag']['Action'] = 'Upgrade'
 
     failDependencyCheck = [key for key, val in packCheck.iteritems() if val['Action'] in ['Install', 'Upgrade']]
 
@@ -290,8 +308,8 @@ def check_python_dependencies(plugin_path, iface):
         qgis_prefix_path = win32api.GetLongPathName(os.environ['QGIS_PREFIX_PATH'])
 
         # check to see if the qgis_customwidgets.py file is in the python folder.
-        custWidFile = os.path.join(win32api.GetLongPathName(osgeo_path), 'apps', 'Python27', 'Lib', 'site-packages',
-                                   'PyQt4', 'uic', 'widget-plugins',
+        custWidFile = os.path.join(win32api.GetLongPathName(osgeo_path), 'apps', 'Python27',
+                                   'Lib', 'site-packages', 'PyQt4', 'uic', 'widget-plugins',
                                    'qgis_customwidgets.py')
 
         tmpDir = os.path.join(tempfile.gettempdir())
@@ -313,10 +331,19 @@ def check_python_dependencies(plugin_path, iface):
 
             shutil.copytree(os.path.join(plugin_path, 'python_packages'), tempPackPath)
 
-        bat_logfile = os.path.join(plugin_path, 'python_packages', 'dependency.log')
+        bat_logfile = os.path.join(plugin_path, 'python_packages',
+                                   'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d")))
+
+        pip_logfile = os.path.join(plugin_path, 'python_packages',
+                                   'pip_uninstall_{}.log'.format(date.today().strftime("%Y-%m-%d")))
+
+        pip_args_uninstall = ' --log {} --no-cache-dir --disable-pip-version-check'.format(pip_logfile)
+        pip_args_install = ' --log {} --no-cache-dir --disable-pip-version-check'.format(pip_logfile.replace('_un','_'))
+
         user_path = os.path.join(os.path.expanduser('~'))
         shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
+
 
         # write the headers for both files at once.
         with open(uninstall_file, 'w') as wUnFile, open(install_file, 'w') as wInFile:
@@ -369,13 +396,13 @@ def check_python_dependencies(plugin_path, iface):
             writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%OSGEO4W_ROOT%\apps\Python27\Lib\site-packages" + '\n\n',
                              [wUnFile, wInFile])
 
-            wUnFile.write('   ECHO Y|python -m pip uninstall pyprecag  --disable-pip-version-check\n')
-            wUnFile.write('   ECHO Y|python -m pip uninstall rasterio  --disable-pip-version-check\n')
-            wUnFile.write('   ECHO Y|python -m pip uninstall fiona  --disable-pip-version-check\n')
-            
-            # if we are uninstalling fiona then uninstall geopandas 
-            wUnFile.write('   ECHO Y|python -m pip uninstall fiona  --disable-pip-version-check\n')
-            wUnFile.write('   ECHO Y|python -m pip uninstall geopandas  --disable-pip-version-check\n')
+            wUnFile.write('   ECHO Y|python -m pip uninstall pyprecag {}\n'.format(pip_args_uninstall))
+            wUnFile.write('   ECHO Y|python -m pip uninstall rasterio {}\n'.format(pip_args_uninstall))
+            wUnFile.write('   ECHO Y|python -m pip uninstall fiona {}\n'.format(pip_args_uninstall))
+
+            # if we are uninstalling fiona then uninstall geopandas
+            wUnFile.write('   ECHO Y|python -m pip uninstall fiona {}\n'.format(pip_args_uninstall))
+            wUnFile.write('   ECHO Y|python -m pip uninstall geopandas {}\n'.format(pip_args_uninstall))
 
             wUnFile.write('\n:END \n')
             wUnFile.write('   type {} \n'.format(bat_logfile))
@@ -386,9 +413,7 @@ def check_python_dependencies(plugin_path, iface):
                 if len(failDependencyCheck) > 0: LOGGER.warning('Missing Dependency: {} '.format(custWidFile))
                 wInFile.write('   ECHO Missing Dependency: {} \n'.format(custWidFile))
                 wInFile.write('   ECHO Copying qgis_customwidgets.py \n')
-                wInFile.write(
-                    r'   ECHO F|xcopy "%QGIS_PREFIX_PATH%\python\PyQt4\uic\widget-plugins\qgis_customwidgets.py" "'
-                    + custWidFile + '" /y \n')
+                wInFile.write(r'   ECHO F|xcopy "%QGIS_PREFIX_PATH%\python\PyQt4\uic\widget-plugins\qgis_customwidgets.py" "' + custWidFile + '" /y \n')
 
             wInFile.write(
                 '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
@@ -396,7 +421,7 @@ def check_python_dependencies(plugin_path, iface):
             for ea_pack in ['fiona','rasterio', 'pyprecag']:
 
                 if ea_pack in failDependencyCheck or len(failDependencyCheck) == 0:
-                    wheel =  packCheck[ea_pack]['Wheel']
+                    wheel = packCheck[ea_pack]['Wheel']
                     wInFile.write(
                         '\n\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
                     wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
@@ -406,25 +431,28 @@ def check_python_dependencies(plugin_path, iface):
                         upgrade_file = glob.glob1(tempPackPath,ea_pack + "*")
                         if len(upgrade_file) == 1:
                             whl_file = upgrade_file[0]
+                            
+                            bug_fix_fold = os.path.join(plugin_path, 'python_packages','installed_bugfix')
+                            if not os.path.exists( bug_fix_fold):
+                                os.makedirs(bug_fix_fold)
+                            
+                        elif packCheck[ea_pack]['Action'] == 'Upgrade':
+                            whl_file = '-U pyprecag'
                         else:
-                            whl_file = 'pyprecag=={}'.format(wheel.split('-')[1])
+                            whl_file = 'pyprecag'
                     else:
                         if python_version == 32:
                             whl_file = os.path.join(ea_pack, wheel + '-win32.whl')
                         else:
                             whl_file = os.path.join(ea_pack, wheel + '-win_amd64.whl')
 
-                    wInFile.write(r'   python -m pip install {} --disable-pip-version-check'.format(whl_file) + '\n')
-                    
+                    wInFile.write(r'   python -m pip install {} {}'.format(whl_file,pip_args_install) + '\n')
+
                     if ea_pack == 'pyprecag' and len(upgrade_file) == 1:
-                        bug_fix_fold =  os.path.join(plugin_path, 'python_packages','installed_bugfix')
-                        if not os.path.exists( bug_fix_fold):
-                            os.makedirs(bug_fix_fold)
-                            
                         # after installing, move the file otherwise you will always be prompted to upgrade
                         wInFile.write(r'    move {} {}'.format(os.path.join(plugin_path, 'python_packages',upgrade_file[0]),
                                     bug_fix_fold) + '\n')
-                        
+
             wInFile.write(
                 '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
             wInFile.write('\n' + r'   EXIT /B' + '\n')  # will return to the position where you used CALL
@@ -440,8 +468,7 @@ def check_python_dependencies(plugin_path, iface):
             wInFile.write('   ECHO All files and folders used in this install will self destruct.\n')
             wInFile.write('   ECHO.\n')
             wInFile.write('   ECHO ** Please restart QGIS to complete installation.\n')
-            wInFile.write(
-                '   ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.\n')
+            wInFile.write('   ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.\n')
             wInFile.write('   ECHO.\n')
             wInFile.write('   pause\n')
             wInFile.write('   ECHO.\n')
@@ -455,12 +482,12 @@ def check_python_dependencies(plugin_path, iface):
             wInFile.write('   goto:eof')
 
     # Create a shortcut on desktop with admin privileges.
-    # Source:https://stackoverflow.com/questions/37049108/create-windows-explorer-shortcut-with-run-as-administrator
+
     if len(failDependencyCheck) > 0:
         if platform.system() == 'Windows':
-            LOGGER.critical(
-                "Failed Dependency Check. Please run the shortcut {} or the following bat file as administrator {}".format(
-                    shortcutPath, install_file))
+            LOGGER.critical("Failed Dependency Check. Please run the shortcut {} "
+                            "or the following bat file as administrator {}".format(
+                shortcutPath, install_file))
 
             create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin", user_path, True)
 
@@ -486,7 +513,9 @@ def create_link(link_path, target_path, description=None, directory=None,
         run_as_admin (bool): Set to Run As Administrator
 
     """
-    link = pythoncom.CoCreateInstance(shell.CLSID_ShellLink, None, pythoncom.CLSCTX_INPROC_SERVER, shell.IID_IShellLink)
+    # Source: https://stackoverflow.com/a/37063259
+    link = pythoncom.CoCreateInstance(shell.CLSID_ShellLink, None, pythoncom.CLSCTX_INPROC_SERVER,
+                                      shell.IID_IShellLink)
     link.SetPath(target_path)
     if description is not None:
         link.SetDescription(description)
