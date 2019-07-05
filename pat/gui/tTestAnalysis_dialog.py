@@ -173,10 +173,16 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
     def exclude_map_layers(self):
         """ Run through all loaded layers to find ones which should be excluded.
             In this case exclude services."""
-
+        
         if len(self.layer_table) == 0:
             return
-
+        
+        if self.mcboPointsLayer.currentLayer() is None:
+            return
+        
+        if self.mcboCtrlRasterLayer.currentLayer() is None:
+            return
+        
         # df = self.layer_table[self.layer_table['layer_type']==QgsMapLayer.VectorLayer]
         # df = df[df['is_projected']==True]
         # self.mcboPointsLayer.setExceptedLayerList(self.create_excluded_list(df)['layer'])

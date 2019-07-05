@@ -39,6 +39,8 @@ from pyprecag.kriging_ops import vesper_text_to_raster
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS
 from util.settings import read_setting, write_setting
+from pat.util.qgis_symbology import RASTER_SYMBOLOGY,\
+    raster_apply_classified_renderer
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -281,8 +283,15 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
                                                                           int(self.vesper_qgscrs.authid().replace(
                                                                               'EPSG:', '')))
 
+                raster_sym = RASTER_SYMBOLOGY['Yield']
+
                 removeFileFromQGIS(out_PredTif)
-                addRasterFileToQGIS(out_PredTif, atTop=False)
+                rasterLyr = addRasterFileToQGIS(out_PredTif, atTop=False)
+                raster_apply_classified_renderer(rasterLyr,
+                                rend_type=raster_sym['type'],
+                                num_classes=raster_sym['num_classes'],
+                                color_ramp=raster_sym['colour_ramp'])
+                
                 addRasterFileToQGIS(out_SETif, atTop=False)
 
             QtGui.qApp.restoreOverrideCursor()

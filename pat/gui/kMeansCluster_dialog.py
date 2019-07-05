@@ -43,6 +43,7 @@ from PyQt4.QtGui import QTableWidgetItem, QPushButton
 
 from qgis.core import QgsMapLayerRegistry, QgsMapLayer, QgsMessageLog, QgsUnitTypes
 from qgis.gui import QgsMessageBar
+from pat.util.qgis_symbology import RASTER_SYMBOLOGY
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'kMeansCluster_dialog_base.ui'))
@@ -438,8 +439,11 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             LOGGER.info(settingsStr)
             _ = processing.kmeans_clustering(rasterSource, self.lneSaveFile.text(), self.spnClusters.value())
 
+            raster_sym = RASTER_SYMBOLOGY['Zones']
             raster_layer = addRasterFileToQGIS(self.lneSaveFile.text(), atTop=False)
-            raster_apply_unique_value_renderer(raster_layer,1)
+            raster_apply_unique_value_renderer(raster_layer,1,
+                                               color_ramp=raster_sym['colour_ramp'],
+                                               invert=raster_sym['invert'])
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
