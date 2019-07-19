@@ -282,6 +282,37 @@ def check_python_dependencies(plugin_path, iface):
         LOGGER.warning('Environment Variable GDAL_VERSION does not exist. Setting to {}'.format(gdal_ver))
         os.environ['GDAL_VERSION'] = gdal_ver
 
+    if platform.system() == 'Windows':
+        tmpDir = os.path.join(tempfile.gettempdir())
+        tempPackPath = os.path.join(tmpDir, 'python_packages')
+
+        # check to see if it has recently been installed, if so copy the logs to the plugin folder
+        # and remove the folder from temp.
+        if os.path.exists(tempPackPath):
+            log_files = glob.glob(os.path.join(tempPackPath, "*.log"))
+            if len(log_files) >= 0:
+                for log_file in log_files:
+                    if 'tar.gz' in log_file:
+                        bug_fix_fold = os.path.join(plugin_path, 'python_packages','installed_bugfix')
+                        if not os.path.exists(bug_fix_fold):
+                            os.makedirs(bug_fix_fold)
+
+                        upgrade_file = glob.glob(os.path.join(plugin_path, 'python_packages',
+                                                              'pyprecag' + "*.tar.gz"))
+                        if len(upgrade_file) == 1:
+                            new_tar = os.path.join(bug_fix_fold,os.path.basename(upgrade_file[0]))
+                            if os.path.exists(new_tar):
+                                os.remove(new_tar)
+                            shutil.move(upgrade_file[0], new_tar)
+                    else:
+                        new_log =os.path.join(os.path.join(plugin_path, 'python_packages',os.path.basename(log_file)))
+
+                        if os.path.exists(new_log):
+                            os.remove(new_log)
+                        shutil.copy(log_file, new_log)
+
+                shutil.rmtree(tempPackPath, ignore_errors=True)
+
     packCheck = {}
     # Check for the listed modules.
     for argCheck in ['fiona', 'rasterio', 'pyprecag']:
@@ -312,9 +343,6 @@ def check_python_dependencies(plugin_path, iface):
                                    'Lib', 'site-packages', 'PyQt4', 'uic', 'widget-plugins',
                                    'qgis_customwidgets.py')
 
-        tmpDir = os.path.join(tempfile.gettempdir())
-        tempPackPath = os.path.join(tmpDir, 'python_packages')
-
         if not os.path.exists(custWidFile):
             failDependencyCheck.append('qgis_customwidgets')
             print('qgis_customwidgets does not exist')
@@ -331,158 +359,142 @@ def check_python_dependencies(plugin_path, iface):
 
             shutil.copytree(os.path.join(plugin_path, 'python_packages'), tempPackPath)
 
-        bat_logfile = os.path.join(plugin_path, 'python_packages',
-                                   'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d")))
+        bat_logfile = 'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))
+        pip_logfile = 'pip_uninstall_{}.log'.format(date.today().strftime("%Y-%m-%d"))
 
-        pip_logfile = os.path.join(plugin_path, 'python_packages',
-                                   'pip_uninstall_{}.log'.format(date.today().strftime("%Y-%m-%d")))
-
-        pip_args_uninstall = ' --log {} --no-cache-dir --disable-pip-version-check'.format(pip_logfile)
-        pip_args_install = ' --log {} --no-cache-dir --disable-pip-version-check'.format(pip_logfile.replace('_un','_'))
+        pip_args_uninstall = ' --log "{}" --no-cache-dir --disable-pip-version-check'.format(pip_logfile)
+        pip_args_install = ' --log "{}" --no-cache-dir --disable-pip-version-check'.format(pip_logfile.replace('_un','_'))
 
         user_path = os.path.join(os.path.expanduser('~'))
         shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
+        user_pat_fold = os.path.join(os.path.expanduser('~'), PLUGIN_NAME)
 
+        for bat_file, inst in [(uninstall_file, 'Unin'), (install_file, 'In')]:
+            with open(bat_file, 'w') as w_bat_file:
+                w_bat_file.write(('@echo off\n'
+                                  'cd %~dp0 \n'
+                                  # Check to see if qgis is running before un/installing
+                                  'tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL \n'
+                                  'if "%ERRORLEVEL%"=="0" ( \n'
+                                  '   echo QGIS is Currently Running. Please save your work and close \n'
+                                  '   pause \n\n'
+                                  '   tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL \n\n'
+                                  '   if "%ERRORLEVEL%"=="0" (\n'
+                                  '      ECHO QGIS is Still taskkill /FI "IMAGENAME eq qgis* Running. Proceeding to Kill QGIS without saving.\n'
+                                  '      taskkill /FI "IMAGENAME eq qgis*" /F \n'
+                                  '   ) \n'
+                                  ')\n\n'
+                                  'ECHO. & ECHO {inst}stalling dependencies for QGIS PAT Plugin .... Please Wait\n'
+                                  
+                                  'ECHO Dependencies Log: "{batlog}"\n'
+                                  'ECHO. & ECHO ----------------------------------------------------------------------------\n\n'
+                                  'type NUL > "{batlog}"\n'  # Create an empty file to log to....
+                                  'CALL :PROCESS > "{batlog}"\n'
+                                  'GOTO :END \n\n\n'
+                                  
+                                  ':PROCESS\n'  # this will add it to the dependencies log
+                                  '   ECHO {inst}stalling dependencies for QGIS PAT Plugin\n'
+                                  '   {env} \n'
+                                  # any line containing a path needs to be a raw string, and the end-of-line added separately
+                                  '   SET OSGEO4W_ROOT={osgeo}\n'
+                                  r'   call "%OSGEO4W_ROOT%"\bin\o4w_env.bat' + '\n'
+                                  r'   set QGIS_PREFIX_PATH={qgis_pre} ' + '\n'
+                                  r'   path %PATH%;%QGIS_PREFIX_PATH%\bin ' + '\n'
+                                  r'   set PYTHONPATH=%PYTHONPATH%;%QGIS_PREFIX_PATH%\python ' + '\n'
+                                  r'   set PYTHONPATH=%PYTHONPATH%;%OSGEO4W_ROOT%\apps\Python27\Lib\site-packages' + '\n\n'
+                                  ).format(inst=inst,
+                                           logfold=os.path.dirname(bat_logfile),
+                                           batlog=bat_logfile,
+                                           osgeo=osgeo_path,
+                                           env='\n' if os.environ.get('GDAL_VERSION',None) else 'SET GDAL_VERSION={}'.format(gdal_ver),
+                                           qgis_pre=r'C:/Program Files/QGIS 2.18/apps/qgis-ltr')
+                                 )
 
-        # write the headers for both files at once.
-        with open(uninstall_file, 'w') as wUnFile, open(install_file, 'w') as wInFile:
-            # Write to both files.
-            writeLineToFileS("@echo off\n", [wUnFile, wInFile])
-            writeLineToFileS('cd %~dp0 \n', [wUnFile, wInFile])
+                if inst.lower() == 'unin' :   # add uninstall lines
+                    w_bat_file.write(('   ECHO Y|python -m pip uninstall pyprecag {pip_arg}\n'
+                                      '   ECHO Y|python -m pip uninstall rasterio {pip_arg}\n'
+                                      '   ECHO Y|python -m pip uninstall fiona {pip_arg}\n'
 
-            # Check to see if qgis is running before un/installing
-            writeLineToFileS(r'tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL' + '\n',
-                             [wUnFile, wInFile])
-            writeLineToFileS(r'if "%ERRORLEVEL%"=="0" ( ' + '\n', [wUnFile, wInFile])
-            writeLineToFileS('   echo QGIS is Currently Running. Please save your work and close \n   pause\n',
-                             [wUnFile, wInFile])
-            writeLineToFileS(r'   tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL' + '\n',
-                             [wUnFile, wInFile])
-            writeLineToFileS(
-                '   if "%ERRORLEVEL%"=="0" (\n   ECHO QGIS is Still taskkill /FI "IMAGENAME eq qgis* Running. Proceeding to Kill QGIS without saving.\n',
-                [wUnFile, wInFile])
-            writeLineToFileS(r'      taskkill /FI "IMAGENAME eq qgis*" /F' + '\n        ) \n    )\n\n',
-                             [wUnFile, wInFile])
+                                      # if we are uninstalling fiona then uninstall geopandas
+                                      '   ECHO Y|python -m pip uninstall fiona {pip_arg}\n'
+                                      '   ECHO Y|python -m pip uninstall geopandas {pip_arg}\n\n'
+                                      ':END \n'
+                                      '   type "{batlog}" \n'
+                                      '   goto:eof'
+                                      ).format(pip_arg=pip_args_uninstall,
+                                               batlog=bat_logfile))
+                else:
+                    if not os.path.exists(custWidFile) or len(failDependencyCheck) == 0:
+                        if len(failDependencyCheck) > 0:
+                            LOGGER.warning('Missing Dependency: {custwid} '.format(custWidFile))
 
-            # this will write to console.
-            wUnFile.write('ECHO. & ECHO Uninstalling dependencies for QGIS PAT Plugin .... Please Wait\n')
-            wInFile.write('ECHO. & ECHO Installing dependencies for QGIS PAT Plugin .... Please Wait\n')
-            writeLineToFileS('ECHO Dependencies Log:{}\n'.format(bat_logfile), [wUnFile, wInFile])
-            writeLineToFileS(
-                'ECHO. & ECHO ----------------------------------------------------------------------------\n\n',
-                [wUnFile, wInFile])
+                        w_bat_file.write(('   ECHO Missing Dependency: {custwid} \n'
+                                          '   ECHO Copying qgis_customwidgets.py \n'
+                                         r'   ECHO F|xcopy "%QGIS_PREFIX_PATH%\python\PyQt4\uic\widget-plugins\qgis_customwidgets.py" "{custwid}" /y \n\n'
+                                          ).format(custwid=custWidFile))
 
-            # Create an empty file to log to....
-            writeLineToFileS('type NUL > {}\n'.format(bat_logfile), [wUnFile, wInFile])
-            writeLineToFileS('CALL :PROCESS > {}\n'.format(bat_logfile), [wUnFile, wInFile])
-            writeLineToFileS('GOTO :END \n', [wUnFile, wInFile])
-            writeLineToFileS('\n\n', [wUnFile, wInFile])
+                    for ea_pack in ['fiona','rasterio', 'pyprecag']:
+                        if ea_pack in failDependencyCheck or len(failDependencyCheck) == 0:
+                            wheel = packCheck[ea_pack]['Wheel']
+                            if ea_pack == 'pyprecag':
+                                # Install via a tar wheel file prior to publishing via pip
+                                upgrade_file = glob.glob1(tempPackPath,ea_pack + "*")
+                                if len(upgrade_file) == 1:
+                                    whl_file = upgrade_file[0]
 
-            writeLineToFileS(':PROCESS\n', [wUnFile, wInFile])
-            # this will add it to the dependencies log
-            wUnFile.write('ECHO Uninstalling dependencies for QGIS PAT Plugin\n\n')
-            wInFile.write('ECHO Installing dependencies for QGIS PAT Plugin\n\n')
+                                elif packCheck[ea_pack]['Action'] == 'Upgrade':
+                                    whl_file = '-U pyprecag'
+                                else:
+                                    whl_file = 'pyprecag'
+                            else:
+                                if python_version == 32:
+                                    whl_file = os.path.join(ea_pack, wheel + '-win32.whl')
+                                else:
+                                    whl_file = os.path.join(ea_pack, wheel + '-win_amd64.whl')
 
-            writeLineToFileS("   SET OSGEO4W_ROOT={}\n".format(osgeo_path), [wUnFile, wInFile])
-            if not os.environ.get('GDAL_VERSION', None):
-                writeLineToFileS("   SET GDAL_VERSION={}\n".format(gdal_ver), [wUnFile, wInFile])
+                            w_bat_file.write(('ECHO. & ECHO ----------------------------------------------------------------------------\n\n'
+                                              '   ECHO {act} {bit}bit {pack} and dependencies\n'
+                                              r'   python -m pip install {whl} {piparg}' + '\n'
+                                              ).format(act=packCheck[ea_pack]['Action'] ,
+                                                       bit=python_version,
+                                                       pack=ea_pack,
+                                                       whl= whl_file,
+                                                       piparg=pip_args_install) )
 
-            # any line containing a path needs to be a raw string, and the end-of-line added separately
-            writeLineToFileS(r'   call "%OSGEO4W_ROOT%"\bin\o4w_env.bat' + '\n', [wUnFile, wInFile])
-            writeLineToFileS(r"   set QGIS_PREFIX_PATH={}".format(qgis_prefix_path) + '\n', [wUnFile, wInFile])
-            writeLineToFileS(r"   path %PATH%;%QGIS_PREFIX_PATH%\bin" + '\n', [wUnFile, wInFile])
-            writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%QGIS_PREFIX_PATH%\python" + '\n', [wUnFile, wInFile])
-            writeLineToFileS(r"   set PYTHONPATH=%PYTHONPATH%;%OSGEO4W_ROOT%\apps\Python27\Lib\site-packages" + '\n\n',
-                             [wUnFile, wInFile])
+                            if ea_pack == 'pyprecag' and len(upgrade_file) == 1:
+                                # after installing, move the file otherwise you will always be prompted to upgrade
+                                # create a flag file and cleanup using python
+                                w_bat_file.write('   echo.>{}.log\n'.format(os.path.basename(upgrade_file[0])))
+                                #w_bat_file.write(r'    move {} {}'.format(os.path.join(plugin_path, 'python_packages',upgrade_file[0]),
+                                #            bug_fix_fold) + '\n')
 
-            wUnFile.write('   ECHO Y|python -m pip uninstall pyprecag {}\n'.format(pip_args_uninstall))
-            wUnFile.write('   ECHO Y|python -m pip uninstall rasterio {}\n'.format(pip_args_uninstall))
-            wUnFile.write('   ECHO Y|python -m pip uninstall fiona {}\n'.format(pip_args_uninstall))
+                    w_bat_file.write(('\n   ECHO. & ECHO ----------------------------------------------------------------------------\n'
+                                      '\n' + r'   EXIT /B' + '\n'  # will return to the position where you used CALL
+                                      '\n:END \n'
+                                      #'   cls\n'            # clear the cmd window of all text
+                                      '   type "{batlog}" \n'  # then print the logfile to screen
+                                      '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n'
+                                      '   ECHO.\n'
+                                      #'   ECHO All files and folders used in this install will self destruct.\n'
+                                      #'   ECHO.\n'
+                                      '   ECHO ** Please restart QGIS to complete installation.\n'
+                                      '   ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.\n'
+                                      '   ECHO.\n'
+                                      '   pause\n'
+                                      '   ECHO.\n').format(batlog=bat_logfile))
 
-            # if we are uninstalling fiona then uninstall geopandas
-            wUnFile.write('   ECHO Y|python -m pip uninstall fiona {}\n'.format(pip_args_uninstall))
-            wUnFile.write('   ECHO Y|python -m pip uninstall geopandas {}\n'.format(pip_args_uninstall))
+                    # if len(failDependencyCheck) > 0:
+                    #     w_bat_file.write(('   ECHO Deleting desktop shortcut\n'
+                    #                       '   DEL "{short}"\n'
+                    #                       '   ECHO Deleting {tmppack}\n'
+                    #                       '   (goto) 2>nul & rmdir /S /Q "{tmppack}"\n'
+                    #                       ).format(short=shortcutPath,
+                    #                                tmppack=tempPackPath))
 
-            wUnFile.write('\n:END \n')
-            wUnFile.write('   type {} \n'.format(bat_logfile))
-            wUnFile.write('   goto:eof')
-            wUnFile.close()
-
-            if not os.path.exists(custWidFile) or len(failDependencyCheck) == 0:
-                if len(failDependencyCheck) > 0: LOGGER.warning('Missing Dependency: {} '.format(custWidFile))
-                wInFile.write('   ECHO Missing Dependency: {} \n'.format(custWidFile))
-                wInFile.write('   ECHO Copying qgis_customwidgets.py \n')
-                wInFile.write(r'   ECHO F|xcopy "%QGIS_PREFIX_PATH%\python\PyQt4\uic\widget-plugins\qgis_customwidgets.py" "' + custWidFile + '" /y \n')
-
-            wInFile.write(
-                '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
-
-            for ea_pack in ['fiona','rasterio', 'pyprecag']:
-
-                if ea_pack in failDependencyCheck or len(failDependencyCheck) == 0:
-                    wheel = packCheck[ea_pack]['Wheel']
-                    wInFile.write(
-                        '\n\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
-                    wInFile.write('   ECHO {} {}bit {} and dependencies\n'.format(packCheck[ea_pack]['Action'] ,
-                                                                                          python_version,ea_pack))
-                    if ea_pack == 'pyprecag':
-                        # Install via a tar wheel file prior to publishing via pip
-                        upgrade_file = glob.glob1(tempPackPath,ea_pack + "*")
-                        if len(upgrade_file) == 1:
-                            whl_file = upgrade_file[0]
-                            
-                            bug_fix_fold = os.path.join(plugin_path, 'python_packages','installed_bugfix')
-                            if not os.path.exists( bug_fix_fold):
-                                os.makedirs(bug_fix_fold)
-                            
-                        elif packCheck[ea_pack]['Action'] == 'Upgrade':
-                            whl_file = '-U pyprecag'
-                        else:
-                            whl_file = 'pyprecag'
-                    else:
-                        if python_version == 32:
-                            whl_file = os.path.join(ea_pack, wheel + '-win32.whl')
-                        else:
-                            whl_file = os.path.join(ea_pack, wheel + '-win_amd64.whl')
-
-                    wInFile.write(r'   python -m pip install {} {}'.format(whl_file,pip_args_install) + '\n')
-
-                    if ea_pack == 'pyprecag' and len(upgrade_file) == 1:
-                        # after installing, move the file otherwise you will always be prompted to upgrade
-                        wInFile.write(r'    move {} {}'.format(os.path.join(plugin_path, 'python_packages',upgrade_file[0]),
-                                    bug_fix_fold) + '\n')
-
-            wInFile.write(
-                '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
-            wInFile.write('\n' + r'   EXIT /B' + '\n')  # will return to the position where you used CALL
-
-            wInFile.write('\n:END \n')
-            wInFile.write('   cls\n')  # clear the cmd window of all text
-            wInFile.write('   type {} \n'.format(bat_logfile))  # then print the logfile to screen
-
-            wInFile.write(
-                '\n   ECHO. & ECHO ----------------------------------------------------------------------------\n')
-
-            wInFile.write('   ECHO.\n')
-            wInFile.write('   ECHO All files and folders used in this install will self destruct.\n')
-            wInFile.write('   ECHO.\n')
-            wInFile.write('   ECHO ** Please restart QGIS to complete installation.\n')
-            wInFile.write('   ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.\n')
-            wInFile.write('   ECHO.\n')
-            wInFile.write('   pause\n')
-            wInFile.write('   ECHO.\n')
-
-            if len(failDependencyCheck) > 0:
-                wInFile.write('   ECHO Deleting desktop shortcut\n')
-                wInFile.write('   DEL "{}"\n'.format(shortcutPath))
-                wInFile.write('   ECHO Deleting {}\n'.format(tempPackPath))
-                wInFile.write('   (goto) 2>nul & rmdir /S /Q "{}"\n'.format(tempPackPath))
-
-            wInFile.write('   goto:eof')
+                    w_bat_file.write('   goto:eof')
 
     # Create a shortcut on desktop with admin privileges.
-
     if len(failDependencyCheck) > 0:
         if platform.system() == 'Windows':
             LOGGER.critical("Failed Dependency Check. Please run the shortcut {} "
