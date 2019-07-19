@@ -282,9 +282,14 @@ def check_python_dependencies(plugin_path, iface):
         LOGGER.warning('Environment Variable GDAL_VERSION does not exist. Setting to {}'.format(gdal_ver))
         os.environ['GDAL_VERSION'] = gdal_ver
 
+    # the name of the install file.
+    title = 'Install_PAT_Extras'
     if platform.system() == 'Windows':
         tmpDir = os.path.join(tempfile.gettempdir())
         tempPackPath = os.path.join(tmpDir, 'python_packages')
+
+        user_path = os.path.join(os.path.expanduser('~'))
+        shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
 
         # check to see if it has recently been installed, if so copy the logs to the plugin folder
         # and remove the folder from temp.
@@ -312,7 +317,7 @@ def check_python_dependencies(plugin_path, iface):
                         shutil.copy(log_file, new_log)
 
                 shutil.rmtree(tempPackPath, ignore_errors=True)
-
+                os.remove(os.path.join(shortcutPath))
     packCheck = {}
     # Check for the listed modules.
     for argCheck in ['fiona', 'rasterio', 'pyprecag']:
@@ -330,8 +335,6 @@ def check_python_dependencies(plugin_path, iface):
 
     failDependencyCheck = [key for key, val in packCheck.iteritems() if val['Action'] in ['Install', 'Upgrade']]
 
-    # the name of the install file.
-    title = 'Install_PAT_Extras'
     if platform.system() == 'Windows':
 
         # the install needs to be against the QGIS python package, so set the relevant variables in the bat file.
@@ -365,11 +368,7 @@ def check_python_dependencies(plugin_path, iface):
         pip_args_uninstall = ' --log "{}" --no-cache-dir --disable-pip-version-check'.format(pip_logfile)
         pip_args_install = ' --log "{}" --no-cache-dir --disable-pip-version-check'.format(pip_logfile.replace('_un','_'))
 
-        user_path = os.path.join(os.path.expanduser('~'))
-        shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
-        user_pat_fold = os.path.join(os.path.expanduser('~'), PLUGIN_NAME)
-
         for bat_file, inst in [(uninstall_file, 'Unin'), (install_file, 'In')]:
             with open(bat_file, 'w') as w_bat_file:
                 w_bat_file.write(('@echo off\n'
@@ -498,8 +497,7 @@ def check_python_dependencies(plugin_path, iface):
     if len(failDependencyCheck) > 0:
         if platform.system() == 'Windows':
             LOGGER.critical("Failed Dependency Check. Please run the shortcut {} "
-                            "or the following bat file as administrator {}".format(
-                shortcutPath, install_file))
+                            "or the following bat file as administrator {}".format(shortcutPath, install_file))
 
             create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin", user_path, True)
 
