@@ -184,9 +184,9 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             errorList = []
             rast_sym = rs.RASTER_SYMBOLOGY[self.cboType.currentText()]
             # check to see if the colour ramp is installed
-            myStyles = QgsStyleV2().defaultStyle()
+            qgs_styles = QgsStyleV2().defaultStyle()
 
-            if rast_sym['colour_ramp'] != '' and rast_sym['colour_ramp'] not in myStyles.colorRampNames():
+            if rast_sym['colour_ramp'] != '' and rast_sym['colour_ramp'] not in qgs_styles.colorRampNames():
                 errorList = ['PAT symbology does not exist. See user manual for install instructions']
 
             if len(errorList) > 0:

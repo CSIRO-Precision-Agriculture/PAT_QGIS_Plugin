@@ -117,6 +117,7 @@ def classFactory(iface):
     check_python_dependencies(PLUGIN_DIR, iface)
 
     vesper_exe = check_vesper_dependency()
+    check_pat_symbols()
 
     # Retrieve values from the plugin metadata file
     cfg = configparser.SafeConfigParser()
