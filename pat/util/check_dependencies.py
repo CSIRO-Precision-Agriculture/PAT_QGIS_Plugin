@@ -400,8 +400,9 @@ def check_python_dependencies(plugin_path, iface):
                             os.remove(new_log)
                         shutil.copy(log_file, new_log)
 
-                shutil.rmtree(tempPackPath, ignore_errors=True)
-                os.remove(os.path.join(shortcutPath))
+            shutil.rmtree(tempPackPath, ignore_errors=True)
+            if os.path.exists(shortcutPath):
+                os.remove(shortcutPath)
     packCheck = {}
     # Check for the listed modules.
     for argCheck in ['fiona', 'rasterio', 'pyprecag']:
@@ -445,6 +446,10 @@ def check_python_dependencies(plugin_path, iface):
                 shutil.rmtree(tempPackPath, ignore_errors=True)
 
             shutil.copytree(os.path.join(plugin_path, 'python_packages'), tempPackPath)
+            log_files = glob.glob(os.path.join(tempPackPath, "*.log"))
+            if len(log_files) >= 0:
+                for log_file in log_files:
+                    os.remove(log_file)
 
         bat_logfile = 'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))
         pip_logfile = 'pip_uninstall_{}.log'.format(date.today().strftime("%Y-%m-%d"))
