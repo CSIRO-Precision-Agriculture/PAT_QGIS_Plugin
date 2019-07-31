@@ -44,6 +44,8 @@ Software Collection. https://doi.org/10.25919/5d23f9fb58722
 
 # Uncomment the following line and add your changelog:
 changelog=
+  0.3.1: Bug fixes for installation scripts.
+         Add importing PAT symbology during install.
   0.3.0: Added Persistor tool
          Enhanced 'Run kriging using VESPER' for low spatial density global kriging.
          Added raster symbology tool
