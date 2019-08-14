@@ -388,8 +388,8 @@ def check_python_dependencies(plugin_path, iface):
     if platform.system() == 'Windows':
 
         # the install needs to be against the QGIS python package, so set the relevant variables in the bat file.
-        osgeo_path = win32api.GetLongPathName(os.environ['OSGEO4W_ROOT'])
-        qgis_prefix_path = win32api.GetLongPathName(os.environ['QGIS_PREFIX_PATH'])
+        osgeo_path = os.path.abspath(win32api.GetLongPathName(os.environ['OSGEO4W_ROOT']))
+        qgis_prefix_path = os.path.abspath(win32api.GetLongPathName(os.environ['QGIS_PREFIX_PATH']))
 
         # check to see if the qgis_customwidgets.py file is in the python folder.
         custWidFile = os.path.join(win32api.GetLongPathName(osgeo_path), 'apps', 'Python27',
@@ -421,8 +421,8 @@ def check_python_dependencies(plugin_path, iface):
         pip_logfile = os.path.join(plugin_path, 'python_packages',
                                    'pip_uninstall_{}.log'.format(date.today().strftime("%Y-%m-%d")))
 
-        pip_args_uninstall = ' --log {} --no-cache-dir --disable-pip-version-check'.format(pip_logfile)
-        pip_args_install = ' --log {} --no-cache-dir --disable-pip-version-check'.format(pip_logfile.replace('_un','_'))
+        pip_args_uninstall = ' --log "{}" --no-cache-dir --disable-pip-version-check'.format(pip_logfile)
+        pip_args_install = ' --log "{}" --no-cache-dir --disable-pip-version-check'.format(pip_logfile.replace('_un','_'))
 
         user_path = os.path.join(os.path.expanduser('~'))
         shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
@@ -458,8 +458,8 @@ def check_python_dependencies(plugin_path, iface):
                 [wUnFile, wInFile])
 
             # Create an empty file to log to....
-            writeLineToFileS('type NUL > {}\n'.format(bat_logfile), [wUnFile, wInFile])
-            writeLineToFileS('CALL :PROCESS > {}\n'.format(bat_logfile), [wUnFile, wInFile])
+            writeLineToFileS('type NUL > "{}"\n'.format(bat_logfile), [wUnFile, wInFile])
+            writeLineToFileS('CALL :PROCESS > "{}"\n'.format(bat_logfile), [wUnFile, wInFile])
             writeLineToFileS('GOTO :END \n', [wUnFile, wInFile])
             writeLineToFileS('\n\n', [wUnFile, wInFile])
 
@@ -489,7 +489,7 @@ def check_python_dependencies(plugin_path, iface):
             wUnFile.write('   ECHO Y|python -m pip uninstall geopandas {}\n'.format(pip_args_uninstall))
 
             wUnFile.write('\n:END \n')
-            wUnFile.write('   type {} \n'.format(bat_logfile))
+            wUnFile.write('   type "{}" \n'.format(bat_logfile))
             wUnFile.write('   goto:eof')
             wUnFile.close()
 
