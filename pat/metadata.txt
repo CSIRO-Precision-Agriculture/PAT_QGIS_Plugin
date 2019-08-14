@@ -12,13 +12,13 @@ about=PAT is a QGIS plugin for tools required for processing and analysing preci
       .
       This is a Windows only plugin, This plugin requires the installation of the following Python libraries: pyprecag, fiona, and rasterio. Full installation instructions are provided in the manual available at: https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf
       .
-      Developed by the CSIRO Precision Agriculture Team, this project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.
+      Developed by the CSIRO Precision Agriculture Team, this project is supported by Wine Australia through funding from the Australian Government Department of Agriculture as part of its Rural R&D for Profit program.
 
 qgisMinimumVersion=2.18
 qgisMaximumVersion=2.18.26
 
 version=0.3.0
-experimental=True
+# experimental=True
 
 author=Christina Ratcliff
 email=PAT@csiro.au
@@ -30,7 +30,7 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # End of mandatory metadata
 
 # Recommended items:
-update_date=2019-07-05T13:31:54.979000
+update_date=2019-07-19T15:21:10.266000
 # Tags are comma separated with spaces allowed
 tags=raster, vector, kriging, agriculture, precision agriculture, csiro
 # category=PAT Menu and Toolbar
@@ -39,8 +39,10 @@ icon=icons/icon.png
 # deprecated flag (applies to the whole plugin, not just a single version)
 # deprecated=False
 
-# Uncomment the following line and add your changelog:
+citation=Ratcliff, Christina; Gobbett, David; Bramley, Rob (2019): PAT - Precision Agriculture Tools. CSIRO.
+Software Collection. https://doi.org/10.25919/5d23f9fb58722
 
+# Uncomment the following line and add your changelog:
 changelog=
   0.3.0: Added Persistor tool
          Enhanced 'Run kriging using VESPER' for low spatial density global kriging.
@@ -50,3 +52,6 @@ changelog=
   0.1.2: Bug fix to Resample & calculate Image tools, Updated User manual
   0.1.1: Bug Fixes to Create Strip Trial Points and Whole-of-block Analysis
   0.1.0: First release to QGIS Plugin repository, Applied windows only checks and warnings
+
+
+
