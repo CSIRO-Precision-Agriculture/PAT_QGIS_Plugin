@@ -33,6 +33,7 @@ from qgis.core import (QgsSimpleFillSymbolLayerV2, QgsSymbolV2, QgsStyleV2,
                        QgsRaster, QgsRasterShader, QgsColorRampShader,
                        QgsSingleBandPseudoColorRenderer,QgsRasterShader, QgsColorRampShader,
                        QgsContrastEnhancement)
+
 from scipy import stats
 
 RASTER_SYMBOLOGY = OrderedDict([('Yield', {'type': "Equal Interval",
@@ -43,10 +44,10 @@ RASTER_SYMBOLOGY = OrderedDict([('Yield', {'type': "Equal Interval",
                                                              'num_classes':5,
                                                              'colour_ramp': 'Imagery 5 Colours',
                                                              'invert':False}),
-                                ('Zones', {'type': 'unique', 
+                                ('Zones', {'type': 'unique',
                                            'colour_ramp': '',
                                            'invert':False}),
-                                ('Block Grid', {'type': 'unique', 
+                                ('Block Grid', {'type': 'unique',
                                                 'colour_ramp': '',
                                                 'invert':False}),
                                 ('Persistor - Target Probability', {'type': 'unique',
@@ -57,40 +58,68 @@ RASTER_SYMBOLOGY = OrderedDict([('Yield', {'type': "Equal Interval",
                                                           'invert':True})])
 
 
-def random_colour(mix=(255, 255, 255)):
-    """ Create a random RBG color """
-
-    red = random.randrange(0, 256)
-    green = random.randrange(0, 256)
-    blue = random.randrange(0, 256)
-    r, g, b = mix
-    red = (red + r) / 2
-    green = (green + g) / 2
-    blue = (blue + b) / 2
-    return red, green, blue
+def random_colour():
+    """ Create a random RBG color
+    """
+    color = "#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
+    return QColor(color).getRgb()
 
 
-def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color_ramp, invert=False, band_num=1):
+
+
+def color_distance(c1,c2):
+    return sum([abs(x[0]-x[1]) for x in zip(c1,c2)])
+
+
+def generate_new_color(existing_colors):
+    max_distance = None
+    best_color = None
+    for i in range(0,100):
+        color = random_colour()
+        if not existing_colors:
+            return color
+        best_distance = min([color_distance(color,c) for c in existing_colors])
+        if not max_distance or best_distance > max_distance:
+            max_distance = best_distance
+            best_color = color
+    return best_color
+
+
+def random_colours(number_of_colours=1):
+    """Create a list of random rgb colours ensuring they are not too similar to each other.
+     adapted from  https://gist.github.com/adewes/5884820#file-generate_random_color-py
+    """
+    colours=[]
+    for i in range(0,10):
+        colours.append(generate_new_color(colours))
+
+    return colours
+
+
+def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color_ramp,
+                                     invert=False, band_num=1):
 
     # get an existing color ramp
     qgsStyles = QgsStyleV2().defaultStyle()
-    ramp = QgsStyleV2().defaultStyle().colorRamp(color_ramp)
 
-    
+    # check to see if the colour ramp is installed
+    if color_ramp != '' and color_ramp not in qgsStyles.colorRampNames():
+        raise ValueError('PAT symbology does not exist. See user manual for install instructions')
+
     ramp = qgsStyles.colorRamp(color_ramp)
-    
-    rmp_colors = [ramp.color1().name()]   # the first 
+
+    rmp_colors = [ramp.color1().name()]   # the first
     rmp_colors += [ea.color.name() for ea in  ramp.stops()]
-    
+
     # check that the last colors not already there
     if rmp_colors[-1] != ramp.color2().name():
         rmp_colors += [ramp.color2().name()]
     if invert:
         rmp_colors = list(reversed(rmp_colors))
-    
+
     # convert to qcolor
     rmp_colors = [QColor(col) for col in rmp_colors]
-    
+
     band = rasterio.open(raster_layer.source()).read(band_num, masked=True)
 
     classes = []
@@ -140,7 +169,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
     raster_layer.triggerRepaint()
 
 
-def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0, 
+def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
                                        color_ramp='', invert=False):
     """
     Apply a random colour to each each unique value for a raster band.
@@ -152,6 +181,10 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
         band_num (int):    the band number used to determine unique values
         n_decimals (int):  number of decimals to round values to
     """
+    qgsStyles = QgsStyleV2().defaultStyle()
+    # check to see if the colour ramp is installed
+    if color_ramp != '' and color_ramp not in qgsStyles.colorRampNames():
+        raise ValueError('PAT symbology does not exist. See user manual for install instructions')
 
     # get unique values
     band = rasterio.open(raster_layer.source()).read(band_num, masked=True)
@@ -161,22 +194,23 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
         uniq_vals = np.around(list(uniq_vals), decimals=3)
 
     if color_ramp == '':
-        rmp_colors = [QColor(*random_colour()) for class_val in uniq_vals]
+        rmp_colors = [QColor(*colour) for colour in random_colours(len(uniq_vals))]
+        #rmp_colors = random_colours(len(uniq_vals))
+
     else:
         # get an existing color ramp
-        myStyles = QgsStyleV2().defaultStyle()
-        ramp = myStyles.colorRamp(color_ramp)
-        
-        rmp_colors = [ramp.color1().name()]   # the first 
+        ramp = qgsStyles.colorRamp(color_ramp)
+
+        rmp_colors = [ramp.color1().name()]   # the first
         rmp_colors += [ea.color.name() for ea in  ramp.stops()]
-        
+
         # check that the last colors not already there
         if rmp_colors[-1] != ramp.color2().name():
             rmp_colors += [ramp.color2().name()]
-        
+
         if invert:
             rmp_colors = list(reversed(rmp_colors))
-            
+
         #use this to create a matplotlib color ramp
         cmSeg = colors.LinearSegmentedColormap.from_list('myramp', rmp_colors, N=256)
 
@@ -225,12 +259,15 @@ def vector_apply_unique_value_renderer(vector_layer, column):
     """
 
     categories = []
-    for ea_value in vector_layer.dataProvider().uniqueValues(vector_layer.fieldNameIndex(column)):
+    uniq_vals = vector_layer.dataProvider().uniqueValues(vector_layer.fieldNameIndex(column))
+    randcolors = random_colours(len(uniq_vals))
+
+    for i, ea_value in enumerate(uniq_vals):
         # initialize the default symbol for this geometry type
         symbol = QgsSymbolV2.defaultSymbol(vector_layer.geometryType())
 
         # configure a symbol layer
-        layer_style = {'color': '{}, {}, {}'.format(*random_colour()),
+        layer_style = {'color': '{}, {}, {}'.format(*randcolors[i]),
                        'outline': '#000000'}
 
         symbol_layer = QgsSimpleFillSymbolLayerV2.create(layer_style)

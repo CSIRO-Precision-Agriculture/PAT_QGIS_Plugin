@@ -37,6 +37,10 @@ from pkg_resources import parse_version, get_distribution, DistributionNotFound
 
 from PyQt4.QtGui import QMessageBox
 from qgis.gui import QgsMessageBar
+from qgis.core import QgsStyleV2, QgsSymbolLayerV2Utils
+
+from PyQt4.QtXml import QDomDocument
+from PyQt4.QtCore import QFile, QIODevice
 
 import osgeo.gdal
 
@@ -58,6 +62,86 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 GDAL_WHEELS = {"2.3.2": {'fiona': 'Fiona-1.8.4-cp27-cp27m',
                          'rasterio': 'rasterio-1.0.13-cp27-cp27m',
                          'pyprecag': 'pyprecag-0.3.0'}}    # this is the minimum version of pyprecag supported by PAT
+
+def check_pat_symbols():
+
+    pat_xml = os.path.join(PLUGIN_DIR,'PAT_Symbols.xml')
+    pat_installed = os.path.join(PLUGIN_DIR, 'PAT_Symbols_installed.xml')
+
+    if not os.path.exists(pat_xml):
+        return
+
+    if os.path.exists(pat_installed) and os.stat(pat_xml).st_mtime - os.stat(pat_installed).st_mtime < 1:
+        os.remove(pat_xml)
+        return
+
+    style = QgsStyleV2.defaultStyle()
+
+    # add a group if it doesn't exist.
+    group_id = style.groupId('PAT')
+    if group_id == 0:
+        group_id = style.addGroup('PAT')
+
+    xml_file = QFile(pat_xml)
+
+    document = QDomDocument()
+    if not document.setContent(xml_file):
+        print ('Could not open file')
+        return
+
+    xml_file.close()
+
+    document_element = document.documentElement()
+    if document_element.tagName() != 'qgis_style':
+        print ("File doesn't contain qgis styles")
+        return
+
+    # Get all the symbols
+    symbols = []
+    symbols_element = document_element.firstChildElement('symbols')
+    symbol_element = symbols_element.firstChildElement()
+    while not symbol_element.isNull():
+        if symbol_element.tagName() == 'symbol':
+            symbol = QgsSymbolLayerV2Utils.loadSymbol(symbol_element)
+            if symbol:
+                symbols.append({
+                    'name': symbol_element.attribute('name'),
+                    'symbol': symbol
+                })
+        symbol_element = symbol_element.nextSiblingElement()
+
+    # Get all the colorramps
+    colorramps = []
+    ramps_element = document_element.firstChildElement('colorramps')
+    ramp_element = ramps_element.firstChildElement()
+    while not ramp_element.isNull():
+        if ramp_element.tagName() == 'colorramp':
+            colorramp = QgsSymbolLayerV2Utils.loadColorRamp(ramp_element)
+            if colorramp:
+                colorramps.append({
+                    'name': ramp_element.attribute('name'),
+                    'colorramp': colorramp
+                })
+
+        ramp_element = ramp_element.nextSiblingElement()
+
+    for symbol in symbols:
+        if style.addSymbol(symbol['name'], symbol['symbol'], True):
+            style.group(QgsStyleV2.SymbolEntity, symbol['name'], group_id)
+
+    for colorramp in colorramps:
+        if style.addColorRamp(colorramp['name'], colorramp['colorramp'], True):
+            style.group(QgsStyleV2.ColorrampEntity, colorramp['name'], group_id)
+
+
+    LOGGER.info('Loaded {} symbols and {} colour ramps into group {}'.format(len(symbols), len(colorramps),style.groupName(group_id)))
+
+    if os.path.exists(pat_installed):
+        os.remove(pat_installed)
+
+    shutil.move(pat_xml,pat_installed)
+
+    return
 
 def check_R_dependency():
     updated = False
@@ -431,11 +515,11 @@ def check_python_dependencies(plugin_path, iface):
                         upgrade_file = glob.glob1(tempPackPath,ea_pack + "*")
                         if len(upgrade_file) == 1:
                             whl_file = upgrade_file[0]
-                            
+
                             bug_fix_fold = os.path.join(plugin_path, 'python_packages','installed_bugfix')
                             if not os.path.exists( bug_fix_fold):
                                 os.makedirs(bug_fix_fold)
-                            
+
                         elif packCheck[ea_pack]['Action'] == 'Upgrade':
                             whl_file = '-U pyprecag'
                         else:

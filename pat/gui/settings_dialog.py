@@ -63,9 +63,9 @@ class SettingsDialog(BASE, WIDGET):
         self.lneInDataDirectory.setText(read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER'))
         self.lneOutDataDirectory.setText(read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER'))
         self.chkDisplayTempLayers.setChecked(read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool))
-        
+
         self.chkDebug.setChecked(read_setting(PLUGIN_NAME + '/DEBUG', bool))
-        
+
         self.vesper_exe = check_vesper_dependency()
         if not os.path.exists(self.vesper_exe):
             self.vesper_exe = read_setting(PLUGIN_NAME + '/VESPER_EXE')
@@ -78,7 +78,7 @@ class SettingsDialog(BASE, WIDGET):
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_settings.svg'))
 
-    
+
     @QtCore.pyqtSlot(int)
     def on_chkDisplayTempLayers_stateChanged(self, state):
         if read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool) != self.chkDisplayTempLayers.isChecked():
@@ -90,7 +90,7 @@ class SettingsDialog(BASE, WIDGET):
         if config.get_debug_mode() != self.chkDebug.isChecked():
             write_setting(PLUGIN_NAME + '/DEBUG',  self.chkDebug.isChecked())
             config.set_debug_mode( self.chkDebug.isChecked())
-            
+
 
     @QtCore.pyqtSlot(name='on_cmdInBrowse_clicked')
     def on_cmdInBrowse_clicked(self):
@@ -147,19 +147,19 @@ class SettingsDialog(BASE, WIDGET):
         cfg = configparser.SafeConfigParser()
         cfg.read(os.path.join(pluginPath, 'metadata.txt'))
         version = cfg.get('general', 'version')
-       
+
         """TODO: Make the paths clickable links to open folder
         def create_path_link(path):
             path = os.path.normpath(path)
             #"<a href={}>Open Project Folder</a>".format("`C:/Progra~1/needed"`)
             return '<a href= file:///"`{0}"`>{0}</a>'.format(path)
         """
-        
+
         self.pteVersions.setText( 'QGIS Environment:')
-        
+
         self.pteVersions.append('    {:20}\t{}'.format('QGIS :', qgis.utils.QGis.QGIS_VERSION))
         if platform.system() == 'Windows':
-            import win32file            
+            import win32file
             self.pteVersions.append('    {:20}\t{}'.format('Install Path : ',
                                                            win32file.GetLongPathName(qgis.core.QgsApplication.prefixPath())))
         else:
@@ -167,11 +167,11 @@ class SettingsDialog(BASE, WIDGET):
 
         self.pteVersions.append('    {:20}\t{}'.format('Plugin Dir:',  os.path.normpath(PLUGIN_DIR)))
         self.pteVersions.append('    {:20}\t{}'.format('Temp Folder:',  os.path.normpath(TEMPDIR)))
-        
+
         self.pteVersions.append('    {:20}\t{}'.format('Python :',  sys.version))
         self.pteVersions.append('    {:20}\t{}'.format('GDAL :', os.environ.get('GDAL_VERSION', None)))
 
-        
+
         self.pteVersions.append('\nPAT Version:')
         self.pteVersions.append('    {:20}\t{}'.format('PAT:', version))
         self.pteVersions.append('    {:20}\t{}'.format('pyPrecAg:', get_distribution('pyprecag').version))
@@ -183,7 +183,7 @@ class SettingsDialog(BASE, WIDGET):
         self.pteVersions.append('\nR Configuration')
         self.pteVersions.append('    {:20}\t{}'.format('R Active :', read_setting('Processing/Configuration/ACTIVATE_R')))
         self.pteVersions.append('    {:20}\t{}'.format('R Install Folder :', read_setting('Processing/Configuration/R_FOLDER')))
-#                 
+#
 #         return plugin_state
 
     def accept(self, *args, **kwargs):
