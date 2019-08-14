@@ -178,6 +178,7 @@ class SettingsDialog(BASE, WIDGET):
         self.pteVersions.append('    {:20}\t{}'.format('Geopandas:', get_distribution('geopandas').version))
         self.pteVersions.append('    {:20}\t{}'.format('Rasterio:',  get_distribution('rasterio').version))
         self.pteVersions.append('    {:20}\t{}'.format('Fiona:',  get_distribution('fiona').version))
+        self.pteVersions.append('    {:20}\t{}'.format('Pandas:', get_distribution('pandas').version))
 
         self.pteVersions.append('\nR Configuration')
         self.pteVersions.append('    {:20}\t{}'.format('R Active :', read_setting('Processing/Configuration/ACTIVATE_R')))

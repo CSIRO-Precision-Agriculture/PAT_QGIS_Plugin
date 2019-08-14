@@ -69,7 +69,7 @@ class AboutDialog(BASE, WIDGET):
     def getAboutText(self):
         return self.tr(
             '<p>Developed by the CSIRO Precision Agriculture team.'
-            '<p>This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture and Water Resources as part of its Rural R&D for Profit program.'
+            '<p>This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture as part of its Rural R&D for Profit program.'
             '</p>')
 
     def accept(self, *args, **kwargs):
