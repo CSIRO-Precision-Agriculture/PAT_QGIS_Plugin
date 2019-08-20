@@ -62,21 +62,21 @@ def classFactory(iface):
 
     if platform.system() != 'Windows':
         message = 'PAT is only available for Windows'
-        
-        iface.messageBar().pushMessage("ERROR", message, 
+
+        iface.messageBar().pushMessage("ERROR", message,
                                        level=QgsMessageBar.CRITICAL,
                                        duration=0)
-        
+
         QMessageBox.critical(None, 'Error', message)
         sys.exit(message)
-        
+
     if not os.path.exists(TEMPDIR):
         os.mkdir(TEMPDIR)
 
     from util.settings import read_setting, write_setting
     if read_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS") is None:
         write_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", False)
-    
+
     if read_setting(PLUGIN_NAME + "/DEBUG") is None:
         write_setting(PLUGIN_NAME + "/DEBUG", False)
 
@@ -94,29 +94,41 @@ def classFactory(iface):
     setup_logger(LOGGER_NAME)
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler( logging.NullHandler())   # logging.StreamHandler()
-    
+
     #from util.check_dependencies import check_gdal_dependency
 
-    from util.check_dependencies import *
-    check_R_dependency()
+    #if 'util.check_dependencies' not in sys.modules:
 
-    gdal_ver, check_gdal = check_gdal_dependency()  
-    
+    import util.check_dependencies
+    import imp
+    try:
+        #Qgis doesn't alway unload imported modules before uninstalling, upgrading or reinstalling
+        #causing errors to occur if check_dependencies has change. The workaround is to reload
+        #it prior to running any of its functions.
+        imp.reload(util.check_dependencies)
+    except:
+        pass
+
+    util.check_dependencies.check_R_dependency()
+
+    gdal_ver, check_gdal = util.check_dependencies.check_gdal_dependency()
+
     if not check_gdal:
         LOGGER.critical('QGIS Version {} and GDAL {} is are not currently supported.'.format(qgis.utils.QGis.QGIS_VERSION, gdal_ver))
-        
+
         message = 'QGIS Version {} and GDAL {}  are not currently supported. Downgrade QGIS to an earlier version. If required email PAT@csiro.au for assistance.'.format(qgis.utils.QGis.QGIS_VERSION, gdal_ver)
-        
+
         iface.messageBar().pushMessage("ERROR Failed Dependency Check", message, level=QgsMessageBar.CRITICAL,
                                        duration=0)
         QMessageBox.critical(None, 'Failed Dependency Check', message)
         sys.exit(message)
-    
-    #from util.check_dependencies import check_python_dependencies, check_vesper_dependency
-        
-    check_python_dependencies(PLUGIN_DIR, iface)
 
-    vesper_exe = check_vesper_dependency()
+    #from util.check_dependencies import check_python_dependencies, check_vesper_dependency
+
+    util.check_dependencies.check_python_dependencies(PLUGIN_DIR, iface)
+
+    vesper_exe = util.check_dependencies.check_vesper_dependency()
+    util.check_dependencies.check_pat_symbols()
 
     # Retrieve values from the plugin metadata file
     cfg = configparser.SafeConfigParser()
@@ -127,7 +139,7 @@ def classFactory(iface):
     plugin_state += '    {:20}\t{}\n'.format('QGIS Version:', qgis.utils.QGis.QGIS_VERSION)
     plugin_state += '    {:20}\t{}\n'.format('Python Version:',  sys.version)
     plugin_state += '    {:20}\t{}\n'.format('PAT Version:', version)
-    
+
     LOGGER.info(plugin_state)
     from pat_toolbar import pat_toolbar
 
