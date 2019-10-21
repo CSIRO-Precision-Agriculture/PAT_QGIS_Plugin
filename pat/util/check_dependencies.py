@@ -52,7 +52,7 @@ import osgeo.gdal
 if platform.system() == 'Windows':
     import win32api
     from win32com.shell import shell, shellcon
-    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
+    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
 
 import pythoncom
 import struct
@@ -162,11 +162,13 @@ def check_R_dependency():
                     write_setting('Processing/Configuration/R_FOLDER', aVal)
                     LOGGER.info('Setting ... R Install folder: {}'.format(aVal))
             r_installed = True
+
         except EnvironmentError:
             r_installed = False
             write_setting('Processing/Configuration/R_FOLDER', '')
             write_setting('Processing/Configuration/ACTIVATE_R', False)
             return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+
     else:
         # Linux/OSX - https://stackoverflow.com/a/25330049
         try:
@@ -540,6 +542,8 @@ def check_python_dependencies(plugin_path, iface):
                                 ('   ECHO Missing Dependency: {dst} {nl}'
                                  '   ECHO Copying qgis_customwidgets.py {nl}'
                                  '   ECHO F|xcopy "{src}" "{dst}" /y   {nl}{nl}'
+                                 '   ECHO Install Geopandas=0.4.0 {nl}'
+                                 '   python -m pip install geopandas==0.4.0 {nl}{nl}'
                                  ).format(nl='\n',divi='-'*70, src=src_custom_widget,
                                           dst=dst_custom_widget))
 
@@ -623,6 +627,14 @@ def check_python_dependencies(plugin_path, iface):
 
             # Create a shortcut on desktop with admin privileges.
             if platform.system() == 'Windows':
+                try:
+                    aReg = ConnectRegistry(None, HKEY_CURRENT_USER)
+                    aKey = OpenKey(aReg, r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")
+                    aVal = os.path.normpath(QueryValueEx(aKey, "Desktop")[0])
+                    LOGGER.info('Desktop path from registry is {}'.format(aVal))
+                except:
+                    pass
+
                 LOGGER.critical("Failed Dependency Check. Please run the shortcut {} "
                                 "or the following bat file as administrator {}".format(shortcutPath,
                                                                                        install_file))
