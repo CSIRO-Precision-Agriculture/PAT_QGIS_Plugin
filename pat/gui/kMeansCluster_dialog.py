@@ -172,6 +172,10 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
         exlayer_list = []
         check_crs=[]
         for layer in self.iface.legendInterface().layers():
+            if layer.providerType() != 'gdal':
+                exlayer_list.append(layer)
+                continue
+                
             # Only Load Raster layers with valid internal coordinate system or matching pixel size
             if layer.type() != QgsMapLayer.RasterLayer:
                 continue
