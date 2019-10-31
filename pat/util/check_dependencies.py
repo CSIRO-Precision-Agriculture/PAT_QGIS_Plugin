@@ -325,10 +325,13 @@ def check_pip_for_update(package):
     source: https://stackoverflow.com/a/40745656
     """
     url = 'https://pypi.python.org/pypi/{}/json'.format(package)
-    releases = requests.get(url).json()['releases']
-    current_version = sorted(releases, key=parse_version, reverse=True)[0]
-    return current_version
-
+    try:
+        releases = requests.get(url).json()['releases']
+        current_version = sorted(releases, key=parse_version, reverse=True)[0]
+        return current_version
+    except requests.ConnectionError:
+        LOGGER.info('Skipping pyprecag version check. Cannot reach {}'.format(url))
+    return
 
 def get_pip_version(package):
     """ Find the version of the package using pip
@@ -434,8 +437,9 @@ def check_python_dependencies(plugin_path, iface):
         if packCheck['pyprecag']['Action'] != 'Install':
             # check pyprecag against pypi for bug fixes
             cur_pyprecag_ver = check_pip_for_update('pyprecag')
-            if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
-                packCheck['pyprecag']['Action'] = 'Upgrade'
+            if cur_pyprecag_ver is not None:
+                if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
+                    packCheck['pyprecag']['Action'] = 'Upgrade'
 
         failDependencyCheck = [key for key, val in packCheck.iteritems() if
                                val['Action'] in ['Install', 'Upgrade']]
