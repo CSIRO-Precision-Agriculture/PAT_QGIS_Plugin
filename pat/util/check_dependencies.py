@@ -546,8 +546,6 @@ def check_python_dependencies(plugin_path, iface):
                                 ('   ECHO Missing Dependency: {dst} {nl}'
                                  '   ECHO Copying qgis_customwidgets.py {nl}'
                                  '   ECHO F|xcopy "{src}" "{dst}" /y   {nl}{nl}'
-                                 '   ECHO Install Geopandas=0.4.0 {nl}'
-                                 '   python -m pip install geopandas==0.4.0 {nl}{nl}'
                                  ).format(nl='\n',divi='-'*70, src=src_custom_widget,
                                           dst=dst_custom_widget))
 
@@ -588,6 +586,8 @@ def check_python_dependencies(plugin_path, iface):
                                     #            bug_fix_fold) + '\n')
 
                         w_bat_file.write(
+                            '{nl}   ECHO Install Geopandas=0.4.0 {nl}'
+                            '   python -m pip install geopandas==0.4.0 {nl}{nl}'
                             ('{nl}   ECHO. & ECHO {divi}{nl}'
                              r'{nl}   EXIT /B      {nl}'  # will return to the position where you used CALL
                              '{nl}:END     {nl}'
