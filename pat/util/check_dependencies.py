@@ -586,9 +586,9 @@ def check_python_dependencies(plugin_path, iface):
                                     #            bug_fix_fold) + '\n')
 
                         w_bat_file.write(
-                            '{nl}   ECHO Install Geopandas=0.4.0 {nl}'
+                            ('{nl}   ECHO Install Geopandas=0.4.0 {nl}'
                             '   python -m pip install geopandas==0.4.0 {nl}{nl}'
-                            ('{nl}   ECHO. & ECHO {divi}{nl}'
+                            '{nl}   ECHO. & ECHO {divi}{nl}'
                              r'{nl}   EXIT /B      {nl}'  # will return to the position where you used CALL
                              '{nl}:END     {nl}'
                              # '   cls\n'            # clear the cmd window of all text
