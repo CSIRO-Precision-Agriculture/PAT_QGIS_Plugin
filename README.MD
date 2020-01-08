@@ -24,9 +24,9 @@ Requirements and Installation
 -----------------------------
 PAT is only available using QGIS Long Term Release versions 2.18.21 to 2.18.26 for Windows [32bit](http://download.osgeo.org/qgis/win64/QGIS-OSGeo4W-2.18.26-1-Setup-x86.exe) or [64bit](http://download.osgeo.org/qgis/win64/QGIS-OSGeo4W-2.18.26-1-Setup-x86_64.exe). PAT is not currently available in QGIS 3.
 
-To fully use the on-the-go data workflow, users must also download and install VESPER from https://sydney.edu.au/agriculture/pal/software/vesper.shtml.
+To fully use the on-the-go data workflow, users must also download and install [VESPER](https://precision-agriculture.sydney.edu.au/resources/software/download-vesper).
 
-Once QGIS is installed follow the PAT installation instructions found in chapter 1 of the [PAT user manual](/pat/PAT_User_Manual.pdf).
+Once QGIS is installed follow the PAT installation instructions found in chapter 1 of the [PAT user manual](https://nbviewer.jupyter.org/github/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf#pagemode=bookmarks&view=Fit).
 
 Citation
 --------
