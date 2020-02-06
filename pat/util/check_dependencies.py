@@ -52,7 +52,7 @@ import osgeo.gdal
 if platform.system() == 'Windows':
     import win32api
     from win32com.shell import shell, shellcon
-    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
+    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
 
 import pythoncom
 import struct
@@ -162,11 +162,13 @@ def check_R_dependency():
                     write_setting('Processing/Configuration/R_FOLDER', aVal)
                     LOGGER.info('Setting ... R Install folder: {}'.format(aVal))
             r_installed = True
+
         except EnvironmentError:
             r_installed = False
             write_setting('Processing/Configuration/R_FOLDER', '')
             write_setting('Processing/Configuration/ACTIVATE_R', False)
             return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+
     else:
         # Linux/OSX - https://stackoverflow.com/a/25330049
         try:
@@ -323,10 +325,13 @@ def check_pip_for_update(package):
     source: https://stackoverflow.com/a/40745656
     """
     url = 'https://pypi.python.org/pypi/{}/json'.format(package)
-    releases = requests.get(url).json()['releases']
-    current_version = sorted(releases, key=parse_version, reverse=True)[0]
-    return current_version
-
+    try:
+        releases = requests.get(url).json()['releases']
+        current_version = sorted(releases, key=parse_version, reverse=True)[0]
+        return current_version
+    except requests.ConnectionError:
+        LOGGER.info('Skipping pyprecag version check. Cannot reach {}'.format(url))
+    return
 
 def get_pip_version(package):
     """ Find the version of the package using pip
@@ -432,8 +437,9 @@ def check_python_dependencies(plugin_path, iface):
         if packCheck['pyprecag']['Action'] != 'Install':
             # check pyprecag against pypi for bug fixes
             cur_pyprecag_ver = check_pip_for_update('pyprecag')
-            if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
-                packCheck['pyprecag']['Action'] = 'Upgrade'
+            if cur_pyprecag_ver is not None:
+                if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
+                    packCheck['pyprecag']['Action'] = 'Upgrade'
 
         failDependencyCheck = [key for key, val in packCheck.iteritems() if
                                val['Action'] in ['Install', 'Upgrade']]
@@ -580,7 +586,9 @@ def check_python_dependencies(plugin_path, iface):
                                     #            bug_fix_fold) + '\n')
 
                         w_bat_file.write(
-                            ('{nl}   ECHO. & ECHO {divi}{nl}'
+                            ('{nl}   ECHO Install Geopandas=0.4.0 {nl}'
+                            '   python -m pip install geopandas==0.4.0 {nl}{nl}'
+                            '{nl}   ECHO. & ECHO {divi}{nl}'
                              r'{nl}   EXIT /B      {nl}'  # will return to the position where you used CALL
                              '{nl}:END     {nl}'
                              # '   cls\n'            # clear the cmd window of all text
@@ -623,6 +631,14 @@ def check_python_dependencies(plugin_path, iface):
 
             # Create a shortcut on desktop with admin privileges.
             if platform.system() == 'Windows':
+                try:
+                    aReg = ConnectRegistry(None, HKEY_CURRENT_USER)
+                    aKey = OpenKey(aReg, r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders")
+                    aVal = os.path.normpath(QueryValueEx(aKey, "Desktop")[0])
+                    LOGGER.info('Desktop path from registry is {}'.format(aVal))
+                except:
+                    pass
+
                 LOGGER.critical("Failed Dependency Check. Please run the shortcut {} "
                                 "or the following bat file as administrator {}".format(shortcutPath,
                                                                                        install_file))
