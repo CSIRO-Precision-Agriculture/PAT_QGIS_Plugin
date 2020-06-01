@@ -399,7 +399,7 @@ def check_python_dependencies(plugin_path, iface):
                 log_files = glob.glob(os.path.join(tempPackPath, "*.log"))
                 if len(log_files) >= 0:
                     for log_file in log_files:
-                        if 'tar.gz' in log_file:
+                        if 'tar.gz' in log_file or '.zip' in log_file:
                             bug_fix_fold = os.path.join(plugin_path, 'python_packages',
                                                         'installed_bugfix')
                             if not os.path.exists(bug_fix_fold):
@@ -407,12 +407,16 @@ def check_python_dependencies(plugin_path, iface):
 
                             upgrade_file = glob.glob(os.path.join(plugin_path, 'python_packages',
                                                                   'pyprecag' + "*.tar.gz"))
-                            if len(upgrade_file) == 1:
-                                new_tar = os.path.join(bug_fix_fold,
-                                                       os.path.basename(upgrade_file[0]))
-                                if os.path.exists(new_tar):
-                                    os.remove(new_tar)
-                                shutil.move(upgrade_file[0], new_tar)
+
+                            upgrade_file += glob.glob(os.path.join(plugin_path, 'python_packages',
+                                                                  'pyprecag' + "*.zip"))
+
+                            if len(upgrade_file) > 0:
+                                for tar in upgrade_file:
+                                    new_tar = os.path.join(bug_fix_fold, os.path.basename(tar))
+                                    if os.path.exists(new_tar):
+                                        os.remove(new_tar)
+                                    shutil.move(tar, new_tar)
                         else:
                             new_log = os.path.join(plugin_path, 'python_packages', os.path.basename(log_file))
 
@@ -433,6 +437,7 @@ def check_python_dependencies(plugin_path, iface):
         # Install via a tar wheel file prior to publishing via pip to test pyprecag bug fixes
         if len(glob.glob1(os.path.join(plugin_path, 'python_packages'), "pyprecag*")) == 1:
             packCheck['pyprecag']['Action'] = 'Upgrade'
+            packCheck['pyprecag']['Wheel'] = glob.glob1(os.path.join(plugin_path, 'python_packages'), "pyprecag*")[0]
 
         if packCheck['pyprecag']['Action'] != 'Install':
             # check pyprecag against pypi for bug fixes
@@ -554,9 +559,8 @@ def check_python_dependencies(plugin_path, iface):
                                 wheel = packCheck[ea_pack]['Wheel']
                                 if ea_pack == 'pyprecag':
                                     # Install via a tar wheel file prior to publishing via pip
-                                    upgrade_file = glob.glob1(tempPackPath, ea_pack + "*")
-                                    if len(upgrade_file) == 1:
-                                        whl_file = upgrade_file[0]
+                                    if os.path.splitext(packCheck[ea_pack]['Wheel'] )[1] in ['.gz','.zip']:
+                                        whl_file = packCheck[ea_pack]['Wheel']
 
                                     elif packCheck[ea_pack]['Action'] == 'Upgrade':
                                         whl_file = '-U pyprecag'
@@ -578,17 +582,18 @@ def check_python_dependencies(plugin_path, iface):
                                               whl=whl_file,
                                               piparg=pip_args_install))
 
-                                if ea_pack == 'pyprecag' and len(upgrade_file) == 1:
+                                if ea_pack == 'pyprecag' and os.path.splitext(packCheck[ea_pack]['Wheel'] )[1] in ['.gz','.zip']:
                                     # after installing, move the file otherwise you will always be prompted to upgrade
                                     # create a flag file and cleanup using python
-                                    w_bat_file.write('   echo.>{}.log\n'.format(os.path.basename(upgrade_file[0])))
+                                    w_bat_file.write('   echo.>{}.log\n'.format(packCheck[ea_pack]['Wheel']))
                                     # w_bat_file.write(r'    move {} {}'.format(os.path.join(plugin_path, 'python_packages',upgrade_file[0]),
                                     #            bug_fix_fold) + '\n')
 
+                        #'{nl}   ECHO Install Geopandas=0.4.0 {nl}'
+                        #'   python -m pip install geopandas==0.4.0 {nl}{nl}'
+                        
                         w_bat_file.write(
-                            ('{nl}   ECHO Install Geopandas=0.4.0 {nl}'
-                            '   python -m pip install geopandas==0.4.0 {nl}{nl}'
-                            '{nl}   ECHO. & ECHO {divi}{nl}'
+                            ('{nl}   ECHO. & ECHO {divi}{nl}'
                              r'{nl}   EXIT /B      {nl}'  # will return to the position where you used CALL
                              '{nl}:END     {nl}'
                              # '   cls\n'            # clear the cmd window of all text

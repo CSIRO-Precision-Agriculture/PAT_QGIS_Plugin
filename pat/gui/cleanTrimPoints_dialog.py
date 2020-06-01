@@ -711,7 +711,11 @@ class CleanTrimPointsDialog(QtGui.QDialog, FORM_CLASS):
 
         # remove field from filename, then addit according to the naming convention to avoid duplications.
         # flags=re.I is for a case insensitive find and replace
-        filename = re.sub(fld, '', filename, flags=re.I)
+        try:
+            # this triggers and error if an invalid character is in the field ie ')'
+            filename = re.sub(fld, '', filename, flags=re.I)
+        except:
+            pass
 
         # and again with invalid characters removed. Only allow alpha-numeric Underscores and hyphens
         fld = re.sub('[^A-Za-z0-9_-]+', '', fld)
