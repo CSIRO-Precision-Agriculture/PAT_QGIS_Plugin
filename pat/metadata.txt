@@ -30,7 +30,7 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # End of mandatory metadata
 
 # Recommended items:
-update_date=2020-06-02T08:50:07.938000
+update_date=2020-06-02T17:22:42.256000
 # Tags are comma separated with spaces allowed
 tags=raster, vector, kriging, agriculture, precision agriculture, csiro
 # category=PAT Menu and Toolbar
