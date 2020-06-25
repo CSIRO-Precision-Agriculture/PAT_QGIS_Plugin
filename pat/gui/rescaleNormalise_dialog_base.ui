@@ -241,8 +241,8 @@
          <height>0</height>
         </size>
        </property>
-       <property name="filters">
-        <set>QgsMapLayerProxyModel::RasterLayer</set>
+       <property name="showCrs">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

@@ -20,16 +20,18 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import re
 import sys
 import traceback
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog
 
-from qgis._core import QgsMessageLog
+from qgis.core import QgsMessageLog, Qgis, QgsApplication, QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
 
 import rasterio
@@ -41,14 +43,13 @@ from util.settings import read_setting, write_setting
 from pyprecag.raster_ops import rescale, normalise
 from pyprecag import crs as pyprecag_crs
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'rescaleNormalise_dialog_base.ui'))
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'rescaleNormalise_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
 
 
-class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
+class RescaleNormaliseDialog(QDialog, FORM_CLASS):
     """Dialog for Rescaling or normalising a single band from an image"""
 
     toolKey = 'RescaleNormaliseDialog'
@@ -65,16 +66,16 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui --------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), QtGui.QFormLayout):
+        if isinstance(self.layout(), QtWidgets.QFormLayout):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -83,6 +84,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
 
         # GUI Customisation -----------------------------------------------
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_rescaleNormalise.svg'))
+        self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.cboMethod.addItems(['Rescale', 'Normalise'])
         self.update_bandlist()
 
@@ -92,7 +94,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -103,7 +105,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -111,7 +113,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -178,9 +180,9 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
 
-        filename = self.mcboTargetLayer.currentText() + '_' + self.cboMethod.currentText()
+        filename = self.mcboTargetLayer.currentLayer().name() + '_' + self.cboMethod.currentText()
         if self.cboMethod.currentText() == 'Rescale':
-            filename = self.mcboTargetLayer.currentText() + '_{}{}-{}'.format(self.cboMethod.currentText(),
+            filename = self.mcboTargetLayer.currentLayer().name() + '_{}{}-{}'.format(self.cboMethod.currentText(),
                                                                               int(self.dsbRescaleLower.value()),
                                                                               int(self.dsbRescaleUpper.value()))
 
@@ -205,7 +207,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
         try:
             errorList = []
             targetLayer = self.mcboTargetLayer.currentLayer()
-            if targetLayer is None or self.mcboTargetLayer.currentText() == '':
+            if targetLayer is None or self.mcboTargetLayer.currentLayer().name() == '':
                 errorList.append(self.tr('Target layer is not set. Please load a raster layer into QGIS'))
 
             if self.lneSaveRasterFile.text() == '':
@@ -225,7 +227,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -235,7 +237,7 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
             return False
         try:
 
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             LOGGER.info('{st}\nProcessing {} Raster'.format(self.cboMethod.currentText(), st='*' * 50))
             self.iface.mainWindow().statusBar().showMessage('Processing {} Raster'.format(self.cboMethod.currentText()))
@@ -278,15 +280,15 @@ class RescaleNormaliseDialog(QtGui.QDialog, FORM_CLASS):
 
             rasterLyr = addRasterFileToQGIS(rasterOut, atTop=False)
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             return super(RescaleNormaliseDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.cleanMessageBars(True)
             self.iface.mainWindow().statusBar().clearMessage()
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, exc_info=sys.exc_info())
             return False  # leave dialog open
