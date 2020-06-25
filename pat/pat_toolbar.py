@@ -62,7 +62,7 @@ from .gui.settings_dialog import SettingsDialog
 
 # from .gui.blockGrid_dialog import BlockGridDialog
 from .gui.cleanTrimPoints_wizard import CleanTrimPointsDialog
-# from .gui.pointTrailToPolygon_dialog import PointTrailToPolygonDialog
+from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
 
 # from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 #from .gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
