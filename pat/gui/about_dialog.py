@@ -21,8 +21,10 @@
 """
 
 
+from future import standard_library
+standard_library.install_aliases()
 try:
-    import ConfigParser as configparser
+    import configparser as configparser
 except ImportError:
     import configparser
 
@@ -30,8 +32,8 @@ import logging
 import os
 
 from qgis.PyQt import QtGui
-from PyQt4 import uic
-from PyQt4.QtGui import QPixmap
+from qgis.PyQt import uic
+from qgis.PyQt.QtGui import QPixmap
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 WIDGET, BASE = uic.loadUiType(os.path.join(pluginPath, 'gui', 'about_dialog_base.ui'))
@@ -50,7 +52,7 @@ class AboutDialog(BASE, WIDGET):
         self.setupUi(self)
 
         # Retrieve values from the plugin metadata file
-        cfg = configparser.SafeConfigParser()
+        cfg = configparser.ConfigParser()
         cfg.read(os.path.join(pluginPath, 'metadata.txt'))
         version = cfg.get('general', 'version')
 
@@ -69,7 +71,7 @@ class AboutDialog(BASE, WIDGET):
     def getAboutText(self):
         return self.tr(
             '<p>Developed by the CSIRO Precision Agriculture team.'
-            '<p>This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture as part of its Rural R&D for Profit program.'
+            '<p>This project was initiated by CSIRO with support from Wine Australia and the Australia Federal Government’s Department of Agriculture as part of its Rural R&D for Profit program. Development of this QGIS 3 compatible version was supported by CSIRO.'
             '</p>')
 
     def accept(self, *args, **kwargs):
