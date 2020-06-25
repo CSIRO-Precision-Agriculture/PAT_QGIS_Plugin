@@ -20,6 +20,8 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import re
@@ -27,10 +29,10 @@ import sys
 import traceback
 from collections import OrderedDict
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog
 
-from qgis.core import QgsMessageLog,QgsStyleV2,QgsMapLayer
+from qgis.core import QgsMessageLog, QgsStyle, QgsMapLayer, QgsApplication, QgsMapLayerProxyModel, Qgis
 from qgis.gui import QgsMessageBar
 
 import rasterio
@@ -40,7 +42,6 @@ from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, save_as_di
 from util.settings import read_setting, write_setting
 import util.qgis_symbology as rs
 
-
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'rasterSymbology_dialog_base.ui'))
 
@@ -48,7 +49,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())
 
 
-class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
+class RasterSymbologyDialog(QDialog, FORM_CLASS):
     """Dialog for Rescaling or normalising a single band from an image"""
 
     toolKey = 'RasterSymbologyDialog'
@@ -65,16 +66,16 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui --------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), QtGui.QFormLayout):
+        if isinstance(self.layout(), QtWidgets.QFormLayout):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -82,7 +83,8 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # GUI Customisation -----------------------------------------------
-        self.setMapLayers()
+        self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        # self.setMapLayers()
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_rasterSymbology.svg'))
         self.cboType.addItems(list(rs.RASTER_SYMBOLOGY))
 
@@ -92,7 +94,7 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -103,7 +105,7 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5,
                            exc_info=None, core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -111,7 +113,7 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -155,21 +157,20 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             else:  # INFO = 0
                 LOGGER.info(message)
 
-
-    def setMapLayers(self):
-        """ Run through all loaded layers to find ones which should be excluded. In this case exclude geographics."""
-
-        exlayer_list = []
-
-        for layer in self.iface.legendInterface().layers():
-            # Only Load Raster layers with matching pixel size
-            if layer.type() != QgsMapLayer.RasterLayer:
-                continue
-            if layer.bandCount() > 1:
-                exlayer_list.append(layer)
-                continue
-
-        self.mcboTargetLayer.setExceptedLayerList(exlayer_list)
+    # def setMapLayers(self):
+    #     """ Run through all loaded layers to find ones which should be excluded. In this case exclude geographics."""
+    #
+    #     exlayer_list = []
+    #
+    #     for layer in self.iface.legendInterface().layers():
+    #         # Only Load Raster layers with matching pixel size
+    #         if layer.type() != QgsMapLayer.RasterLayer:
+    #             continue
+    #         if layer.bandCount() > 1:
+    #             exlayer_list.append(layer)
+    #             continue
+    #
+    #     self.mcboTargetLayer.setExceptedLayerList(exlayer_list)
 
     def on_mcboTargetLayer_layerChanged(self):
         pass
@@ -184,7 +185,7 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             errorList = []
             rast_sym = rs.RASTER_SYMBOLOGY[self.cboType.currentText()]
             # check to see if the colour ramp is installed
-            qgs_styles = QgsStyleV2().defaultStyle()
+            qgs_styles = QgsStyle().defaultStyle()
 
             if rast_sym['colour_ramp'] != '' and rast_sym['colour_ramp'] not in qgs_styles.colorRampNames():
                 errorList = ['PAT symbology does not exist. See user manual for install instructions']
@@ -196,7 +197,7 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -206,27 +207,27 @@ class RasterSymbologyDialog(QtGui.QDialog, FORM_CLASS):
             return False
         try:
             rast_sym = rs.RASTER_SYMBOLOGY[self.cboType.currentText()]
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             if rast_sym['type'] == 'unique':
-                rs.raster_apply_unique_value_renderer(self.mcboTargetLayer.currentLayer(),1,
-                                                      color_ramp=rast_sym['colour_ramp'] ,
+                rs.raster_apply_unique_value_renderer(self.mcboTargetLayer.currentLayer(), 1,
+                                                      color_ramp=rast_sym['colour_ramp'],
                                                       invert=rast_sym['invert'])
             else:
-                
+
                 rs.raster_apply_classified_renderer(self.mcboTargetLayer.currentLayer(),
                                                     rend_type=rast_sym['type'],
                                                     num_classes=rast_sym['num_classes'],
                                                     color_ramp=rast_sym['colour_ramp'])
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             return super(RasterSymbologyDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.cleanMessageBars(True)
             self.iface.mainWindow().statusBar().clearMessage()
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, exc_info=sys.exc_info())
             return False  # leave dialog open

@@ -31,7 +31,9 @@ from qgis.PyQt.QtGui import QColor
 import matplotlib as mpl
 import matplotlib.colors as colors
 from numpy import ma
-from qgis.core import QgsSimpleFillSymbolLayer, QgsSymbol, QgsStyle,QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRaster, QgsRasterShader, QgsColorRampShader,QgsSingleBandPseudoColorRenderer,QgsRasterShader, QgsColorRampShader,QgsContrastEnhancement
+from qgis.core import QgsSimpleFillSymbolLayer, QgsSymbol, QgsStyle, QgsRendererCategory, QgsCategorizedSymbolRenderer, \
+    QgsRaster, QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer, QgsRasterShader, \
+    QgsColorRampShader, QgsContrastEnhancement, QgsRasterBandStats, QgsRandomColorRamp, QgsPalettedRasterRenderer
 
 from scipy import stats
 
@@ -96,9 +98,25 @@ def random_colours(number_of_colours=1):
 
 
 def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color_ramp,
-                                     invert=False, band_num=1):
+                                     invert=False, band_num=1, n_decimals=1):
+    """
+    Applies quantile or equal intervals render to a raster layer. It also allows for the rounding of the values and
+    legend labels.
 
-    # get an existing color ramp
+    Args:
+        raster_layer (QgsRasterLayer): The rasterlayer to apply classes to
+        rend_type (str): The type of renderer to apply ('quantile' or 'equal interval')
+        num_classes (int): The number of classes to create
+        color_ramp (str): The colour ramp used to display the data
+        band_num(int): The band number to use in the renderer
+        invert (bool): invert the colour ramp
+        n_decimals (int): the number of decimal places to round the values and labels
+
+
+    Returns:
+
+    """
+    # use an existing color ramp
     qgsStyles = QgsStyle().defaultStyle()
 
     # check to see if the colour ramp is installed
@@ -107,64 +125,47 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
 
     ramp = qgsStyles.colorRamp(color_ramp)
 
-    rmp_colors = [ramp.color1().name()]   # the first
-    rmp_colors += [ea.color.name() for ea in  ramp.stops()]
+    # get band statistics
+    cbStats = raster_layer.dataProvider().bandStatistics(band_num, QgsRasterBandStats.All, raster_layer.extent(), 0)
 
-    # check that the last colors not already there
-    if rmp_colors[-1] != ramp.color2().name():
-        rmp_colors += [ramp.color2().name()]
-    if invert:
-        rmp_colors = list(reversed(rmp_colors))
+    # create the renderer
+    renderer = QgsSingleBandPseudoColorRenderer(raster_layer.dataProvider(), band_num)
 
-    # convert to qcolor
-    rmp_colors = [QColor(col) for col in rmp_colors]
+    # set the max and min heights we found earlier
+    renderer.setClassificationMin(cbStats.minimumValue)
+    renderer.setClassificationMax(cbStats.maximumValue)
 
-    band = rasterio.open(raster_layer.source()).read(band_num, masked=True)
-
-    classes = []
     if rend_type.lower() == 'quantile':
-        classes = np.interp(np.linspace(0, ma.count(band), num_classes + 1),
-                            np.arange( ma.count(band)), np.sort(ma.compressed(band)))
+        renderer.createShader(ramp, QgsColorRampShader.Discrete, QgsColorRampShader.Quantile,
+                              num_classes)
 
     elif rend_type.lower() == 'equal interval':
-        classes, bin_width = np.linspace(np.nanmin(band), np.nanmax(band), num_classes + 1,
-                                         endpoint=True, retstep=True)
+        renderer.createShader(ramp, QgsColorRampShader.Discrete, QgsColorRampShader.EqualInterval,
+                              num_classes)
 
-    classes = [float('{:.3g}'.format(ea)) for ea in classes]
 
-    del band
+    # Round values off to the nearest decimal place and construct the label
+    # get the newly created values and classes
+    color_shader = renderer.shader().rasterShaderFunction()
 
-    #Apply raster layer enhancement/stretch
-    stretch = QgsContrastEnhancement.StretchToMinimumMaximum
-    limits = QgsRaster.ContrastEnhancementMinMax
-    raster_layer.setContrastEnhancement(stretch, limits)
-
-    # Create the symbology
-    color_ramp_shd = QgsColorRampShader()
-    color_ramp_shd.setColorRampType(QgsColorRampShader.DISCRETE)
-    qri = QgsColorRampShader.ColorRampItem
-
-    sym_classes = []
-    low_class = 0
-
-    for class_color, up_class in zip(rmp_colors, classes[1:]):
-        if low_class == 0:
-            sym_classes.append(qri(up_class, class_color, '<= {} '.format(up_class)))
-        elif up_class == classes[-1]:
-            sym_classes.append(qri(float("inf"),class_color, '> {} '.format(low_class)))
+    # iterate the values rounding and creating a range label.
+    new_lst = []
+    for i, (value, color) in enumerate(color_shader.legendSymbologyItems(), start=1):
+        value = float('{:.3g}'.format(float(value)))
+        if i == 1:
+            label = "<= {}".format(value)
+        elif i == len(color_shader.legendSymbologyItems()):
+            label = "> {}".format(last)
         else:
-            sym_classes.append(qri(up_class, class_color, '{} - {} '.format(low_class,up_class)))
+            label = "{} - {}".format(last, value)
+        last = value
 
-        low_class = up_class
+        new_lst.append(QgsColorRampShader.ColorRampItem(value, color, label))
 
-    color_ramp_shd.setColorRampItemList(sym_classes)
+    # apply back to the shader then the layer
+    color_shader.setColorRampItemList(new_lst)
 
-    #Apply symbology to layer
-    raster_shader = QgsRasterShader()
-    raster_shader.setRasterShaderFunction(color_ramp_shd)
-    pseudo_renderer = QgsSingleBandPseudoColorRenderer(raster_layer.dataProvider(),
-                                                       1, raster_shader)
-    raster_layer.setRenderer(pseudo_renderer)
+    raster_layer.setRenderer(renderer)
     raster_layer.triggerRepaint()
 
 
@@ -179,68 +180,27 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
         raster_layer (QgsRasterLayer): input raster layer
         band_num (int):    the band number used to determine unique values
         n_decimals (int):  number of decimals to round values to
+        invert (bool) : Invert the color ramp before applying - Not implemented
     """
     qgsStyles = QgsStyle().defaultStyle()
     # check to see if the colour ramp is installed
     if color_ramp != '' and color_ramp not in qgsStyles.colorRampNames():
         raise ValueError('PAT symbology does not exist. See user manual for install instructions')
 
-    # get unique values
-    band = rasterio.open(raster_layer.source()).read(band_num, masked=True)
-    uniq_vals = np.unique(band[band.mask == False])
-
-    if n_decimals > 0:
-        uniq_vals = np.around(list(uniq_vals), decimals=3)
-
-    if color_ramp == '':
-        rmp_colors = [QColor(*colour) for colour in random_colours(len(uniq_vals))]
-        #rmp_colors = random_colours(len(uniq_vals))
-
+    if color_ramp=='':
+        ramp=QgsRandomColorRamp()
     else:
         # get an existing color ramp
         ramp = qgsStyles.colorRamp(color_ramp)
 
-        rmp_colors = [ramp.color1().name()]   # the first
-        rmp_colors += [ea.color.name() for ea in  ramp.stops()]
+    # generate a list of unique values and their colours.
+    uniq_classes = QgsPalettedRasterRenderer.classDataFromRaster(raster_layer.dataProvider(), band_num,ramp )
 
-        # check that the last colors not already there
-        if rmp_colors[-1] != ramp.color2().name():
-            rmp_colors += [ramp.color2().name()]
-
-        if invert:
-            rmp_colors = list(reversed(rmp_colors))
-
-        #use this to create a matplotlib color ramp
-        cmSeg = colors.LinearSegmentedColormap.from_list('myramp', rmp_colors, N=256)
-
-        # get the colors distributed evenly across the ramp
-        rmp_colors = [QColor(*cmSeg(idx,bytes=True)) for idx in np.linspace(0, 1, len(uniq_vals))]
-
-
-    # instantiate the specialized ramp shader object
-    col_rmp_shd = QgsColorRampShader()
-
-    # name a type for the ramp shader. In this case, we use an INTERPOLATED shader:
-    col_rmp_shd.setColorRampType(QgsColorRampShader.Exact)
-    qri = QgsColorRampShader.ColorRampItem
-
-    sym_classes = []
-    for class_val, class_color in zip(uniq_vals, rmp_colors):
-        sym_classes.append(qri(class_val, class_color, str(class_val)))
-
-    # assign the color ramp to our shader:
-    col_rmp_shd.setColorRampItemList(sym_classes)
-
-    # create a generic raster shader object:
-    raster_shader = QgsRasterShader()
-    # tell the generic raster shader to use the color ramp:
-    raster_shader.setRasterShaderFunction(col_rmp_shd)
-
-    # create a raster renderer object with the shader, specifying band number 1
-    ps = QgsSingleBandPseudoColorRenderer(raster_layer.dataProvider(), 1, raster_shader)
+    # Create the renderer
+    renderer = QgsPalettedRasterRenderer(raster_layer.dataProvider(), band_num, uniq_classes)
 
     # assign the renderer to the raster layer:
-    raster_layer.setRenderer(ps)
+    raster_layer.setRenderer(renderer)
 
     # refresh
     raster_layer.triggerRepaint()

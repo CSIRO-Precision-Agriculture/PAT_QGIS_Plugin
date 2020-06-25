@@ -63,6 +63,7 @@ from .gui.settings_dialog import SettingsDialog
 # from .gui.blockGrid_dialog import BlockGridDialog
 from .gui.cleanTrimPoints_wizard import CleanTrimPointsDialog
 from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
+from .gui.rasterSymbology_dialog import RasterSymbologyDialog
 
 # from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 #from .gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
@@ -73,7 +74,7 @@ from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
 # from .gui.postVesper_dialog import PostVesperDialog
 # from .gui.preVesper_dialog import PreVesperDialog
 # from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
-# from .gui.rasterSymbology_dialog import RasterSymbologyDialog
+
 # from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 # from .gui.rescaleNormalise_dialog import RescaleNormaliseDialog
 # from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
