@@ -19,27 +19,51 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+import six
+from future import standard_library
+standard_library.install_aliases()
 import logging
 import os
 import re
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 import pandas as pd
 import geopandas as gpd
 from shapely import wkt
 
-from PyQt4.QtCore import QVariant
-from PyQt4.QtGui import QFileDialog, QDockWidget, QMessageBox
+from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
-                       QgsFeature, QgsField, QgsProject, QgsUnitTypes)
+from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsProject, QgsRasterLayer,
+                       QgsFeature, QgsField, QgsProject, QgsUnitTypes, Qgis, QgsCoordinateReferenceSystem)
 
 from pat import LOGGER_NAME
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
+
+from pyprecag import crs
+
+def get_UTM_Coordinate_System(x, y, epsg):
+    """ Determine a utm coordinate system either from coordinates"""
+
+    if isinstance(epsg, six.string_types):
+        epsg = int(epsg.upper().replace('EPSG:',''))
+
+
+    utm_crs = crs.getProjectedCRSForXY (x,y,epsg)
+
+    if utm_crs is not None:
+        out_crs = QgsCoordinateReferenceSystem().fromEpsgId(utm_crs.epsg_number)
+
+    if out_crs is not None:
+        return out_crs
+    else:
+        # self.send_to_messagebar(
+        #     'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
+        #     level=Qgis.Critical, duration=5)
+        return
 
 
 def check_for_overlap(rect1, rect2, crs1='', crs2=''):
@@ -67,7 +91,7 @@ def get_pixel_size(layer):
     if layer is None or layer.type() != QgsMapLayer.RasterLayer:
         return None, None
 
-    if layer.crs().geographicFlag():
+    if layer.crs().isGeographic():
         ft = 'f'  # this will convert 1.99348e-05 to 0.000020
     else:
         ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
@@ -85,9 +109,9 @@ def build_layer_table():
     Can be used inconjuction with selecting layers to exclude from mapcomboboxes
     """
     df_layers = pd.DataFrame()
-    layermap = QgsMapLayerRegistry.instance().mapLayers()
+    layermap = QgsProject.instance().mapLayers()
     new_rows = []
-    for name, layer in layermap.iteritems():
+    for name, layer in layermap.items():
 
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
             continue
@@ -98,7 +122,7 @@ def build_layer_table():
                    'source': layer.source(),
                    'epsg': layer.crs().authid(),
                    'crs_name': layer.crs().description(),
-                   'is_projected': not layer.crs().geographicFlag(),
+                   'is_projected': not layer.crs().isGeographic(),
                    'extent': layer.extent().asWktPolygon(),
                    'provider': layer.providerType()}
 
@@ -122,7 +146,7 @@ def build_layer_table():
 
 
 def save_as_dialog(dialog, caption, file_filter, default_name=''):
-    s, f = QFileDialog.getSaveFileNameAndFilter(
+    s, f = QFileDialog.getSaveFileName(
         dialog,
         caption,
         default_name,
@@ -168,8 +192,8 @@ def file_in_use(filename, display_msgbox=True):
 
     # also check to see if it's loaded into QGIS
     found_lyrs = []
-    layermap = QgsMapLayerRegistry.instance().mapLayers()
-    for name, layer in layermap.iteritems():
+    layermap = QgsProject.instance().mapLayers()
+    for name, layer in layermap.items():
         if layer.providerType() == 'delimitedtext':
 
             url = urlparse(layer.source())
@@ -256,7 +280,7 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
 
     """
 
-    QgsMapLayerRegistry.instance().addMapLayer(layer, addToLegend=False)
+    QgsProject.instance().addMapLayer(layer, addToLegend=False)
     root = QgsProject.instance().layerTreeRoot()
 
     # create group layers first:
@@ -297,13 +321,13 @@ def removeFileFromQGIS(filename):
     remove_layers = []
 
     # Loop through layers in reverse so the count/indexing of layers persists if one is removed.
-    layermap = QgsMapLayerRegistry.instance().mapLayers()
-    for name, layer in layermap.iteritems():
+    layermap = QgsProject.instance().mapLayers()
+    for name, layer in layermap.items():
         if layer.source() == filename:
             remove_layers.append(layer.id())
 
     if len(remove_layers) > 0:
-        QgsMapLayerRegistry.instance().removeMapLayers(remove_layers)
+        QgsProject.instance().removeMapLayers(remove_layers)
 
 
 def getGeometryTypeAsString(intGeomType):
@@ -368,7 +392,7 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
     b_calc_ufi = False
     attr = []
 
-    if layer.fieldNameIndex("FID") == -1 and bAddUFI:
+    if layer.fields().lookupField("FID") == -1 and bAddUFI:
         b_calc_ufi = True
         attr = [QgsField('FID', QVariant.Int)]
 
@@ -398,7 +422,7 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
     # start editing and copy all features and attributes
     mem_layer.startEditing()
     sel_feat_ids = []
-    if bOnlySelectedFeat and len(layer.selectedFeatures()) > 0:
+    if bOnlySelectedFeat and layer.selectedFeatureCount() > 0:
         # Get a list of selected features.....
         sel_feat_ids = [f.id() for f in layer.selectedFeatures()]
 

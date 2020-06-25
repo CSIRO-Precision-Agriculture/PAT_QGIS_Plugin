@@ -1,150 +1,195 @@
 <!DOCTYPE qgis_style>
-<qgis_style version="1">
+<qgis_style version="2">
   <symbols>
-    <symbol alpha="1" clip_to_extent="1" type="fill" name="Hatching">
-      <layer pass="0" class="SimpleFill" locked="0">
-        <prop k="border_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="color" v="20,86,227,255"/>
-        <prop k="color_border_dd_active" v="1"/>
-        <prop k="color_border_dd_expression" v="@symbol_color"/>
-        <prop k="color_border_dd_field" v=""/>
-        <prop k="color_border_dd_useexpr" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="20,86,227,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0.66"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="style" v="horizontal"/>
+    <symbol clip_to_extent="1" force_rhr="0" type="marker" name="Cross" alpha="1" tags="PAT">
+      <layer class="SimpleMarker" locked="0" enabled="1" pass="0">
+        <prop v="0" k="angle"/>
+        <prop v="251,154,153,255" k="color"/>
+        <prop v="1" k="horizontal_anchor_point"/>
+        <prop v="bevel" k="joinstyle"/>
+        <prop v="cross2" k="name"/>
+        <prop v="0,0" k="offset"/>
+        <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
+        <prop v="MM" k="offset_unit"/>
+        <prop v="0,0,0,255" k="outline_color"/>
+        <prop v="solid" k="outline_style"/>
+        <prop v="0" k="outline_width"/>
+        <prop v="3x:0,0,0,0,0,0" k="outline_width_map_unit_scale"/>
+        <prop v="MM" k="outline_width_unit"/>
+        <prop v="area" k="scale_method"/>
+        <prop v="2" k="size"/>
+        <prop v="3x:0,0,0,0,0,0" k="size_map_unit_scale"/>
+        <prop v="MM" k="size_unit"/>
+        <prop v="1" k="vertical_anchor_point"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option type="QString" name="name" value=""/>
+            <Option name="properties"/>
+            <Option type="QString" name="type" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Plus">
-      <layer pass="0" class="SimpleMarker" locked="0">
-        <prop k="angle" v="45"/>
-        <prop k="color" v="251,154,153,255"/>
-        <prop k="horizontal_anchor_point" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="name" v="cross2"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="0,0,0,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="scale_method" v="area"/>
-        <prop k="size" v="2"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="size_unit" v="MM"/>
-        <prop k="vertical_anchor_point" v="1"/>
+    <symbol clip_to_extent="1" force_rhr="0" type="marker" name="Dot" alpha="1" tags="PAT">
+      <layer class="SimpleMarker" locked="0" enabled="1" pass="0">
+        <prop v="0" k="angle"/>
+        <prop v="198,90,57,255" k="color"/>
+        <prop v="1" k="horizontal_anchor_point"/>
+        <prop v="bevel" k="joinstyle"/>
+        <prop v="circle" k="name"/>
+        <prop v="0,0" k="offset"/>
+        <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
+        <prop v="MM" k="offset_unit"/>
+        <prop v="0,0,0,255" k="outline_color"/>
+        <prop v="no" k="outline_style"/>
+        <prop v="0" k="outline_width"/>
+        <prop v="3x:0,0,0,0,0,0" k="outline_width_map_unit_scale"/>
+        <prop v="MM" k="outline_width_unit"/>
+        <prop v="diameter" k="scale_method"/>
+        <prop v="1" k="size"/>
+        <prop v="3x:0,0,0,0,0,0" k="size_map_unit_scale"/>
+        <prop v="MM" k="size_unit"/>
+        <prop v="1" k="vertical_anchor_point"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option type="QString" name="name" value=""/>
+            <Option name="properties"/>
+            <Option type="QString" name="type" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Small Plus">
-      <layer pass="0" class="SimpleMarker" locked="0">
-        <prop k="angle" v="45"/>
-        <prop k="color" v="251,154,153,255"/>
-        <prop k="horizontal_anchor_point" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="name" v="cross2"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="140,140,140,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="scale_method" v="area"/>
-        <prop k="size" v="0.6"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="size_unit" v="MM"/>
-        <prop k="vertical_anchor_point" v="1"/>
+    <symbol clip_to_extent="1" force_rhr="0" type="fill" name="Hatching" alpha="1" tags="PAT">
+      <layer class="SimpleFill" locked="0" enabled="1" pass="0">
+        <prop v="3x:0,0,0,0,0,0" k="border_width_map_unit_scale"/>
+        <prop v="20,86,227,255" k="color"/>
+        <prop v="bevel" k="joinstyle"/>
+        <prop v="0,0" k="offset"/>
+        <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
+        <prop v="MM" k="offset_unit"/>
+        <prop v="20,86,227,255" k="outline_color"/>
+        <prop v="solid" k="outline_style"/>
+        <prop v="0.66" k="outline_width"/>
+        <prop v="MM" k="outline_width_unit"/>
+        <prop v="horizontal" k="style"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option type="QString" name="name" value=""/>
+            <Option type="Map" name="properties">
+              <Option type="Map" name="outlineColor">
+                <Option type="bool" name="active" value="true"/>
+                <Option type="QString" name="expression" value="@symbol_color"/>
+                <Option type="int" name="type" value="3"/>
+              </Option>
+            </Option>
+            <Option type="QString" name="type" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Cross">
-      <layer pass="0" class="SimpleMarker" locked="0">
-        <prop k="angle" v="0"/>
-        <prop k="color" v="251,154,153,255"/>
-        <prop k="horizontal_anchor_point" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="name" v="cross2"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="0,0,0,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="scale_method" v="area"/>
-        <prop k="size" v="2"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="size_unit" v="MM"/>
-        <prop k="vertical_anchor_point" v="1"/>
+    <symbol clip_to_extent="1" force_rhr="0" type="marker" name="Plus" alpha="1" tags="PAT">
+      <layer class="SimpleMarker" locked="0" enabled="1" pass="0">
+        <prop v="45" k="angle"/>
+        <prop v="251,154,153,255" k="color"/>
+        <prop v="1" k="horizontal_anchor_point"/>
+        <prop v="bevel" k="joinstyle"/>
+        <prop v="cross2" k="name"/>
+        <prop v="0,0" k="offset"/>
+        <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
+        <prop v="MM" k="offset_unit"/>
+        <prop v="0,0,0,255" k="outline_color"/>
+        <prop v="solid" k="outline_style"/>
+        <prop v="0" k="outline_width"/>
+        <prop v="3x:0,0,0,0,0,0" k="outline_width_map_unit_scale"/>
+        <prop v="MM" k="outline_width_unit"/>
+        <prop v="area" k="scale_method"/>
+        <prop v="2" k="size"/>
+        <prop v="3x:0,0,0,0,0,0" k="size_map_unit_scale"/>
+        <prop v="MM" k="size_unit"/>
+        <prop v="1" k="vertical_anchor_point"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option type="QString" name="name" value=""/>
+            <Option name="properties"/>
+            <Option type="QString" name="type" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Dot">
-      <layer pass="0" class="SimpleMarker" locked="0">
-        <prop k="angle" v="0"/>
-        <prop k="color" v="198,90,57,255"/>
-        <prop k="horizontal_anchor_point" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="name" v="circle"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="0,0,0,255"/>
-        <prop k="outline_style" v="no"/>
-        <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="scale_method" v="diameter"/>
-        <prop k="size" v="1"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="size_unit" v="MM"/>
-        <prop k="vertical_anchor_point" v="1"/>
+    <symbol clip_to_extent="1" force_rhr="0" type="marker" name="Small Plus" alpha="1" tags="PAT">
+      <layer class="SimpleMarker" locked="0" enabled="1" pass="0">
+        <prop v="45" k="angle"/>
+        <prop v="251,154,153,255" k="color"/>
+        <prop v="1" k="horizontal_anchor_point"/>
+        <prop v="bevel" k="joinstyle"/>
+        <prop v="cross2" k="name"/>
+        <prop v="0,0" k="offset"/>
+        <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
+        <prop v="MM" k="offset_unit"/>
+        <prop v="140,140,140,255" k="outline_color"/>
+        <prop v="solid" k="outline_style"/>
+        <prop v="0" k="outline_width"/>
+        <prop v="3x:0,0,0,0,0,0" k="outline_width_map_unit_scale"/>
+        <prop v="MM" k="outline_width_unit"/>
+        <prop v="area" k="scale_method"/>
+        <prop v="0.6" k="size"/>
+        <prop v="3x:0,0,0,0,0,0" k="size_map_unit_scale"/>
+        <prop v="MM" k="size_unit"/>
+        <prop v="1" k="vertical_anchor_point"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option type="QString" name="name" value=""/>
+            <Option name="properties"/>
+            <Option type="QString" name="type" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
   </symbols>
   <colorramps>
-    <colorramp type="gradient" name="Imagery 5 Colours">
-      <prop k="color1" v="255,0,0,255"/>
-      <prop k="color2" v="0,92,230,255"/>
-      <prop k="discrete" v="1"/>
-      <prop k="stops" v="0.2;255,255,0,255:0.4;85,255,0,255:0.6;0,255,197,255:0.8;0,92,230,255"/>
+    <colorramp type="gradient" name="Imagery 5 Colours" tags="PAT">
+      <prop v="255,0,0,255" k="color1"/>
+      <prop v="0,92,230,255" k="color2"/>
+      <prop v="1" k="discrete"/>
+      <prop v="gradient" k="rampType"/>
+      <prop v="0.2;255,255,0,255:0.4;85,255,0,255:0.6;0,255,197,255:0.8;0,92,230,255" k="stops"/>
     </colorramp>
-    <colorramp type="gradient" name="Red Mono Ramp">
-      <prop k="color1" v="254,225,225,255"/>
-      <prop k="color2" v="99,0,0,255"/>
-      <prop k="discrete" v="0"/>
-      <prop k="stops" v="0.498798;255,0,0,255"/>
+    <colorramp type="gradient" name="Red Mono Ramp" tags="PAT">
+      <prop v="254,225,225,255" k="color1"/>
+      <prop v="99,0,0,255" k="color2"/>
+      <prop v="0" k="discrete"/>
+      <prop v="gradient" k="rampType"/>
+      <prop v="0.498798;255,0,0,255" k="stops"/>
     </colorramp>
-    <colorramp type="gradient" name="Red Monochromatic">
-      <prop k="color1" v="254,225,225,255"/>
-      <prop k="color2" v="99,0,0,255"/>
-      <prop k="discrete" v="1"/>
-      <prop k="stops" v="0.0833333;255,195,195,255:0.166667;255,165,165,255:0.25;254,135,135,255:0.333333;254,105,105,255:0.416667;254,65,65,255:0.5;255,0,0,255:0.583333;224,0,0,255:0.666667;204,0,0,255:0.75;149,0,0,255:0.833333;124,0,0,255:0.916667;99,0,0,255"/>
+    <colorramp type="gradient" name="Red Monochromatic" tags="PAT">
+      <prop v="254,225,225,255" k="color1"/>
+      <prop v="99,0,0,255" k="color2"/>
+      <prop v="1" k="discrete"/>
+      <prop v="gradient" k="rampType"/>
+      <prop v="0.0833333;255,195,195,255:0.166667;255,165,165,255:0.25;254,135,135,255:0.333333;254,105,105,255:0.416667;254,65,65,255:0.5;255,0,0,255:0.583333;224,0,0,255:0.666667;204,0,0,255:0.75;149,0,0,255:0.833333;124,0,0,255:0.916667;99,0,0,255" k="stops"/>
     </colorramp>
-    <colorramp type="gradient" name="Significance of Difference Bi-Directional">
-      <prop k="color1" v="38,115,0,255"/>
-      <prop k="color2" v="168,0,132,255"/>
-      <prop k="discrete" v="1"/>
-      <prop k="stops" v="0.111111;85,255,0,255:0.222222;230,230,0,255:0.333333;230,152,0,255:0.444444;255,0,0,255:0.555556;0,255,255,255:0.666667;0,169,230,255:0.777778;0,77,168,255:0.888889;168,0,132,255"/>
+    <colorramp type="gradient" name="Significance of Difference Bi-Directional" tags="PAT">
+      <prop v="38,115,0,255" k="color1"/>
+      <prop v="168,0,132,255" k="color2"/>
+      <prop v="1" k="discrete"/>
+      <prop v="gradient" k="rampType"/>
+      <prop v="0.111111;85,255,0,255:0.222222;230,230,0,255:0.333333;230,152,0,255:0.444444;255,0,0,255:0.555556;0,255,255,255:0.666667;0,169,230,255:0.777778;0,77,168,255:0.888889;168,0,132,255" k="stops"/>
     </colorramp>
-    <colorramp type="gradient" name="Yield 7 Colours">
-      <prop k="color1" v="255,0,0,255"/>
-      <prop k="color2" v="0,77,168,255"/>
-      <prop k="discrete" v="1"/>
-      <prop k="stops" v="0.142857;255,170,0,255:0.285714;255,255,0,255:0.428571;170,255,0,255:0.571429;76,230,0,255:0.714286;38,115,0,255:0.857143;0,77,168,255"/>
+    <colorramp type="gradient" name="Yield 7 Colours" tags="PAT">
+      <prop v="255,0,0,255" k="color1"/>
+      <prop v="0,77,168,255" k="color2"/>
+      <prop v="1" k="discrete"/>
+      <prop v="gradient" k="rampType"/>
+      <prop v="0.142857;255,170,0,255:0.285714;255,255,0,255:0.428571;170,255,0,255:0.571429;76,230,0,255:0.714286;38,115,0,255:0.857143;0,77,168,255" k="stops"/>
     </colorramp>
-    <colorramp type="gradient" name="Yield 9 Colours">
-      <prop k="color1" v="168,0,0,255"/>
-      <prop k="color2" v="0,92,230,255"/>
-      <prop k="discrete" v="1"/>
-      <prop k="stops" v="0.11;255,0,0,255:0.22;248,165,0,255:0.33;255,255,0,255:0.44;170,255,0,255:0.55;76,230,0,255:0.66;38,115,0,255:0.77;0,77,168,255:0.88;0,92,230,255"/>
+    <colorramp type="gradient" name="Yield 9 Colours" tags="PAT">
+      <prop v="168,0,0,255" k="color1"/>
+      <prop v="0,92,230,255" k="color2"/>
+      <prop v="1" k="discrete"/>
+      <prop v="gradient" k="rampType"/>
+      <prop v="0.11;255,0,0,255:0.22;248,165,0,255:0.33;255,255,0,255:0.44;170,255,0,255:0.55;76,230,0,255:0.66;38,115,0,255:0.77;0,77,168,255:0.88;0,92,230,255" k="stops"/>
     </colorramp>
   </colorramps>
+  <textformats/>
+  <labelsettings/>
 </qgis_style>

@@ -20,19 +20,18 @@
  ***************************************************************************/
 """
 
+from builtins import zip
+from builtins import str
+from builtins import range
 import random
 from collections import OrderedDict
 import numpy as np
 import rasterio
-from PyQt4.QtGui import QColor
+from qgis.PyQt.QtGui import QColor
 import matplotlib as mpl
 import matplotlib.colors as colors
 from numpy import ma
-from qgis.core import (QgsSimpleFillSymbolLayerV2, QgsSymbolV2, QgsStyleV2,
-                       QgsRendererCategoryV2, QgsCategorizedSymbolRendererV2,
-                       QgsRaster, QgsRasterShader, QgsColorRampShader,
-                       QgsSingleBandPseudoColorRenderer,QgsRasterShader, QgsColorRampShader,
-                       QgsContrastEnhancement)
+from qgis.core import QgsSimpleFillSymbolLayer, QgsSymbol, QgsStyle,QgsRendererCategory, QgsCategorizedSymbolRenderer, QgsRaster, QgsRasterShader, QgsColorRampShader,QgsSingleBandPseudoColorRenderer,QgsRasterShader, QgsColorRampShader,QgsContrastEnhancement
 
 from scipy import stats
 
@@ -100,7 +99,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
                                      invert=False, band_num=1):
 
     # get an existing color ramp
-    qgsStyles = QgsStyleV2().defaultStyle()
+    qgsStyles = QgsStyle().defaultStyle()
 
     # check to see if the colour ramp is installed
     if color_ramp != '' and color_ramp not in qgsStyles.colorRampNames():
@@ -181,7 +180,7 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
         band_num (int):    the band number used to determine unique values
         n_decimals (int):  number of decimals to round values to
     """
-    qgsStyles = QgsStyleV2().defaultStyle()
+    qgsStyles = QgsStyle().defaultStyle()
     # check to see if the colour ramp is installed
     if color_ramp != '' and color_ramp not in qgsStyles.colorRampNames():
         raise ValueError('PAT symbology does not exist. See user manual for install instructions')
@@ -222,7 +221,7 @@ def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
     col_rmp_shd = QgsColorRampShader()
 
     # name a type for the ramp shader. In this case, we use an INTERPOLATED shader:
-    col_rmp_shd.setColorRampType(QgsColorRampShader.EXACT)
+    col_rmp_shd.setColorRampType(QgsColorRampShader.Exact)
     qri = QgsColorRampShader.ColorRampItem
 
     sym_classes = []
@@ -259,35 +258,35 @@ def vector_apply_unique_value_renderer(vector_layer, column):
     """
 
     categories = []
-    uniq_vals = vector_layer.dataProvider().uniqueValues(vector_layer.fieldNameIndex(column))
+    uniq_vals = vector_layer.dataProvider().uniqueValues(vector_layer.fields().lookupField(column))
     randcolors = random_colours(len(uniq_vals))
 
     for i, ea_value in enumerate(uniq_vals):
         # initialize the default symbol for this geometry type
-        symbol = QgsSymbolV2.defaultSymbol(vector_layer.geometryType())
+        symbol = QgsSymbol.defaultSymbol(vector_layer.geometryType())
 
         # configure a symbol layer
         layer_style = {'color': '{}, {}, {}'.format(*randcolors[i]),
                        'outline': '#000000'}
 
-        symbol_layer = QgsSimpleFillSymbolLayerV2.create(layer_style)
+        symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
 
         # replace default symbol layer with the configured one
         if symbol_layer is not None:
             symbol.changeSymbolLayer(0, symbol_layer)
 
         # create renderer object
-        category = QgsRendererCategoryV2(ea_value, symbol, str(ea_value))
+        category = QgsRendererCategory(ea_value, symbol, str(ea_value))
 
         # entry for the list of category items
         categories.append(category)
 
     # create renderer object
-    renderer = QgsCategorizedSymbolRendererV2(column, categories)
+    renderer = QgsCategorizedSymbolRenderer(column, categories)
 
     # assign the created renderer to the layer
     if renderer is not None:
-        vector_layer.setRendererV2(renderer)
+        vector_layer.setRenderer(renderer)
 
     # refresh
     vector_layer.triggerRepaint()

@@ -23,13 +23,15 @@
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import print_function
+from builtins import range
 import logging
 import os
 
 from pat import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 
-from PyQt4.QtGui import QDockWidget, QTabWidget
-from PyQt4.Qt import QCoreApplication
+from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget
+from qgis.PyQt.Qt import QCoreApplication
 from qgis._gui import QgsMessageBar
 from qgis.core import QgsMessageLog
 from qgis.utils import iface
@@ -224,6 +226,6 @@ def openLogPanel():
 
 def clearPythonConsole():
     # https://gis.stackexchange.com/a/216444
-    from PyQt4.QtGui import QDockWidget
+    from qgis.PyQt.QtWidgets import QDockWidget
     consoleWidget = iface.mainWindow().findChild(QDockWidget, 'PythonConsole')
     consoleWidget.console.shellOut.clearConsole()

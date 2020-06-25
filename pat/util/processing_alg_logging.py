@@ -19,15 +19,17 @@
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import print_function
 
+from builtins import object
 import logging
 import os
 from collections import OrderedDict
 import re
 import fnmatch
-from PyQt4.Qt import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.gui import QgsMessageBar
-from qgis.core import QgsMapLayerRegistry, QgsMessageLog
+from qgis.core import QgsProject, QgsMessageLog
 from qgis.utils import iface
 
 from pat import LOGGER_NAME
@@ -37,7 +39,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())
 
 
-class ProcessingAlgMessages:
+class ProcessingAlgMessages(object):
     def __init__(self,iface):
         self.iface = iface
         self.alg_name = ''
@@ -48,7 +50,7 @@ class ProcessingAlgMessages:
         self.error = False
         self.output_files = OrderedDict()
         self.log_file = ''
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
     def processingCatcher(self,msg, tag, level):
         """ Catch messages written to the proccessing algorithm's log and report them to the user.
