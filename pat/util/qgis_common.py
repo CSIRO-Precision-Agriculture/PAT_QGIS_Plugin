@@ -68,18 +68,18 @@ def get_UTM_Coordinate_System(x, y, epsg):
 
 def check_for_overlap(rect1, rect2, crs1='', crs2=''):
     """ Check for overlap between two rectangles.
-    Rectangles should be provided as wkt strings.
-    'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
+        Input rect format is a shapely polygon object 
+          'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
 
     if crs1 != '':
-        gdf1 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect1)]}, crs=crs1)
+        gdf1 = gpd.GeoDataFrame({'geometry': [rect1]}, crs=crs1)
     else:
-        gdf1 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect1)]})
+        gdf1 = gpd.GeoDataFrame({'geometry': [rect1]})
 
     if crs2 != '':
-        gdf2 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect2)]}, crs=crs2)
+        gdf2 = gpd.GeoDataFrame({'geometry': [rect2]}, crs=crs2)
     else:
-        gdf2 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect2)]})
+        gdf2 = gpd.GeoDataFrame({'geometry': [rect2]})
 
     return gdf1.intersects(gdf2)[0]
 

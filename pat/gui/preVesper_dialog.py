@@ -20,6 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
@@ -27,35 +29,33 @@ import traceback
 import re
 import numpy as np
 import pandas as pd
-from PyQt4.QtGui import QMessageBox, QPushButton, QIntValidator
-
-from pyprecag.describe import predictCoordinateColumnNames
 from shapely.geometry import box
 from unidecode import unidecode
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-from PyQt4 import QtCore, QtGui, uic
-from qgis.core import QgsCoordinateReferenceSystem
-from qgis.core import QgsMessageLog
-from qgis.gui import QgsGenericProjectionSelector
-from qgis.gui import QgsMessageBar
+from qgis.PyQt import QtCore, QtGui, QtWidgets, uic
+from qgis.PyQt.QtWidgets import QMessageBox, QPushButton, QApplication, QFileDialog, QDialog
+from qgis.PyQt.QtGui import QIntValidator
 
+from qgis.gui import QgsMessageBar
+from qgis.core import QgsCoordinateReferenceSystem, QgsApplication, QgsMessageLog, Qgis
+
+from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import describe, config
 from pyprecag.kriging_ops import prepare_for_vesper_krige, VesperControl
+from pyprecag.describe import predictCoordinateColumnNames
+
 from util.check_dependencies import check_vesper_dependency
 from util.custom_logging import errorCatcher, openLogPanel
 from util.settings import read_setting, write_setting
-
-from pat.util.qgis_common import check_for_overlap
+from util.qgis_common import check_for_overlap
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'preVesper_dialog_base.ui'))
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'preVesper_dialog_base.ui'))
 
 
-class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
+class PreVesperDialog(QDialog, FORM_CLASS):
     """Dialog to prepare data and run vesper kriging"""
     toolKey = 'PreVesperDialog'
 
@@ -68,28 +68,26 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         # The qgis interface
         self.iface = iface
-        self.DISP_TEMP_LAYERS = read_setting(
-            PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
+        self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python
         # error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
-        self.setWindowIcon(QtGui.QIcon(
-            ':/plugins/pat/icons/icon_vesperKriging.svg'))
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_vesperKriging.svg'))
 
-        self.validationLayout = QtGui.QFormLayout(self)
+        self.validationLayout = QtWidgets.QFormLayout(self)
         # source: https://nathanw.net/2013/08/02/death-to-the-message-box-use-the-qgis-messagebar/
         # Add the error messages to top of form via a message bar.
         # leave this message bar for bailouts
         self.messageBar = QgsMessageBar(self)
 
-        if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
+        if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and
             # cleaned up.
             self.layout().insertRow(0, self.validationLayout)
@@ -100,7 +98,6 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         # Set Class default variables -------------------------------------
         self.vesp_dict = None
-        self.in_qgscrs = None
         self.dfCSV = None
 
         # this is a validation flag
@@ -114,8 +111,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         self.vesper_exe = check_vesper_dependency()
         if self.vesper_exe is None or self.vesper_exe == '':
-            self.gbRunVesper.setTitle(
-                'WARNING:Vesper not found please configure using the about dialog.')
+            self.gbRunVesper.setTitle('WARNING:Vesper not found please configure using the about dialog.')
             self.gbRunVesper.setChecked(False)
             self.gbRunVesper.setCheckable(False)
             self.gbRunVesper.setEnabled(False)
@@ -126,7 +122,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -137,14 +133,14 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5,
                            exc_info=None, core_QGIS=False, addToLog=False, showLogPanel=False):
         """ Add a message to the forms message bar.
 
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -249,13 +245,16 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
         if inFolder is None or not os.path.exists(inFolder):
             inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(self,
-                                              caption=self.tr("Select a CSV file to krige"),
-                                              directory=inFolder,
-                                              filter='{}  (*.csv);;{}  (*.*);;'.format(
-                                                  self.tr("Comma delimited files"),
-                                                  self.tr("All Files"))
-                                              )
+        s, _f = QFileDialog.getOpenFileName(self,
+                                            caption=self.tr("Select a CSV file to krige"),
+                                            directory=inFolder,
+                                            filter='{}  (*.csv);;{}  (*.*);;'.format(
+                                                self.tr("Comma delimited files"),
+                                                self.tr("All Files"))
+                                            )
+
+        if s == '':
+            return
 
         self.cleanMessageBars(self)
         self.lneInCSVFile.clear()
@@ -268,7 +267,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             self.lneInCSVFile.setStyleSheet('color:red')
 
             self.send_to_messagebar(message,
-                                    level=QgsMessageBar.CRITICAL,
+                                    level=Qgis.Critical,
                                     duration=0, addToLog=True, showLogPanel=True,
                                     exc_info=sys.exc_info())
             return
@@ -307,11 +306,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                     break
 
         if epsg > 0:
-            self.in_qgscrs = QgsCoordinateReferenceSystem("EPSG:{}".format(epsg))
-            self.lblInCRS.setText('{}  -  {}'.format(self.in_qgscrs.description(),
-                                                     self.in_qgscrs.authid()))
-        else:
-            self.lblInCRS.setText('Unspecified')
+            self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(epsg))
 
         write_setting(PLUGIN_NAME + "/" + self.toolKey +
                       "/LastCSVFolder", os.path.dirname(s))
@@ -332,12 +327,12 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(self, caption=self.tr("Choose the Vesper Grid File"),
-                                              directory=inFolder,
-                                              filter='{}  (*_v.txt);;{}  (*.*);;'.format(
-                                                  self.tr("Vesper Grid File(s)"),
-                                                  self.tr("All Files"))
-                                              )
+        s, _f = QFileDialog.getOpenFileName(self, caption=self.tr("Choose the Vesper Grid File"),
+                                            directory=inFolder,
+                                            filter='{}  (*_v.txt);;{}  (*.*);;'.format(
+                                                self.tr("Vesper Grid File(s)"),
+                                                self.tr("All Files"))
+                                            )
 
         self.cleanMessageBars(self)
         s = os.path.normpath(s)
@@ -357,7 +352,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                               os.path.dirname(s))
         else:
             self.send_to_messagebar(message,
-                                    level=QgsMessageBar.CRITICAL,
+                                    level=Qgis.Critical,
                                     duration=0, addToLog=True, showLogPanel=True,
                                     exc_info=sys.exc_info())
 
@@ -366,23 +361,23 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
         self.lneVariogramFile.clear()
         self.messageBar.clearWidgets()
 
-        inFolder = read_setting(
-            PLUGIN_NAME + "/" + self.toolKey + "/LastVariogramFolder")
+        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVariogramFolder")
+
         if inFolder is None or not os.path.exists(inFolder):
-            inFolder = read_setting(
-                PLUGIN_NAME + "/" + self.toolKey + "/LastVariogramFolder")
+            inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVariogramFolder")
+
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(self,
-                                              caption=self.tr("Choose the Vesper Variogram File"),
-                                              directory=inFolder,
-                                              filter='{}  (*.txt);;{}  (*.*);;'.format(
-                                                  self.tr("Variogram Text File(s)"),
-                                                  self.tr("All Files"))
-                                              )
+        s, _f = QFileDialog.getOpenFileName(self, caption=self.tr("Choose the Vesper Variogram File"),
+                                            directory=inFolder,
+                                            filter='{}  (*.txt);;{}  (*.*);;'.format(
+                                                self.tr("Variogram Text File(s)"),
+                                                self.tr("All Files"))
+                                            )
 
         self.cleanMessageBars(self)
+
         if s == '':
             self.lneVariogramFile.setStyleSheet('color:red')
             self.lblVariogramFile.setStyleSheet('color:red')
@@ -391,7 +386,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
         if 'Variogram Model' not in open(s).read():
             self.lneVariogramFile.setStyleSheet('color:red')
             self.lblVariogramFile.setStyleSheet('color:red')
-            self.send_to_messagebar("Invalid Variogram File", level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar("Invalid Variogram File", level=Qgis.Critical,
                                     duration=0, addToLog=True, showLogPanel=True,
                                     exc_info=sys.exc_info())
             # self.lneVariogramFile.clear()
@@ -419,9 +414,9 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             if outFolder is None or not os.path.exists(outFolder):
                 outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        s = QtGui.QFileDialog.getExistingDirectory(self, self.tr(
+        s = QFileDialog.getExistingDirectory(self, self.tr(
             "Vesper processing folder. A Vesper sub-folder will be created."), outFolder,
-                                                   QtGui.QFileDialog.ShowDirsOnly)
+                                             QFileDialog.ShowDirsOnly)
 
         self.cleanMessageBars(self)
         if s == '' or s is None:
@@ -437,26 +432,6 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(int)
     def on_chkAutoCtrlFileName_stateChanged(self, state):
         self.updateCtrlFileName()
-
-    @QtCore.pyqtSlot(name='on_cmdInCRS_clicked')
-    def on_cmdInCRS_clicked(self):
-        self.messageBar.clearWidgets()
-
-        dlg = QgsGenericProjectionSelector(self)
-        dlg.setMessage('Select coordinate system for the Vesper raster files')
-        if dlg.exec_():
-            if dlg.selectedAuthId() != '':
-                self.in_qgscrs = QgsCoordinateReferenceSystem(dlg.selectedAuthId())
-                if self.in_qgscrs == 'Unspecified' or self.in_qgscrs == '':
-                    self.lblInCRS.setText('Unspecified')
-                    self.lblOutCRS.setText('Unspecified')
-                else:
-                    self.lblInCRS.setText('{}  -  {}'.format(self.in_qgscrs.description(),
-                                                             self.in_qgscrs.authid()))
-                    self.lblInCRS.setStyleSheet('color:black;background:transparent;')
-                    self.lblInCRSTitle.setStyleSheet('color:black')
-
-        self.cleanMessageBars(self)
 
     @QtCore.pyqtSlot(int)
     def on_cboMethod_currentIndexChanged(self, index):
@@ -511,7 +486,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
                 # only return keys required for the control file.
                 # and key in VESPER_OPTIONS.keys():
-                if isinstance(key, basestring):
+                if isinstance(key, str):
                     vario_values[key] = val
 
         return vario_values
@@ -550,6 +525,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                     grid_bbox = box(df_grid['X'].min(), df_grid['Y'].min(),
                                     df_grid['X'].max(), df_grid['Y'].max())
 
+
                 except Exception as err:
                     self.lblInGridFile.setStyleSheet('color:red')
                     self.lneInGridFile.setStyleSheet('color:red')
@@ -565,12 +541,12 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         # now we can check for overlap
 
-        if self.in_qgscrs:
-            epsg = self.in_qgscrs.authid()
+        if self.mCRSinput.crs().isValid():
+            epsg = self.mCRSinput.crs().authid()
         else:
             epsg = ''
 
-        overlaps = check_for_overlap(csv_bbox.to_wkt(), grid_bbox.to_wkt(), epsg, epsg)
+        overlaps = check_for_overlap(csv_bbox, grid_bbox, epsg, epsg)
         if not overlaps:
             message = 'There is no overlap between the VESPER Grid file and the CSV file.\n' \
                       'Please check input files and coordinate systems'
@@ -622,12 +598,10 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 self.lblInGridFile.setStyleSheet('color:black')
                 self.lneInGridFile.setStyleSheet('color:black')
 
-            if self.in_qgscrs is None:
-                self.lblInCRSTitle.setStyleSheet('color:red')
+            if not self.mCRSinput.crs().isValid():
                 self.lblInCRS.setStyleSheet('color:red;background:transparent;')
-                errorList.append(self.tr("Select a coordinate system"))
+                errorList.append(self.tr("Select a valid coordinate system"))
             else:
-                self.lblInCRSTitle.setStyleSheet('color:black')
                 self.lblInCRS.setStyleSheet('color:black;background:transparent;')
 
             pass_check, message = self.validate_csv_grid_files(self.lneInCSVFile.text(),
@@ -685,8 +659,8 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                           ' overwrite?'.format(self.lneCtrlFile.text())
 
                 reply = QMessageBox.question(
-                    self, 'Control File', message, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-                if reply == QtGui.QMessageBox.Yes:
+                    self, 'Control File', message, QMessageBox.Yes, QMessageBox.No)
+                if reply == QMessageBox.Yes:
                     self.overwrite_ctrl_file = True
                     self.lblVesperFold.setStyleSheet('color:black')
                 else:
@@ -703,7 +677,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
                     self.send_to_messagebar(
-                        unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                        str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -722,35 +696,31 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
             settingsStr += '\n    {:30}\t{}'.format('Data File:', self.lneInCSVFile.text())
-            settingsStr += '\n    {:30}\t{}'.format('Krige Column:',
-                                                    self.cboKrigColumn.currentText())
+
+            settingsStr += '\n    {:30}\t{} - {}'.format('Input Projected Coordinate System:',
+                                                         self.mCRSinput.crs().authid(),
+                                                         self.mCRSinput.crs().description())
+
+            settingsStr += '\n    {:30}\t{}'.format('Krige Column:', self.cboKrigColumn.currentText())
             settingsStr += '\n    {:30}\t{}'.format('Grid File:', self.lneInGridFile.text())
-            settingsStr += '\n    {:30}\t{}'.format('Output Vesper Folder:',
-                                                    self.lneVesperFold.text())
-            settingsStr += '\n    {:30}\t{}'.format(self.cboMethod.currentText(), '')
+            settingsStr += '\n    {:30}\t{}'.format('Output Vesper Folder:', self.lneVesperFold.text())
+
+            settingsStr += '\n    {:30}\t{}'.format('Mode:',self.cboMethod.currentText())
 
             if self.cboMethod.currentText() == 'High Density Kriging':
                 settingsStr += '\n    {:30}\t{}'.format('Block Kriging Size:',
                                                         int(self.dsbBlockKrigSize.value()))
 
             else:
-                settingsStr += '\n    {:30}\t{}'.format('Variogram File:',
-                                                        self.lneVariogramFile.text())
-                settingsStr += '\n    {:30}\t{}'.format('Min Point Number:',
-                                                        self.lneMinPoint.text())
+                settingsStr += '\n    {:30}\t{}'.format('Variogram File:', self.lneVariogramFile.text())
+                settingsStr += '\n    {:30}\t{}'.format('Min Point Number:', self.lneMinPoint.text())
 
-            settingsStr += '\n    {:30}\t{}'.format(
-                'Display Vesper Graphics:', self.chkDisplayGraphics.isChecked())
+            settingsStr += '\n    {:30}\t{}'.format('Display Vesper Graphics:', self.chkDisplayGraphics.isChecked())
 
-            settingsStr += '\n    {:30}\t{}'.format(
-                'Run Vesper Now:', self.gbRunVesper.isChecked())
+            settingsStr += '\n    {:30}\t{}'.format('Run Vesper Now:', self.gbRunVesper.isChecked())
 
             if self.gbRunVesper.isChecked():
-                settingsStr += '\n    {:30}\t{}'.format('Import Vesper Files to Rasters:',
-                                                        self.chkVesper2Raster.isChecked())
-                if self.chkVesper2Raster.isChecked():
-                    settingsStr += '\n    {:30}\t{}'.format(
-                        'Vesper Files Coordinate System:', self.lblInCRS.text())
+                settingsStr += '\n    {:30}\t{}'.format('Import Vesper Files to Rasters:',self.chkVesper2Raster.isChecked())
 
             LOGGER.info(settingsStr)
 
@@ -766,7 +736,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                 # from the variogram text file find and update the control file keys
                 vario = self.parse_variogram_file()
 
-                vesp_keys = {key: val for key, val in vario.items() if key in vc}
+                vesp_keys = {key: val for key, val in list(vario.items()) if key in vc}
                 vc.update(vesp_keys)
 
                 # apply the other keys.
@@ -776,7 +746,7 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                            'maxpts': len(self.dfCSV),
                            'jcomvar': 0,
                            })
-            epsg = int(self.in_qgscrs.authid().replace('EPSG:', ''))
+            epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
             bat_file, ctrl_file = prepare_for_vesper_krige(self.dfCSV,
                                                            self.cboKrigColumn.currentText(),
                                                            self.lneInGridFile.text(),
@@ -788,8 +758,8 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
                                                            control_options=vc)
 
             epsg = 0
-            if self.in_qgscrs is not None and self.chkVesper2Raster.isChecked():
-                epsg = int(self.in_qgscrs.authid().replace('EPSG:', ''))
+            if self.mCRSinput.crs() is not None and self.chkVesper2Raster.isChecked():
+                epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
 
             if self.gbRunVesper.isChecked():
                 # Add to vesper queue
@@ -798,16 +768,16 @@ class PreVesperDialog(QtGui.QDialog, FORM_CLASS):
             else:
                 message = 'Successfully created files for Vesper kriging. ' \
                           'The control file is {}'.format(ctrl_file)
-                self.send_to_messagebar(message, level=QgsMessageBar.SUCCESS, duration=0,
+                self.send_to_messagebar(message, level=Qgis.Success, duration=0,
                                         addToLog=True, core_QGIS=True)
                 LOGGER.info('Successfully created files for Vesper kriging')
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return super(PreVesperDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.cleanMessageBars(True)
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL, duration=0,
+            self.send_to_messagebar(str(err), level=Qgis.Critical, duration=0,
                                     addToLog=True, showLogPanel=True, exc_info=sys.exc_info())
             return False

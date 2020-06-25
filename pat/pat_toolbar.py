@@ -35,7 +35,7 @@ try:
 except ImportError:
     import configparser
 
-import datetime
+from datetime import timedelta
 import logging
 import os.path
 import shutil
@@ -64,15 +64,14 @@ from .gui.settings_dialog import SettingsDialog
 from .gui.cleanTrimPoints_wizard import CleanTrimPointsDialog
 from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
 from .gui.rasterSymbology_dialog import RasterSymbologyDialog
+from .gui.preVesper_dialog import PreVesperDialog
+from .gui.postVesper_dialog import PostVesperDialog
 
 # from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
-#from .gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
+# from .gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
 # from .gui.gridExtract_dialog import GridExtractDialog
 # from .gui.kMeansCluster_dialog import KMeansClusterDialog
 # from .gui.persistor_dialog import PersistorDialog
-
-# from .gui.postVesper_dialog import PostVesperDialog
-# from .gui.preVesper_dialog import PreVesperDialog
 # from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
 
 # from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
@@ -491,6 +490,9 @@ class pat_toolbar(object):
     def queueDisplay(self):
         """display the VESPER queue in the python console"""
 
+        if len(self.vesper_queue) == 0:
+            return
+
         # open the python console
         try:
             pythonConsolePanel = self.iface.mainWindow().findChild(QDockWidget, 'PythonConsole')
@@ -538,19 +540,19 @@ class pat_toolbar(object):
             self.iface.mainWindow().statusBar().setSizeGripEnabled(False)
             self.lblVesperQueue = QLabel()
             self.lblVesperQueue.setText('{} tasks in VESPER queue'.format(len(self.vesper_queue)))
-            self.iface.mainWindow().statusBar().insertPermanentWidget(1, self.lblVesperQueue)
+            self.iface.mainWindow().statusBar().insertPermanentWidget(0, self.lblVesperQueue)
 
             self.btnShowQueue = QToolButton()  # QToolButton() takes up less room
             self.btnShowQueue.setToolButtonStyle(Qt.ToolButtonTextOnly)
             self.btnShowQueue.setText("Show")
             self.btnShowQueue.clicked.connect(self.queueDisplay)
-            self.iface.mainWindow().statusBar().insertPermanentWidget(2, self.btnShowQueue)
+            self.iface.mainWindow().statusBar().insertPermanentWidget(1, self.btnShowQueue)
 
             self.btnClearQueue = QToolButton()  # QPushButton()
             self.btnClearQueue.setToolButtonStyle(Qt.ToolButtonTextOnly)
             self.btnClearQueue.setText("Clear")
             self.btnClearQueue.pressed.connect(self.queueClear)
-            self.iface.mainWindow().statusBar().insertPermanentWidget(3, self.btnClearQueue)
+            self.iface.mainWindow().statusBar().insertPermanentWidget(2, self.btnClearQueue)
             self.vesper_queue_showing = True
 
     def queueStatusBarHide(self):

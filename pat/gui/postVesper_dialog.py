@@ -22,17 +22,19 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
 import traceback
 
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt.QtWidgets import QPushButton, QDialog, QApplication, QFileDialog
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
-from PyQt4 import QtCore, QtGui, uic
-from qgis.core import QgsMessageLog, QgsCoordinateReferenceSystem
-from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
+from qgis.PyQt import QtCore, QtGui, uic, QtWidgets
+from qgis.core import QgsMessageLog, QgsCoordinateReferenceSystem, QgsApplication, Qgis
+from qgis.gui import QgsMessageBar
 
 from pyprecag import config
 from pyprecag.kriging_ops import vesper_text_to_raster
@@ -49,7 +51,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'postVesper_dialog_base.ui'))
 
 
-class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
+class PostVesperDialog(QDialog, FORM_CLASS):
     """A dialog for converting VESPER text file outputs to raster"""
     toolKey = 'PostVesperDialog'
 
@@ -66,7 +68,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
@@ -74,13 +76,13 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
         # Setup for validation messagebar on gui-----------------------------
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_importVesperKriging.svg'))
 
-        self.validationLayout = QtGui.QFormLayout(self)
+        self.validationLayout = QtWidgets.QFormLayout(self)
 
         # source: https://nathanw.net/2013/08/02/death-to-the-message-box-use-the-qgis-messagebar/
         # Add the error messages to top of form via a message bar.
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
 
-        if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
+        if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -99,7 +101,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -110,7 +112,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -118,7 +120,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -170,7 +172,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
         if inFolder is None or not os.path.exists(inFolder):
             inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
-        s = QtGui.QFileDialog.getOpenFileName(
+        s,_f = QFileDialog.getOpenFileName(
             self,
             caption=self.tr("Select a vesper control file to import"),
             directory=inFolder,
@@ -189,33 +191,14 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
         with open(s) as f:
             for line in f:
                 if "epsg=" in line:
-                    if line.strip().split('=') > 2:
-                        epsg = line.strip().replace("'", '').split('=')[-1]
-                        self.vesper_qgscrs = QgsCoordinateReferenceSystem("EPSG:{}".format(epsg))
-                        self.vesper_qgscrs.validate()
-                        self.lneInCRS.setText('{}  -  {}'.format(self.vesper_qgscrs.description(),
-                                                                 self.vesper_qgscrs.authid()))
+                    epsg = int(line.strip().split('=')[-1])
+                    self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(epsg))
                     break
 
-    @QtCore.pyqtSlot(name='on_cmdInCRS_clicked')
-    def on_cmdInCRS_clicked(self):
-        dlg = QgsGenericProjectionSelector(self)
-        dlg.setMessage('Select coordinate system for the input file geometry')
-        if self.vesper_qgscrs is not None:
-            dlg.setSelectedAuthId(self.vesper_qgscrs.authid())
-        if dlg.exec_():
-            if dlg.selectedAuthId() != '':  # ie clicked ok without selecting a projection
-                crs = QgsCoordinateReferenceSystem(dlg.selectedAuthId())
-                if crs == 'Unspecified' or crs == '':
-                    self.vesper_qgscrs = None
-                    self.lneInCRS.setText('Unspecified')
-                else:
-                    self.vesper_qgscrs = QgsCoordinateReferenceSystem(crs)
-                    self.vesper_qgscrs.validate()
-                    self.lneInCRS.setText(
-                        '{}  -  {}'.format(self.vesper_qgscrs.description(), self.vesper_qgscrs.authid()))
-                    self.lneInCRS.setStyleSheet('color:black;background:transparent;')
-                    self.lblInCRSTitle.setStyleSheet('color:black')
+    def on_mCRSinput_crsChanged(self):
+        self.vesper_qgscrs = self.mCRSinput.crs()
+        self.vesper_qgscrs.validate()
+
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
@@ -232,14 +215,12 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
             else:
                 self.lblInVesperCtrlFile.setStyleSheet('color:black')
 
-            if self.vesper_qgscrs is None:
+            if self.vesper_qgscrs is None or not self.vesper_qgscrs.isValid():
                 self.lblInCRSTitle.setStyleSheet('color:red')
-                self.lneInCRS.setStyleSheet('color:red;background:transparent;')
-                errorList.append(self.tr("Select coordinate system of the vesper outputs"))
+                errorList.append(self.tr("Select a valid coordinate system"))
             else:
                 self.lblInCRSTitle.setStyleSheet('color:black')
-                self.lneInCRS.setStyleSheet('color:black;background:transparent;')
-
+                
             if len(errorList) > 0:
                 raise ValueError(errorList)
 
@@ -247,7 +228,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -258,7 +239,7 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
 
         try:
             self.cleanMessageBars(True)
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
 
@@ -266,7 +247,9 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
             settingsStr = 'Parameters:---------------------------------------'
             settingsStr += '\n    {:30}\t{}'.format('Vesper Control File:', self.lneInVesperCtrlFile.text())
-            settingsStr += '\n    {:30}\t{}'.format('Coordinate System:', self.lneInCRS.text())
+            settingsStr += '\n    {:30}\t{}'.format('Coordinate System:',  self.vesper_qgscrs.authid(),
+                                                         self.vesper_qgscrs.description())
+
             settingsStr += '\n    {:30}\t{}'.format('Run Vesper', self.chkRunVesper.isChecked())
 
             LOGGER.info(settingsStr)
@@ -291,19 +274,19 @@ class PostVesperDialog(QtGui.QDialog, FORM_CLASS):
                                 rend_type=raster_sym['type'],
                                 num_classes=raster_sym['num_classes'],
                                 color_ramp=raster_sym['colour_ramp'])
-                
+
                 addRasterFileToQGIS(out_SETif, atTop=False)
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
 
             return super(PostVesperDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.cleanMessageBars(True)
             self.iface.mainWindow().statusBar().clearMessage()
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
+            self.send_to_messagebar(str(err), level=Qgis.Critical, duration=0, addToLog=True,
                                     showLogPanel=True, exc_info=sys.exc_info())
             return False  # leave dialog open
