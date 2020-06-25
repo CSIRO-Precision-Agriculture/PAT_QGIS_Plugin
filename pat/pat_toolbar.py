@@ -23,8 +23,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 from future import standard_library
 
-
-
 standard_library.install_aliases()
 
 from builtins import next
@@ -67,18 +65,15 @@ from .gui.rasterSymbology_dialog import RasterSymbologyDialog
 from .gui.preVesper_dialog import PreVesperDialog
 from .gui.postVesper_dialog import PostVesperDialog
 from .gui.rescaleNormalise_dialog import RescaleNormaliseDialog
+from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
 
 # from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 # from .gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
 # from .gui.gridExtract_dialog import GridExtractDialog
 # from .gui.kMeansCluster_dialog import KMeansClusterDialog
 # from .gui.persistor_dialog import PersistorDialog
-# from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
-
 # from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
-
 # from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
-
 # from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
 
 from .util.check_dependencies import check_vesper_dependency, check_R_dependency

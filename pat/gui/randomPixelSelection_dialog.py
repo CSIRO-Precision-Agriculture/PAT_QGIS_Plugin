@@ -19,7 +19,9 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+import re
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
@@ -27,10 +29,10 @@ import traceback
 
 import rasterio
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QDockWidget, QTabWidget, QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget, QPushButton, QApplication, QDialog
 
-from qgis.core import QgsMessageLog
+from qgis.core import QgsMessageLog, Qgis, QgsApplication, QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
 
 from pyprecag import processing, crs as pyprecag_crs
@@ -38,14 +40,13 @@ from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import removeFileFromQGIS, save_as_dialog, addVectorFileToQGIS
 from util.settings import read_setting, write_setting
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'randomPixelSelection_dialog_base.ui'))
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'randomPixelSelection_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
 
 
-class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
+class RandomPixelSelectionDialog(QDialog, FORM_CLASS):
     """create a shapefile of randomly select pixels"""
     toolKey = 'RandomPixelSelectionDialog'
 
@@ -61,16 +62,16 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui --------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), QtGui.QFormLayout):
+        if isinstance(self.layout(), QtWidgets.QFormLayout):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -78,9 +79,13 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # GUI Customisation -----------------------------------------------
+        self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_randomPixel.svg'))
 
-        if read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize") > 0:
+        last_size = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize")
+
+        if last_size is not None and int(last_size) > 0:
             self.dsbSize.setValue(read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize", int))
 
     def cleanMessageBars(self, AllBars=True):
@@ -89,7 +94,7 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -113,7 +118,7 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
                 tabWidget.setCurrentIndex(iTab)
                 break
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -121,7 +126,7 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -171,7 +176,13 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
 
-        filename = self.mcboTargetLayer.currentText() + '_{}randompts'.format(int(self.dsbSize.value()))
+        filename = self.mcboTargetLayer.currentLayer().name() + '_{}randompts'.format(int(self.dsbSize.value()))
+
+        # Only use alpha numerics and underscore and hyphens.
+        filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
+
+        # replace more than one instance of underscore with a single one.
+        filename = re.sub(r"_+", "_", filename)
 
         s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
@@ -193,7 +204,7 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             errorList = []
             targetLayer = self.mcboTargetLayer.currentLayer()
-            if targetLayer is None or self.mcboTargetLayer.currentText() == '':
+            if targetLayer is None or self.mcboTargetLayer.currentLayer().name() == '':
                 errorList.append(self.tr('Target layer is not set. Please load a raster layer into QGIS'))
 
             if self.lneSaveFile.text() == '':
@@ -212,7 +223,7 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
         except ValueError as e:
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -221,7 +232,7 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
         if not self.validate():
             return False
         try:
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize", self.dsbSize.value())
 
@@ -251,14 +262,14 @@ class RandomPixelSelectionDialog(QtGui.QDialog, FORM_CLASS):
             lyrPts = addVectorFileToQGIS(self.lneSaveFile.text(), atTop=True,
                                          layer_name=os.path.splitext(os.path.basename(self.lneSaveFile.text()))[0])
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             return super(RandomPixelSelectionDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
+            self.send_to_messagebar(str(err), level=Qgis.Critical, duration=0, addToLog=True,
                                     exc_info=sys.exc_info())
             return False  # leave dialog open
