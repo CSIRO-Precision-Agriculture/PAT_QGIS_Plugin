@@ -26,7 +26,16 @@
    <property name="verticalSpacing">
     <number>6</number>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>9</number>
+   </property>
+   <property name="topMargin">
+    <number>9</number>
+   </property>
+   <property name="rightMargin">
+    <number>9</number>
+   </property>
+   <property name="bottomMargin">
     <number>9</number>
    </property>
    <item row="0" column="0" colspan="2">
@@ -38,7 +47,16 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QFormLayout" name="formLayout_3">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <item row="4" column="0" colspan="2">
@@ -106,7 +124,16 @@
          <property name="fieldGrowthPolicy">
           <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>3</number>
+         </property>
+         <property name="topMargin">
+          <number>3</number>
+         </property>
+         <property name="rightMargin">
+          <number>3</number>
+         </property>
+         <property name="bottomMargin">
           <number>3</number>
          </property>
          <item row="0" column="0" colspan="2">
@@ -653,9 +680,6 @@ p, li { white-space: pre-wrap; }
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-          <property name="filters">
-           <set>QgsMapLayerProxyModel::PointLayer</set>
-          </property>
          </widget>
         </item>
         <item row="2" column="1">
@@ -665,9 +689,6 @@ p, li { white-space: pre-wrap; }
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
-          </property>
-          <property name="filters">
-           <set>QgsMapLayerProxyModel::RasterLayer</set>
           </property>
          </widget>
         </item>
@@ -767,11 +788,11 @@ p, li { white-space: pre-wrap; }
   </connection>
  </connections>
  <buttongroups>
+  <buttongroup name="btgrpSize"/>
   <buttongroup name="chkgrpStatistics">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
-  <buttongroup name="btgrpSize"/>
  </buttongroups>
 </ui>

@@ -111,14 +111,16 @@ def build_layer_table():
     df_layers = pd.DataFrame()
     layermap = QgsProject.instance().mapLayers()
     new_rows = []
+
     for name, layer in layermap.items():
 
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
             continue
 
-        row_dict = {'layer_name': layer.name(),
+        row_dict = {'layer': layer,
+                    'layer_name': layer.name(),
                    'layer_id': layer.id(),
-                   'layer_type': layer.type(),
+                   'layer_type': layer.type().name,
                    'source': layer.source(),
                    'epsg': layer.crs().authid(),
                    'crs_name': layer.crs().description(),
@@ -128,8 +130,7 @@ def build_layer_table():
 
         if layer.type() == QgsMapLayer.RasterLayer:
             pixel_size = get_pixel_size(layer)
-            row_dict.update({'layer_type_desc': 'RasterLayer',
-                            'bandcount': layer.bandCount(),
+            row_dict.update({'bandcount': layer.bandCount(),
                             'pixel_size': pixel_size[0],
                             'pixel_text': '{} {}'.format(*pixel_size),
                             })
