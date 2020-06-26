@@ -20,6 +20,8 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import re
@@ -32,27 +34,28 @@ from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import save_as_dialog, file_in_use
 from util.settings import read_setting, write_setting
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QTableWidgetItem, QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QPushButton, QApplication, QDialog
 
 from pyprecag import config
 from pyprecag.processing import persistor_target_probability, persistor_all_years
 
-from qgis.core import QgsMapLayerRegistry, QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, \
-    QgsUnitTypes
+from qgis.core import QgsProject, QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, \
+    QgsUnitTypes, Qgis, QgsApplication, QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
 
 from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addRasterFileToQGIS
 import util.qgis_symbology as rs
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'persistor_dialog_base.ui'))
+from pat.util.qgis_common import build_layer_table
+
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'persistor_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())
 
 
-class PersistorDialog(QtGui.QDialog, FORM_CLASS):
+class PersistorDialog(QDialog, FORM_CLASS):
     # The key used for saving settings for this dialog
     toolKey = 'PersistorDialog'
 
@@ -63,13 +66,14 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
         # Set up the user interface from Designer.
         self.setupUi(self)
         self.iface = iface
-        self.DISP_TEMP_LAYERS = read_setting(
-            PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
+        self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
+
         self.pixel_size = 0
-        # Catch and redirect python errors directed at the log messages python
-        # error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        self.layers_df = None
+
+        # Catch and redirect python errors directed at the log messages python error tab.
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
@@ -77,9 +81,9 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
         # Setup for validation messagebar on gui-----------------------------
         # leave this message bar for bailouts
         self.messageBar = QgsMessageBar(self)
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), QtGui.QFormLayout):
+        if isinstance(self.layout(), QtWidgets.QFormLayout):
             # create a validation layout so multiple messages can be added and
             # cleaned up.
             self.layout().insertRow(0, self.validationLayout)
@@ -89,8 +93,9 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)
 
         # GUI Runtime Customisation -------------------------------------------
-        self.setWindowIcon(QtGui.QIcon(
-            ':/plugins/pat/icons/icon_persistor.svg'))
+        self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_persistor.svg'))
+
+        self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
 
         self.cboMethod.addItems(['Target Probability', 'Target Over All Years'])
         self.cboMethod.setCurrentIndex(1)
@@ -107,7 +112,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             ea_tab.hideColumn(0)  # don't need to display the unique layer ID
             ea_tab.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))
             ea_tab.setHorizontalHeaderItem(1, QTableWidgetItem("0 Raster(s)"))
-            ea_tab.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
+            ea_tab.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
             ea_tab.hideColumn(0)  # don't need to display the unique layer ID
 
         self.lblPixelFilter.setText('Only process rasters with one pixel size. '
@@ -119,7 +124,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Default: True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -130,14 +135,14 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5,
                            exc_info=None, core_QGIS=False, addToLog=False, showLogPanel=False):
         """ Add a message to the forms message bar.
 
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults: QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults: Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Default: 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -184,54 +189,46 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
 
     def setMapLayers(self):
         """ Run through all loaded layers to find ones which should be excluded."""
-
-        # loop through the pick list
-        if self.cboMethod.currentText() == 'Target Over All Years':
-            tab_obj_list = [self.tabUpper]
-        else:
-            tab_obj_list = [self.tabUpper, self.tabLower]
-
-        exlayer_list = []
-        for layer in self.iface.legendInterface().layers():
-            # Only Load Raster layers with matching pixel size
-            if layer.type() != QgsMapLayer.RasterLayer:
-                continue
-
-            if layer.crs().geographicFlag():
-                ft = 'f'
-            else:
-                ft = 'g'
-
-            lyrPixelSize = format(layer.rasterUnitsPerPixelX(), ft)
-            if float(self.pixel_size) > 0 and lyrPixelSize != self.pixel_size:
-                exlayer_list.append(layer)
-                continue
-
-            # if layer is already in the table list the exclude it from the
-            # pick list to avoid duplicates.
-            in_use = [True if ea_tab.findItems(layer.id(), QtCore.Qt.MatchExactly)
-                      else False for ea_tab in tab_obj_list]
-
-            if all(in_use):
-                exlayer_list.append(layer)
-
+        
         if self.tabUpper.rowCount() == 0 and self.tabLower.rowCount() == 0:
             # reset to show all pixel sizes.
             self.mcboRasterLayer.setExceptedLayerList([])
             self.pixel_size = 0
             self.lblPixelFilter.setText('Only process rasters with one pixel size.'
                                         'Adding the first raster layer will set this pixel size')
+            
+        else: 
+        
+            # the layers already in the list 
+            used_up_layers = [self.tabUpper.item(row, 0).text() for row in range(0, self.tabUpper.rowCount())]
+            used_low_layers = [self.tabLower.item(row, 0).text() for row in range(0, self.tabLower.rowCount())]
+            
+            # loop through the pick list
+            if self.cboMethod.currentText() == 'Target Over All Years':
+                tab_obj_list = [self.tabUpper]
+                used_layers = used_up_layers
+            else:
+                tab_obj_list = [self.tabUpper, self.tabLower]
+                # get layers common to both lists.
+                used_layers = list(set(used_up_layers)&set(used_low_layers))
+            
+                    
+            if self.layers_df is None:
+                self.layers_df = build_layer_table()
+            
+            df_sub = self.layers_df[( (self.layers_df['layer_id'].isin(used_layers)) | 
+                                          (self.layers_df['pixel_size'] != self.pixel_size) ) & 
+                                          (self.layers_df['layer_type'] == 'RasterLayer')]
+                
+            if len(df_sub['layer'].tolist()) > 0:
+                self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
 
-        if sorted(exlayer_list) != sorted(self.mcboRasterLayer.exceptedLayerList()):
-            self.mcboRasterLayer.setExceptedLayerList(exlayer_list)
-
+ 
         self.tabUpper.horizontalHeader().setStyleSheet('color:black')
-        self.tabUpper.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(
-            self.tabUpper.rowCount())))
+        self.tabUpper.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabUpper.rowCount())))
 
         self.tabLower.horizontalHeader().setStyleSheet('color:black')
-        self.tabLower.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(
-            self.tabLower.rowCount())))
+        self.tabLower.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabLower.rowCount())))
 
         self.cmdAdd.setEnabled(len(self.mcboRasterLayer) > 0)
         self.cmdDel.setEnabled(self.tabUpper.rowCount() > 0)
@@ -249,13 +246,12 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             # and /or DistanceValue
             # https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
 
-            pixel_units = QgsUnitTypes.encodeUnit(
-                raster_layer.crs().mapUnits())
+            pixel_units = QgsUnitTypes.encodeUnit(raster_layer.crs().mapUnits())
 
             # Adjust for Aust/UK spelling
             pixel_units = pixel_units.replace('meters', 'metres')
 
-            if raster_layer.crs().geographicFlag():
+            if raster_layer.crs().isGeographic():
                 ft = 'f'  # this will convert 1.99348e-05 to 0.000020
             else:
                 ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
@@ -282,8 +278,8 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             # Save the id of the layer to a column used to get a layer object later on.
             # adapted from
             # https://gis.stackexchange.com/questions/165415/activating-layer-by-its-name-in-pyqgis
-            ea_tab.setItem(rowPosition, 0, QtGui.QTableWidgetItem(raster_layer.id()))
-            ea_tab.setItem(rowPosition, 1, QtGui.QTableWidgetItem(raster_layer.name()))
+            ea_tab.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(raster_layer.id()))
+            ea_tab.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(raster_layer.name()))
 
         self.setMapLayers()
 
@@ -307,11 +303,11 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             self.tabUpper.horizontalHeader().setStyleSheet('color:red')
             self.lblRasterLayer.setStyleSheet('color:red')
             self.send_to_messagebar('No raster layers to process. Please add a RASTER '
-                                    'layer into QGIS', level=QgsMessageBar.WARNING, duration=5)
+                                    'layer into QGIS', level=Qgis.Warning, duration=5)
             return
 
-        self.add_raster_to_table_list(self.mcboRasterLayer.currentLayer(),
-                                      upper=True, lower=False)
+        self.add_raster_to_table_list(self.mcboRasterLayer.currentLayer(), upper=True, lower=False)
+        
         if self.tabUpper.rowCount() >= 2:
             self.cboUpperProb.clear()
             cbo_options = ["{0:.0f}%".format(float(g) / self.tabUpper.rowCount() * 100)
@@ -319,8 +315,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
 
             self.cboUpperProb.addItems(cbo_options)
 
-            self.cboUpperProb.setCurrentIndex(
-                int(math.ceil(len(cbo_options) / 2)))
+            self.cboUpperProb.setCurrentIndex(int(math.ceil(len(cbo_options) / 2)))
 
     @QtCore.pyqtSlot(name='on_cmdAddLower_clicked')
     def on_cmdAddLower_clicked(self):
@@ -330,7 +325,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             self.lblRasterLayer.setStyleSheet('color:red')
             self.send_to_messagebar(
                 'No raster layers to process. Please add a RASTER layer into QGIS',
-                level=QgsMessageBar.WARNING, duration=5)
+                level=Qgis.Warning, duration=5)
             return
 
         self.add_raster_to_table_list(self.mcboRasterLayer.currentLayer(),
@@ -462,7 +457,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
                     self.send_to_messagebar(
-                        unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                        str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -481,17 +476,17 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
 
             # Change cursor to Wait cursor
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.iface.mainWindow().statusBar().showMessage(
                 'Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(
                 self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait.. QGIS will be locked... "
-                                    "See log panel for progress.", level=QgsMessageBar.WARNING,
+                                    "See log panel for progress.", level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
-            registry = QgsMapLayerRegistry.instance()
+            registry = QgsProject.instance()
             upper_src = [registry.mapLayer(self.tabUpper.item(row, 0).text()).source() for row in
                          range(0, self.tabUpper.rowCount())]
             upper_names = [registry.mapLayer(self.tabUpper.item(row, 0).text()).name() for row in
@@ -578,7 +573,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
 
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return super(PersistorDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
@@ -593,7 +588,7 @@ class PersistorDialog(QtGui.QDialog, FORM_CLASS):
                     err.strerror)
                 exc_info = None
 
-            self.send_to_messagebar(err_mess, level=QgsMessageBar.CRITICAL, duration=0,
+            self.send_to_messagebar(err_mess, level=Qgis.Critical, duration=0,
                                     addToLog=True, showLogPanel=True, exc_info=exc_info)
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return False  # leave dialog open

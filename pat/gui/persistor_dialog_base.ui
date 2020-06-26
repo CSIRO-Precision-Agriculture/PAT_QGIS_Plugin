@@ -90,9 +90,6 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="filters">
-             <set>QgsMapLayerProxyModel::RasterLayer</set>
-            </property>
            </widget>
           </item>
          </layout>
@@ -117,7 +114,16 @@ pixel size</string>
       <item row="1" column="0">
        <widget class="QFrame" name="fraUpper">
         <layout class="QGridLayout" name="gridLayout_10">
-         <property name="margin">
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
           <number>1</number>
          </property>
          <item row="0" column="0">
@@ -304,7 +310,16 @@ p, li { white-space: pre-wrap; }
          <enum>QFrame::NoFrame</enum>
         </property>
         <layout class="QGridLayout" name="gridLayout_11">
-         <property name="margin">
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
           <number>1</number>
          </property>
          <item row="0" column="0">
