@@ -89,8 +89,11 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
         # GUI Runtime Customisation -----------------------------------------------
         self.mcboPointsLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
-        self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboPointsLayer.setExcludedProviders(['wms'])
 
+        self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboRasterLayer.setExcludedProviders(['wms'])
+        
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_gridExtract.svg'))
 
         self.chkgrpStatistics.setExclusive(False)
@@ -186,20 +189,26 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
     def setMapLayers(self):
         """ Run through all loaded layers to find ones which should be excluded. In this case exclude geographics."""
+
         if self.layers_df is None:
             self.layers_df = build_layer_table()
         
+        self.mcboRasterLayer.setExceptedLayerList([])
+                
+        df_pts = self.layers_df[self.layers_df['layer_id']==self.mcboPointsLayer.currentLayer().id()]
+
+        used_layers = [self.tabList.item(row, 0).text() for row in range(0, self.tabList.rowCount())]
+
+        df_sub = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
+
+        # Find layers that don't overlap, have a different pixel size or have already been added.
         if self.tabList.rowCount() == 0:
-            self.mcboRasterLayer.setExceptedLayerList([])
-            
+            df_sub = df_sub[~df_sub.intersects(df_pts.unary_union)]
         else:
-            used_layers = [self.tabList.item(row, 0).text() for row in range(0, self.tabList.rowCount())]
+            df_sub = df_sub[((df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size)) |
+                        (~df_sub.intersects(df_pts.unary_union))]
             
-            df_sub = self.layers_df[( (self.layers_df['layer_id'].isin(used_layers)) | 
-                                      (self.layers_df['pixel_size'] != self.pixel_size) ) & 
-                                      (self.layers_df['layer_type'] == 'RasterLayer')]
-            
-            self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
+        self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
         
         self.tabList.horizontalHeader().setStyleSheet('color:black')
         self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabList.rowCount())))
@@ -211,6 +220,8 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             self.mcboRasterLayer.setCurrentIndex(0)
 
     def on_mcboPointsLayer_layerChanged(self):
+        self.setMapLayers()
+
         if self.mcboPointsLayer.count() == 0:
             return
 
@@ -247,10 +258,10 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             # .toAbbreviatedString()      https://www.qgis.org/api/classQgsUnitTypes.html#a7d09b9df11b6dcc2fe29928f5de296a4
             # and /or DistanceValue       https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
 
-            pixel_units = QgsUnitTypes.encodeUnit(self.mcboRasterLayer.currentLayer().crs().mapUnits())
+            pixel_units = QgsUnitTypes.toAbbreviatedString(self.mcboRasterLayer.currentLayer().crs().mapUnits())
 
-            # Adjust for Aust/UK spelling
-            pixel_units = pixel_units.replace('meters', 'metres')
+            # # Adjust for Aust/UK spelling
+            # pixel_units = pixel_units.replace('meters', 'metres')
 
             if self.mcboRasterLayer.currentLayer().crs().isGeographic():
                 ft = 'f'  # this will convert 1.99348e-05 to 0.000020

@@ -96,16 +96,17 @@ class PersistorDialog(QDialog, FORM_CLASS):
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_persistor.svg'))
 
         self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
-
+        self.mcboRasterLayer.setExcludedProviders(['wms'])
+        #self.setMapLayers()
+                
         self.cboMethod.addItems(['Target Probability', 'Target Over All Years'])
         self.cboMethod.setCurrentIndex(1)
         for ea_cbo in [self.cboAllYearTargetPerc, self.cboUpperPerc, self.cboLowerPerc]:
-            ea_cbo.addItems(['{}%'.format(ea) for ea in range(50, -55,  -5)])
+            ea_cbo.addItems(['{}%'.format(ea) for ea in range(50, -55, -5)])
 
             ea_cbo.setCurrentIndex(ea_cbo.findText('10%', QtCore.Qt.MatchFixedString))
 
-        self.cboLowerPerc.setCurrentIndex(
-            self.cboLowerPerc.findText('-10%', QtCore.Qt.MatchFixedString))
+        self.cboLowerPerc.setCurrentIndex(self.cboLowerPerc.findText('-10%', QtCore.Qt.MatchFixedString))
 
         for ea_tab in [self.tabUpper, self.tabLower]:
             ea_tab.setColumnCount(2)
@@ -189,20 +190,19 @@ class PersistorDialog(QDialog, FORM_CLASS):
 
     def setMapLayers(self):
         """ Run through all loaded layers to find ones which should be excluded."""
-        
+
         if self.tabUpper.rowCount() == 0 and self.tabLower.rowCount() == 0:
             # reset to show all pixel sizes.
             self.mcboRasterLayer.setExceptedLayerList([])
             self.pixel_size = 0
-            self.lblPixelFilter.setText('Only process rasters with one pixel size.'
+            self.lblPixelFilter.setText('Only process rasters with one pixel size. '
                                         'Adding the first raster layer will set this pixel size')
-            
-        else: 
-        
-            # the layers already in the list 
+
+        else:
+            # the layers already in the list
             used_up_layers = [self.tabUpper.item(row, 0).text() for row in range(0, self.tabUpper.rowCount())]
             used_low_layers = [self.tabLower.item(row, 0).text() for row in range(0, self.tabLower.rowCount())]
-            
+
             # loop through the pick list
             if self.cboMethod.currentText() == 'Target Over All Years':
                 tab_obj_list = [self.tabUpper]
@@ -210,20 +210,23 @@ class PersistorDialog(QDialog, FORM_CLASS):
             else:
                 tab_obj_list = [self.tabUpper, self.tabLower]
                 # get layers common to both lists.
-                used_layers = list(set(used_up_layers)&set(used_low_layers))
-            
-                    
+                used_layers = list(set(used_up_layers) & set(used_low_layers))
+
             if self.layers_df is None:
                 self.layers_df = build_layer_table()
-            
-            df_sub = self.layers_df[( (self.layers_df['layer_id'].isin(used_layers)) | 
-                                          (self.layers_df['pixel_size'] != self.pixel_size) ) & 
-                                          (self.layers_df['layer_type'] == 'RasterLayer')]
-                
+
+            # get the used layers dataframe containing geometry
+            df_used = self.layers_df[self.layers_df['layer_id'].isin(used_up_layers + used_low_layers)]
+
+            df_sub = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
+
+            # Find layers that don't overlap, have a different pixel size or have already been added (via list of layer id's).
+            df_sub = df_sub[ ( (df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size) ) |
+                                (~df_sub.intersects(df_used.unary_union))]
+
             if len(df_sub['layer'].tolist()) > 0:
                 self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
 
- 
         self.tabUpper.horizontalHeader().setStyleSheet('color:black')
         self.tabUpper.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabUpper.rowCount())))
 
@@ -246,10 +249,9 @@ class PersistorDialog(QDialog, FORM_CLASS):
             # and /or DistanceValue
             # https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
 
-            pixel_units = QgsUnitTypes.encodeUnit(raster_layer.crs().mapUnits())
-
+            pixel_units = QgsUnitTypes.toAbbreviatedString(raster_layer.crs().mapUnits())
             # Adjust for Aust/UK spelling
-            pixel_units = pixel_units.replace('meters', 'metres')
+            # pixel_units = pixel_units.replace('meters', 'metres')
 
             if raster_layer.crs().isGeographic():
                 ft = 'f'  # this will convert 1.99348e-05 to 0.000020
@@ -307,7 +309,7 @@ class PersistorDialog(QDialog, FORM_CLASS):
             return
 
         self.add_raster_to_table_list(self.mcboRasterLayer.currentLayer(), upper=True, lower=False)
-        
+
         if self.tabUpper.rowCount() >= 2:
             self.cboUpperProb.clear()
             cbo_options = ["{0:.0f}%".format(float(g) / self.tabUpper.rowCount() * 100)
@@ -357,10 +359,19 @@ class PersistorDialog(QDialog, FORM_CLASS):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
         if self.cboMethod.currentText() == 'Target Over All Years':
-            filename = 'persistor_allyears.tif'
+            if self.optGreaterThan.isChecked():
+                result_operator = 'gt'
+            else: 
+                result_operator = 'lt'
+            
+            filename = 'persistor_allyears_{}{}'.format(result_operator,self.cboAllYearTargetPerc.currentText())
         else:
-            filename = 'persistor_targetprob.tif'
-
+            filename = 'persistor_targetprob_{}gte{}_{}lt{}'.format(self.cboUpperProb.currentText(),self.cboUpperPerc.currentText(),
+                                                                       self.cboLowerProb.currentText(),self.cboLowerPerc.currentText())
+ 
+        # Only use alpha numerics and underscore and hyphens.
+        filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
+        
         # replace more than one instance of underscore with a single one.
         # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
         filename = re.sub(r"_+", "_", filename)
@@ -564,7 +575,7 @@ class PersistorDialog(QDialog, FORM_CLASS):
                 raster_sym = rs.RASTER_SYMBOLOGY['Persistor - All Years']
 
             rasterLyr = addRasterFileToQGIS(self.lneSaveFile.text(), atTop=False)
-            rs.raster_apply_unique_value_renderer(rasterLyr,1,
+            rs.raster_apply_unique_value_renderer(rasterLyr, 1,
                                                   color_ramp=raster_sym['colour_ramp'],
                                                   invert=raster_sym['invert'])
 

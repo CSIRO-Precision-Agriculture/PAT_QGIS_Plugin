@@ -36,7 +36,8 @@ from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
 from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsProject, QgsRasterLayer,
-                       QgsFeature, QgsField, QgsProject, QgsUnitTypes, Qgis, QgsCoordinateReferenceSystem)
+                       QgsFeature, QgsField, QgsProject, QgsUnitTypes, Qgis, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform)
 
 from pat import LOGGER_NAME
 
@@ -45,14 +46,14 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
 from pyprecag import crs
 
+
 def get_UTM_Coordinate_System(x, y, epsg):
     """ Determine a utm coordinate system either from coordinates"""
 
     if isinstance(epsg, six.string_types):
-        epsg = int(epsg.upper().replace('EPSG:',''))
+        epsg = int(epsg.upper().replace('EPSG:', ''))
 
-
-    utm_crs = crs.getProjectedCRSForXY (x,y,epsg)
+    utm_crs = crs.getProjectedCRSForXY (x, y, epsg)
 
     if utm_crs is not None:
         out_crs = QgsCoordinateReferenceSystem().fromEpsgId(utm_crs.epsg_number)
@@ -68,7 +69,7 @@ def get_UTM_Coordinate_System(x, y, epsg):
 
 def check_for_overlap(rect1, rect2, crs1='', crs2=''):
     """ Check for overlap between two rectangles.
-        Input rect format is a shapely polygon object 
+        Input rect format is a shapely polygon object
           'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
 
     if crs1 != '':
@@ -106,44 +107,61 @@ def get_pixel_size(layer):
 
 def build_layer_table():
     """Build a table of layer properties.
-    Can be used inconjuction with selecting layers to exclude from mapcomboboxes
+    Can be used in conjunction with selecting layers to exclude from mapcomboboxes
     """
-    df_layers = pd.DataFrame()
+    gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source',
+                                          'epsg', 'crs_name', 'is_projected', 'extent', 'provider',
+                                          'geometry'], geometry='geometry')  # pd.DataFrame()
+    
     layermap = QgsProject.instance().mapLayers()
     new_rows = []
 
-    for name, layer in layermap.items():
+    dest_crs = QgsProject.instance().crs()
 
+    for name, layer in layermap.items():
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
             continue
 
+        if layer.providerType() not in ['ogr','gdal','delimitedtext']:
+            continue
+        
+        # project the bounding box extents to be the same as the qgis project.
+        transform = QgsCoordinateTransform(layer.crs(), dest_crs, QgsProject.instance())
+        prj_ext  = transform.transformBoundingBox(layer.extent())
+
         row_dict = {'layer': layer,
                     'layer_name': layer.name(),
-                   'layer_id': layer.id(),
-                   'layer_type': layer.type().name,
-                   'source': layer.source(),
-                   'epsg': layer.crs().authid(),
-                   'crs_name': layer.crs().description(),
-                   'is_projected': not layer.crs().isGeographic(),
-                   'extent': layer.extent().asWktPolygon(),
-                   'provider': layer.providerType()}
+                    'layer_id': layer.id(),
+                    'layer_type': layer.type().name,
+                    'source': layer.source(),
+                    'epsg': layer.crs().authid(),
+                    'crs_name': layer.crs().description(),
+                    'is_projected': not layer.crs().isGeographic(),
+                    'extent': prj_ext.asWktPolygon(),
+                    'provider': layer.providerType(),
+                    'geometry': wkt.loads(prj_ext.asWktPolygon())}
 
         if layer.type() == QgsMapLayer.RasterLayer:
             pixel_size = get_pixel_size(layer)
             row_dict.update({'bandcount': layer.bandCount(),
-                            'pixel_size': pixel_size[0],
-                            'pixel_text': '{} {}'.format(*pixel_size),
+                             'pixel_size': pixel_size[0],
+                             'pixel_text': '{} {}'.format(*pixel_size),
                             })
         new_rows.append(row_dict)
 
+#    gdf_layers = gpd.GeoDataFrame(new_rows, geometry='extent')
+
     if len(new_rows) == 0:
-        return df_layers
+        return gdf_layers
+
     # for pandas 0.23.4 add sort=False to prevent row and column orders to change.
     try:
-        df_layers = df_layers.append(new_rows, ignore_index=True, sort=False)
+        gdf_layers = gdf_layers.append(new_rows, ignore_index=True, sort=False)
     except:
-        df_layers = df_layers.append(new_rows, ignore_index=True)
-    return df_layers
+        gdf_layers = gdf_layers.append(new_rows, ignore_index=True)
+
+    #df_layers.set_geometry('geometry')
+    return gdf_layers
 
 
 def save_as_dialog(dialog, caption, file_filter, default_name=''):
@@ -408,8 +426,7 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
         attr.append(eaFld)
 
     if len(invalid_fields) > 0:
-        LOGGER.warning(
-            '{} fieldnames are not ESRI Compatible. Renaming...'.format(len(invalid_fields)))
+        LOGGER.warning('{} fieldnames are not ESRI Compatible. Renaming...'.format(len(invalid_fields)))
 
         for i, ea in enumerate(invalid_fields):
             LOGGER.warning(ea)
