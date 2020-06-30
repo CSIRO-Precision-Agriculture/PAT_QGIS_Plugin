@@ -601,7 +601,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         self.tvwSample.setModel(model)
 
         # #https://centaurialpha.github.io/resize-qheaderview-to-contents-and-interactive
-        #self.tvwSample.horizontalHeader().setResizeMode(QHeaderView.ResizeToContents)
+        self.tvwSample.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         
         # get numeric fields
         #df.select_dtypes(include=np.number).columns.tolist()
