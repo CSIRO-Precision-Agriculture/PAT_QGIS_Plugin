@@ -99,13 +99,14 @@ def classFactory(iface):
     LOGGER.addHandler(logging.NullHandler())   # logging.StreamHandler()
 
     from .util.check_dependencies import (check_pat_symbols, check_R_dependency,check_gdal_dependency,
-                                          check_python_dependencies, check_vesper_dependency, get_plugin_version)
+                                          check_python_dependencies, check_vesper_dependency)
 
     meta_version = pluginMetadata('pat','version')
-    plugin_state = 'PAT Plugin:\n'
+    plugin_state = '\nPAT Plugin:\n'
     plugin_state += '    {:25}\t{}\n'.format('QGIS Version:', Qgis.QGIS_VERSION)
     plugin_state += '    {:25}\t{}\n'.format('Python Version:',  sys.version)
-    plugin_state += '    {:25}\t{}\n'.format('PAT Version:', meta_version)
+    plugin_state += '    {:25}\t{} {}'.format('PAT:', pluginMetadata('pat', 'version'),
+                                                        pluginMetadata('pat', 'update_date'))
     LOGGER.info(plugin_state)
 
     gdal_ver = check_gdal_dependency()
