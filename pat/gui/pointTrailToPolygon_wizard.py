@@ -243,8 +243,6 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
         self.lneInCSVFile.setEnabled(self.optFile.isChecked())
         self.cmdInFile.setEnabled(self.optFile.isChecked())
 
-
-
     def on_mcboTargetLayer_layerChanged(self):
         if not self.mcboTargetLayer.currentLayer():
             return
@@ -265,7 +263,8 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(name="on_mgbPreviewTable_collapsedStateChanged")
     def on_mgbPreviewTable_collapsedStateChanged(self):
-        print('aaa',self.mgbPreviewTable.isCollapsed())
+        #self.mgbPreviewTable.isCollapsed()
+        pass
 
     @QtCore.pyqtSlot(int)
     def on_chkAutoCRS_stateChanged(self, state):
@@ -350,7 +349,6 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
         if s == '':
             return
 
-
         self.lneInCSVFile.setText(s)
 
     @QtCore.pyqtSlot(int)
@@ -382,7 +380,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
         except:
             self.crs = None
 
-        print(projSelector.crs().authid() + projSelector.crs().description())
+        #print(projSelector.crs().authid() + projSelector.crs().description())
 
 
     @QtCore.pyqtSlot(name='on_cmdSavePolyFile_clicked')
@@ -580,7 +578,8 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(name="on_mgbPreviewTable_collapsedStateChanged")
     def on_mgbPreviewTable_collapsedStateChanged(self):
-        print('aaa', self.mgbPreviewTable.isCollapsed())
+        #self.mgbPreviewTable.isCollapsed()
+        pass
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
@@ -838,7 +837,6 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                                                              self.mCRSoutput.crs().authid(),
                                                              d=str(timedelta(seconds=time.time() - stepTime))))
 
-
                 if self.DEBUG:
                     filePoints = os.path.join(TEMPDIR, os.path.basename(self.lneSavePolyFile.text().replace('.csv', '_ptsprj.shp')))
 
@@ -860,7 +858,6 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                                                                 aggregate_dist_m=self.dsbAggregateDist.value(),
                                                                 buffer_dist_m=self.dsbBufferDist.value(),
                                                                 shrink_dist_m=self.dsbShrinkDist.value())
-
 
             addVectorFileToQGIS(self.lneSavePolyFile.text(), atTop=True)
 

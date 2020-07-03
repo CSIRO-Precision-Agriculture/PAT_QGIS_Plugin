@@ -97,12 +97,13 @@ def get_pixel_size(layer):
     else:
         ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
 
-    pixel_units = QgsUnitTypes.encodeUnit(layer.crs().mapUnits())
+    pixel_units = QgsUnitTypes.toAbbreviatedString(layer.crs().mapUnits())
+    
     # Adjust for Aust/UK spelling
-    pixel_units = pixel_units.replace('meters', 'metres')
+    #pixel_units = pixel_units.replace('meters', 'metres')
     pixel_size = format(layer.rasterUnitsPerPixelX(), ft)
 
-    return pixel_size, pixel_units
+    return pixel_size, pixel_units, ft
 
 
 def build_layer_table():
@@ -124,28 +125,47 @@ def build_layer_table():
 
         if layer.providerType() not in ['ogr','gdal','delimitedtext']:
             continue
+
+        if layer.crs().isValid() and layer.crs().authid() == '':
+            # Try and convert older style coordinates systems
+            # were correctly definied in QGIS 2 as GDA94 / MGA zone 54 
+            # but get interpreted in QGIS 3 as  Unknown CRS: BOUNDCRS[SOURCECRS[PROJCRS["GDA94 / MGA zone 54",.....
+            
+            layer_crs = QgsCoordinateReferenceSystem()
+            if not layer_crs.createFromProj(layer.crs().toWkt()):
+                #print('Could not match a coordinate system for {}'.format(layer.id()))
+                layer_crs = layer.crs()
+                
+                # could apply to the layer, but what if it's wrong....
+                #layer.setCrs(layer_crs)
+            
+        else: 
+            layer_crs = layer.crs()
         
         # project the bounding box extents to be the same as the qgis project.
-        transform = QgsCoordinateTransform(layer.crs(), dest_crs, QgsProject.instance())
-        prj_ext  = transform.transformBoundingBox(layer.extent())
+        if layer_crs.authid() != dest_crs.authid():
+            transform = QgsCoordinateTransform(layer_crs, dest_crs, QgsProject.instance())
+            prj_ext  = transform.transformBoundingBox(layer.extent())
+        else:
+            prj_ext  = layer.extent()
 
         row_dict = {'layer': layer,
                     'layer_name': layer.name(),
                     'layer_id': layer.id(),
                     'layer_type': layer.type().name,
                     'source': layer.source(),
-                    'epsg': layer.crs().authid(),
-                    'crs_name': layer.crs().description(),
-                    'is_projected': not layer.crs().isGeographic(),
+                    'epsg': layer_crs.authid(),
+                    'crs_name': layer_crs.description(),
+                    'is_projected': not layer_crs.isGeographic(),
                     'extent': prj_ext.asWktPolygon(),
                     'provider': layer.providerType(),
                     'geometry': wkt.loads(prj_ext.asWktPolygon())}
 
         if layer.type() == QgsMapLayer.RasterLayer:
-            pixel_size = get_pixel_size(layer)
+            pixel_size, pixel_units,_f= get_pixel_size(layer)
             row_dict.update({'bandcount': layer.bandCount(),
-                             'pixel_size': pixel_size[0],
-                             'pixel_text': '{} {}'.format(*pixel_size),
+                             'pixel_size': pixel_size,
+                             'pixel_text': '{} {}'.format(pixel_size, pixel_units),
                             })
         new_rows.append(row_dict)
 

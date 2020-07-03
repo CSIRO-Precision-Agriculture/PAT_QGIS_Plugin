@@ -46,7 +46,7 @@ from qgis.gui import QgsMessageBar
 
 from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS
 
-from pat.util.qgis_common import build_layer_table
+from pat.util.qgis_common import build_layer_table, get_pixel_size
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gridextract_dialog_base.ui'))
@@ -69,6 +69,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
         self.layers_df = None
+        self.pixel_size = ['0', 'm', '']
 
         # Catch and redirect python errors directed at the log messages python error tab.
         QgsApplication.messageLog().messageReceived.connect(errorCatcher)
@@ -93,6 +94,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
         self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mcboRasterLayer.setExcludedProviders(['wms'])
+        self.setMapLayers()
         
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_gridExtract.svg'))
 
@@ -104,10 +106,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         self.tabList.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
 
         self.tabList.hideColumn(0)  # don't need to display the unique layer ID
-        self.pixel_size = 0
-
-        self.lblPixelFilter.setText('Only process rasters with one pixel size. '
-                                    'Adding the first raster layer will set this pixel size')
+        self.pixel_size = ['0', 'm', '']
 
         self.statsMapping = {'mean': np.nanmean,
                              'minimum': np.nanmin,
@@ -189,6 +188,8 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
     def setMapLayers(self):
         """ Run through all loaded layers to find ones which should be excluded. In this case exclude geographics."""
+        if self.mcboPointsLayer.count() == 0:
+            return
 
         if self.layers_df is None:
             self.layers_df = build_layer_table()
@@ -205,13 +206,14 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         if self.tabList.rowCount() == 0:
             df_sub = df_sub[~df_sub.intersects(df_pts.unary_union)]
         else:
-            df_sub = df_sub[((df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size)) |
+            df_sub = df_sub[((df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size[0])) |
                         (~df_sub.intersects(df_pts.unary_union))]
             
         self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
         
         self.tabList.horizontalHeader().setStyleSheet('color:black')
-        self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabList.rowCount())))
+        self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s) with {}{} pixels".format(
+                                                                    self.tabList.rowCount(),*self.pixel_size[:2])))
  
         
         if self.mcboRasterLayer.currentIndex() > 0:
@@ -220,11 +222,12 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             self.mcboRasterLayer.setCurrentIndex(0)
 
     def on_mcboPointsLayer_layerChanged(self):
-        self.setMapLayers()
+
 
         if self.mcboPointsLayer.count() == 0:
             return
 
+        self.setMapLayers()
         lyrTarget = self.mcboPointsLayer.currentLayer()
 
         if lyrTarget.selectedFeatureCount() > 0:
@@ -253,29 +256,12 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         self.tabList.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().name()))
 
         if rowPosition == 0:
-            # get the pixel units from the coordinate systems as a string  ie degrees, metres etc.
-            # for QGIS 3  see the following functions
-            # .toAbbreviatedString()      https://www.qgis.org/api/classQgsUnitTypes.html#a7d09b9df11b6dcc2fe29928f5de296a4
-            # and /or DistanceValue       https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
-
-            pixel_units = QgsUnitTypes.toAbbreviatedString(self.mcboRasterLayer.currentLayer().crs().mapUnits())
-
-            # # Adjust for Aust/UK spelling
-            # pixel_units = pixel_units.replace('meters', 'metres')
-
-            if self.mcboRasterLayer.currentLayer().crs().isGeographic():
-                ft = 'f'  # this will convert 1.99348e-05 to 0.000020
-            else:
-                ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
-
-            self.pixel_size = format(self.mcboRasterLayer.currentLayer().rasterUnitsPerPixelX(), ft)
-            self.lblPixelFilter.setText(
-                'Only allow processing of rasters with a pixel size of {} {}'.format(self.pixel_size, pixel_units))
+            self.pixel_size = get_pixel_size(self.mcboRasterLayer.currentLayer())
 
             if not self.mcboRasterLayer.currentLayer().crs().isGeographic():
                 for obj in [self.opt3x3, self.opt5x5, self.opt7x7, self.opt9x9]:
-                    pixel_len = format(float(self.pixel_size) * float(obj.text()[0]), ft)
-                    obj.setText('{0} ({1}x{1}{2})'.format(obj.text(), pixel_len, pixel_units[0]))
+                    pixel_len = format(float(self.pixel_size[0]) * float(obj.text()[0]), self.pixel_size[2])
+                    obj.setText('{0} ({1}x{1}{2})'.format(obj.text(), pixel_len,  self.pixel_size[1]))
 
         # remove layer from picklist.
         self.setMapLayers()
@@ -295,9 +281,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         if self.tabList.rowCount() == 0:
             # reset to show all pixel sizes.
             self.mcboRasterLayer.setExceptedLayerList([])
-            self.pixel_size = 0
-            self.lblPixelFilter.setText('Only process rasters with one pixel size. '
-                                        'Adding the first raster layer will set this pixel size')
+            self.pixel_size = ['0','','']
 
             for obj in [self.opt3x3, self.opt5x5, self.opt7x7, self.opt9x9]:
                 obj.setText('{0}'.format(obj.text()[:3]))

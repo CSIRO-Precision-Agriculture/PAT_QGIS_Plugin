@@ -47,7 +47,7 @@ from qgis.gui import QgsMessageBar
 from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addRasterFileToQGIS
 import util.qgis_symbology as rs
 
-from pat.util.qgis_common import build_layer_table
+from pat.util.qgis_common import build_layer_table, get_pixel_size
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'persistor_dialog_base.ui'))
 
@@ -69,7 +69,8 @@ class PersistorDialog(QDialog, FORM_CLASS):
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
 
-        self.pixel_size = 0
+        self.pixel_size = ['0','m','']
+
         self.layers_df = None
 
         # Catch and redirect python errors directed at the log messages python error tab.
@@ -115,9 +116,6 @@ class PersistorDialog(QDialog, FORM_CLASS):
             ea_tab.setHorizontalHeaderItem(1, QTableWidgetItem("0 Raster(s)"))
             ea_tab.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
             ea_tab.hideColumn(0)  # don't need to display the unique layer ID
-
-        self.lblPixelFilter.setText('Only process rasters with one pixel size. '
-                                    'Adding the first raster layer will set this pixel size')
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -194,9 +192,8 @@ class PersistorDialog(QDialog, FORM_CLASS):
         if self.tabUpper.rowCount() == 0 and self.tabLower.rowCount() == 0:
             # reset to show all pixel sizes.
             self.mcboRasterLayer.setExceptedLayerList([])
-            self.pixel_size = 0
-            self.lblPixelFilter.setText('Only process rasters with one pixel size. '
-                                        'Adding the first raster layer will set this pixel size')
+            self.pixel_size =  ['0','m','']
+
 
         else:
             # the layers already in the list
@@ -221,14 +218,17 @@ class PersistorDialog(QDialog, FORM_CLASS):
             df_sub = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
 
             # Find layers that don't overlap, have a different pixel size or have already been added (via list of layer id's).
-            df_sub = df_sub[ ( (df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size) ) |
-                                (~df_sub.intersects(df_used.unary_union))]
+            df_sub = df_sub[( (df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size[0]) ) |
+                               (~df_sub.intersects(df_used.unary_union))]
 
             if len(df_sub['layer'].tolist()) > 0:
                 self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
 
         self.tabUpper.horizontalHeader().setStyleSheet('color:black')
-        self.tabUpper.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabUpper.rowCount())))
+        if self.tabUpper.rowCount() == 0:
+            self.tabUpper.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabUpper.rowCount())))
+        else:
+            self.tabUpper.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s) with {}{} pixels".format(self.tabUpper.rowCount(),*self.pixel_size[:2])))
 
         self.tabLower.horizontalHeader().setStyleSheet('color:black')
         self.tabLower.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabLower.rowCount())))
@@ -240,27 +240,12 @@ class PersistorDialog(QDialog, FORM_CLASS):
         self.cmdDelLower.setEnabled(self.tabLower.rowCount() > 0)
 
     def add_raster_to_table_list(self, raster_layer, upper=False, lower=False):
-        if self.pixel_size == 0 and raster_layer is not None:
+        if self.pixel_size[0] == '0' and raster_layer is not None:
 
-            # get the pixel units from the coordinate systems as a string  ie degrees, metres etc.
-            # for QGIS 3  see the following functions
-            # https://www.qgis.org/api/classQgsUnitTypes.html#a7d09b9df11b6dcc2fe29928f5de296a4
-            # .toAbbreviatedString()
-            # and /or DistanceValue
-            # https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
+            self.pixel_size = get_pixel_size(self.mcboRasterLayer.currentLayer())
 
-            pixel_units = QgsUnitTypes.toAbbreviatedString(raster_layer.crs().mapUnits())
-            # Adjust for Aust/UK spelling
-            # pixel_units = pixel_units.replace('meters', 'metres')
 
-            if raster_layer.crs().isGeographic():
-                ft = 'f'  # this will convert 1.99348e-05 to 0.000020
-            else:
-                ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
-
-            self.pixel_size = format(raster_layer.rasterUnitsPerPixelX(), ft)
-            self.lblPixelFilter.setText('Only allow processing of rasters with a pixel size '
-                                        'of {} {}'.format(self.pixel_size, pixel_units))
+            #                            'of {} {}'.format(*self.pixel_size[:2]))
 
         # get list of objects to update
         tab_obj_list = []

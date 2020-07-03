@@ -419,7 +419,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         except:
             self.crs = None
 
-        print(projSelector.crs().authid() + projSelector.crs().description())
+        #print(projSelector.crs().authid() + projSelector.crs().description())
 
 
     @QtCore.pyqtSlot(name='on_cmdSaveCSVFile_clicked')
