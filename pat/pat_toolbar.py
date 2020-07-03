@@ -68,9 +68,9 @@ from .gui.rescaleNormalise_dialog import RescaleNormaliseDialog
 from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
 from .gui.gridExtract_dialog import GridExtractDialog
 from .gui.persistor_dialog import PersistorDialog
+from .gui.kMeansCluster_dialog import KMeansClusterDialog
 
 # from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
-# from .gui.kMeansCluster_dialog import KMeansClusterDialog
 # from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 # from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
 # from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
