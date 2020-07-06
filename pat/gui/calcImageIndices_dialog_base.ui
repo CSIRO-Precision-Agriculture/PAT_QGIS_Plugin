@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>651</width>
-    <height>471</height>
+    <height>478</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -68,7 +68,16 @@
       <enum>QFrame::Plain</enum>
      </property>
      <layout class="QGridLayout" name="gridLayout_7">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>1</number>
+      </property>
+      <property name="topMargin">
+       <number>1</number>
+      </property>
+      <property name="rightMargin">
+       <number>1</number>
+      </property>
+      <property name="bottomMargin">
        <number>1</number>
       </property>
       <item row="0" column="0">
@@ -95,10 +104,11 @@
             </size>
            </property>
            <property name="text">
-            <string>Select image:</string>
+            <string>Select image: 
+(2 or more bands)</string>
            </property>
            <property name="wordWrap">
-            <bool>false</bool>
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -119,8 +129,8 @@
              <height>20</height>
             </size>
            </property>
-           <property name="filters">
-            <set>QgsMapLayerProxyModel::RasterLayer</set>
+           <property name="showCrs">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -149,31 +159,6 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QSpinBox" name="spnNoDataVal">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>147</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="minimum">
-            <number>-9999</number>
-           </property>
-           <property name="maximum">
-            <number>9999</number>
-           </property>
-           <property name="value">
-            <number>0</number>
-           </property>
-          </widget>
-         </item>
          <item row="1" column="2">
           <spacer name="horizontalSpacer">
            <property name="orientation">
@@ -187,12 +172,15 @@
            </property>
           </spacer>
          </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="lneNoDataVal"/>
+         </item>
         </layout>
         <zorder>mcboRasterLayer</zorder>
         <zorder>lblRasterLayer</zorder>
-        <zorder>spnNoDataVal</zorder>
         <zorder>lblNoDataVal</zorder>
         <zorder>horizontalSpacer</zorder>
+        <zorder>lneNoDataVal</zorder>
        </widget>
       </item>
       <item row="1" column="0">
@@ -226,8 +214,8 @@ boundary</string>
              <height>20</height>
             </size>
            </property>
-           <property name="filters">
-            <set>QgsMapLayerProxyModel::PolygonLayer</set>
+           <property name="allowEmptyLayer">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -298,8 +286,8 @@ boundary</string>
              <height>20</height>
             </size>
            </property>
-           <property name="filters">
-            <set>QgsFieldProxyModel::Double|QgsFieldProxyModel::Int|QgsFieldProxyModel::LongLong|QgsFieldProxyModel::Numeric|QgsFieldProxyModel::String</set>
+           <property name="allowEmptyFieldName">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -309,7 +297,16 @@ boundary</string>
       <item row="2" column="0">
        <widget class="QFrame" name="fraPixel">
         <layout class="QGridLayout" name="gridLayout_5">
-         <property name="margin">
+         <property name="leftMargin">
+          <number>9</number>
+         </property>
+         <property name="topMargin">
+          <number>9</number>
+         </property>
+         <property name="rightMargin">
+          <number>9</number>
+         </property>
+         <property name="bottomMargin">
           <number>9</number>
          </property>
          <item row="0" column="0">
@@ -782,22 +779,6 @@ boundary</string>
       <item row="4" column="0">
        <widget class="QFrame" name="fraOutputs">
         <layout class="QGridLayout" name="gridLayout_4">
-         <item row="0" column="3">
-          <widget class="QPushButton" name="cmdOutCRS">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string>Select</string>
-           </property>
-          </widget>
-         </item>
          <item row="1" column="3">
           <widget class="QPushButton" name="cmdOutputFolder">
            <property name="sizePolicy">
@@ -847,43 +828,6 @@ boundary</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="lblOutCRS">
-           <property name="enabled">
-            <bool>true</bool>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>20</height>
-            </size>
-           </property>
-           <property name="baseSize">
-            <size>
-             <width>213</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="frameShape">
-            <enum>QFrame::Box</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Sunken</enum>
-           </property>
-           <property name="text">
-            <string>Unspecified</string>
-           </property>
-           <property name="wordWrap">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
          <item row="1" column="1" colspan="2">
           <widget class="QLineEdit" name="lneOutputFolder">
            <property name="sizePolicy">
@@ -903,12 +847,24 @@ boundary</string>
            </property>
           </widget>
          </item>
+         <item row="0" column="1" colspan="3">
+          <widget class="QgsProjectionSelectionWidget" name="mCRSoutput"/>
+         </item>
         </layout>
        </widget>
       </item>
       <item row="5" column="0">
        <layout class="QGridLayout" name="gridLayout_6">
-        <property name="margin">
+        <property name="leftMargin">
+         <number>9</number>
+        </property>
+        <property name="topMargin">
+         <number>9</number>
+        </property>
+        <property name="rightMargin">
+         <number>9</number>
+        </property>
+        <property name="bottomMargin">
          <number>9</number>
         </property>
         <item row="0" column="0">
@@ -962,6 +918,11 @@ boundary</string>
    <class>QgsMapLayerComboBox</class>
    <extends>QComboBox</extends>
    <header>qgsmaplayercombobox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QgsProjectionSelectionWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsprojectionselectionwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

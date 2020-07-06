@@ -21,6 +21,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
@@ -36,23 +38,24 @@ from util.qgis_symbology import RASTER_SYMBOLOGY, raster_apply_classified_render
 from pyprecag import config, crs
 from pyprecag.bandops import BandMapping, CalculateIndices
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QPushButton, QDialog, QFileDialog, QApplication
 
-from qgis.core import (QgsMapLayerRegistry, QgsMapLayer, QgsMessageLog,
-                       QgsVectorFileWriter, QgsCoordinateReferenceSystem)
-from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
+from qgis.core import (QgsProject, QgsMapLayer, QgsMessageLog,
+                       QgsVectorFileWriter, QgsCoordinateReferenceSystem, Qgis, QgsApplication, QgsMapLayerProxyModel)
+from qgis.gui import QgsMessageBar
 
 from pyprecag.processing import calc_indices_for_block
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'calcImageIndices_dialog_base.ui'))
+from pat.util.qgis_common import get_UTM_Coordinate_System, build_layer_table
+
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'calcImageIndices_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
 
 
-class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
+class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     """Calculate image indices for blocks """
     toolKey = 'CalculateImageIndicesDialog'
 
@@ -67,16 +70,16 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
+        if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -84,21 +87,27 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         self.band_mapping = BandMapping()
-        self.outQgsCRS = None
-
-        self.chkgrpIndices.setExclusive(False)  # allow for multi selection
-        self.exclude_map_layers()
-        self.updateRaster()
-        self.updateUseSelected()
-        self.autoSetCoordinateSystem()
 
         # GUI Runtime Customisation -----------------------------------------------
+        self.mcboPolygonLayer.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.mcboPolygonLayer.setExcludedProviders(['wms'])
+        self.mcboPolygonLayer.setLayer(None)
+               
+        self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboRasterLayer.setExcludedProviders(['wms'])
+        
+        rastlyrs_df = build_layer_table([self.mcboRasterLayer.layer(i) for i in range(self.mcboRasterLayer.count())])
+        exc_lyrs = rastlyrs_df[rastlyrs_df['bandcount']<=1]
+        self.mcboRasterLayer.setExceptedLayerList(exc_lyrs['layer'].tolist())
+        
+        self.updateRaster()
+      
         self.chkAddToDisplay.setChecked(False)
         # self.chkAddToDisplay.hide()
-
-        self.add_blank_field_to_cbo()
+        self.chkgrpIndices.setExclusive(False)  # allow for multi selection
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_calcImgIndices.svg'))
+        
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -106,7 +115,7 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -117,7 +126,7 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -125,7 +134,7 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -169,41 +178,19 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             else:  # INFO = 0
                 LOGGER.info(message)
 
-    def exclude_map_layers(self):
-        """ Run through all loaded layers to find ones which should be excluded. In this case exclude services."""
-
-        exVlayer_list = []
-        exRlayer_list = []
-        for layer in self.iface.legendInterface().layers():
-            if layer.type() == QgsMapLayer.RasterLayer:
-                if layer.providerType() != 'gdal':
-                    exRlayer_list.append(layer)
-                if layer.bandCount() < 2:
-                    exRlayer_list.append(layer)
-
-            elif layer.type() == QgsMapLayer.VectorLayer:
-                if layer.providerType() != 'ogr':
-                    exVlayer_list.append(layer)
-
-        if len(exRlayer_list) > 0:
-            self.mcboRasterLayer.setExceptedLayerList(exRlayer_list)
-
-        if len(exVlayer_list) > 0:
-            self.mcboPolygonLayer.setExceptedLayerList(exVlayer_list)
-
     def updateRaster(self):
         """Update form elements based on raster metadata elements"""
         if self.mcboRasterLayer.currentLayer() is None: return
 
-        layer = self.mcboRasterLayer.currentLayer()
-        provider = layer.dataProvider()
+        rast_layer = self.mcboRasterLayer.currentLayer()
+        provider = rast_layer.dataProvider()
 
-        if provider.srcHasNoDataValue(1):
-            self.spnNoDataVal.setValue(provider.srcNoDataValue(1))
+        if provider.sourceHasNoDataValue(1):
+            self.lneNoDataVal.setText(str(provider.sourceNoDataValue(1)))
         elif len(provider.userNoDataValues(1)) > 0:
-            self.spnNoDataVal.setValue(provider.userNoDataValues(1)[0].min())
+            self.lneNoDataVal.setText(str(provider.userNoDataValues(1)[0].min()))
         else:
-            self.spnNoDataVal.setValue(0)
+            self.lneNoDataVal.setText('0')
 
         # add a band list to the drop down box
         bandCount = self.mcboRasterLayer.currentLayer().bandCount()
@@ -213,12 +200,31 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             obj.clear()
             obj.addItems([u''] + sorted(band_list))
 
+        # clear the coordinate system
+        self.mCRSoutput.setCrs(QgsCoordinateReferenceSystem())
+
+        # set default coordinate system
+        rast_crs = rast_layer.crs()
+        if rast_crs.authid() == '':
+            # Convert from the older style strings
+            rast_crs = QgsCoordinateReferenceSystem()
+            if not rast_crs.createFromProj(rast_layer.crs().toWkt()):
+                rast_crs = rast_layer.crs()
+            else:
+                self.mcboRasterLayer.currentLayer().setCrs(rast_crs)
+        
+        rast_crs = get_UTM_Coordinate_System(rast_layer.extent().xMinimum(),
+                                             rast_layer.extent().yMinimum(),
+                                             rast_crs.authid())
+        
+        self.mCRSoutput.setCrs(rast_crs)
+
     def update_bandlist(self):
         """update the band list to the drop down box"""
         if self.mcboRasterLayer.currentLayer() is None: return
 
         # list of all bands for image
-        band_list = range(1, self.mcboRasterLayer.currentLayer().bandCount() + 1)
+        band_list = list(range(1, self.mcboRasterLayer.currentLayer().bandCount() + 1))
 
         for obj in [self.cboBandRed, self.cboBandGreen, self.cboBandIR, self.cboBandRedEdge, self.cboBandNonVine]:
             ''' Hide items from combo which have already been allocated to a band. 
@@ -243,9 +249,10 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
                 x.setEnabled(False)
                 x.setChecked(False)
 
-    def updateUseSelected(self):
-        """Update use selected checkbox if active layer has a feature selection"""
+    def on_mcboRasterLayer_layerChanged(self):
+        self.updateRaster()
 
+    def on_mcboPolygonLayer_layerChanged(self):
         self.chkUseSelected.setChecked(False)
 
         if self.mcboPolygonLayer.count() == 0:
@@ -253,66 +260,19 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
         polygon_lyr = self.mcboPolygonLayer.currentLayer()
         self.mFieldComboBox.setLayer(polygon_lyr)
-        if len(polygon_lyr.selectedFeatures()) > 0:
-            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(len(polygon_lyr.selectedFeatures())))
+
+        if polygon_lyr is None:
+            return
+
+        if polygon_lyr.selectedFeatureCount() > 0:
+            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(polygon_lyr.selectedFeatureCount()))
             self.chkUseSelected.setEnabled(True)
         else:
             self.chkUseSelected.setText('No features selected')
             self.chkUseSelected.setEnabled(False)
 
-    def autoSetCoordinateSystem(self):
-        """Calculate a projected coordinate systems from a set of coordinates"""
-
-        if self.mcboRasterLayer.count() == 0:
-            return
-
-        self.cleanMessageBars()
-
-        raster_lyr = self.mcboRasterLayer.currentLayer()
-
-        raster_utm_crs = crs.getProjectedCRSForXY(raster_lyr.extent().xMinimum(),
-                                                  raster_lyr.extent().yMinimum(),
-                                                  int(raster_lyr.crs().authid().replace('EPSG:', '')))
-        self.outQgsCRS = None
-
-        if raster_utm_crs is not None:
-            raster_crs = QgsCoordinateReferenceSystem('EPSG:{}'.format(raster_utm_crs.epsg_number))
-            self.outQgsCRS = raster_crs
-
-        if self.outQgsCRS is not None:
-            self.lblOutCRS.setText('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid()))
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
-        else:
-            self.lblOutCRSTitle.setStyleSheet('color:red')
-            self.lblOutCRS.setStyleSheet('color:red')
-            self.lblOutCRS.setText('Unspecified')
-            self.send_to_messagebar(
-                'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
-                level=QgsMessageBar.CRITICAL, duration=5)
-
-        return
-
-    def add_blank_field_to_cbo(self,set=True):
-        """ Add a blank string to the field combo box.  Fixed in qgis 3"""
-
-        if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
-            self.mFieldComboBox.addItem(u'')
-            if set == True:
-                self.mFieldComboBox.setField(u'')
-
-    def on_mcboRasterLayer_layerChanged(self):
-        self.updateRaster()
-        self.autoSetCoordinateSystem()
-
-    def on_mcboPolygonLayer_layerChanged(self):
-        self.updateUseSelected()
-        self.autoSetCoordinateSystem()
-
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
         self.chkUsePoly.setChecked(True)
-
-        self.add_blank_field_to_cbo()
 
     def on_cboBandRed_currentIndexChanged(self, index):
         band_num = 0
@@ -361,8 +321,6 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(int)
     def on_chkUsePoly_stateChanged(self, state):
 
-        self.add_blank_field_to_cbo()
-
         self.mFieldComboBox.setEnabled(state)
         self.lblGroupByField.setEnabled(state)
 
@@ -370,29 +328,6 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
         if self.chkUseSelected.isChecked():
             self.chkUsePoly.setChecked(True)
 
-    @QtCore.pyqtSlot(name='on_cmdOutCRS_clicked')
-    def on_cmdOutCRS_clicked(self):
-        dlg = QgsGenericProjectionSelector(self)
-        dlg.setMessage(self.tr('Select coordinate system'))
-        if dlg.exec_():
-            if dlg.selectedAuthId() != '':
-                self.outQgsCRS = QgsCoordinateReferenceSystem(dlg.selectedAuthId())
-
-                if self.outQgsCRS.geographicFlag():
-                    self.outQgsCRS = None
-                    self.send_to_messagebar(
-                        unicode(self.tr("Geographic coordinate systems are not allowed. Resetting to default..")),
-                        level=QgsMessageBar.WARNING, duration=5)
-            else:
-                # Yes this can happen if you navigate by the categories and click Ok prior to a selection
-                self.outQgsCRS = None
-
-            if self.outQgsCRS is None:
-                self.autoSetCoordinateSystem()
-
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
-            self.lblOutCRS.setText(self.tr('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid())))
 
     @QtCore.pyqtSlot(name='on_cmdOutputFolder_clicked')
     def on_cmdOutputFolder_clicked(self):
@@ -408,13 +343,14 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             if outFolder is None or not os.path.exists(outFolder):
                 outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        s = QtGui.QFileDialog.getExistingDirectory(self, self.tr(
+        s = QFileDialog.getExistingDirectory(self, self.tr(
             "Save output files to a folder. A sub-folder will be created from the image name"),
-                                                   outFolder, QtGui.QFileDialog.ShowDirsOnly)
+                                                   outFolder, QFileDialog.ShowDirsOnly)
 
         self.cleanMessageBars(self)
         if s == '' or s is None:
             return
+
         s = os.path.normpath(s)
         self.lblOutputFolder.setStyleSheet('color:black')
         self.lneOutputFolder.setStyleSheet('color:black')
@@ -431,6 +367,18 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             if self.mcboRasterLayer.currentLayer() is None:
                 self.lblRasterLayer.setStyleSheet('color:red')
                 errorList.append(self.tr("Input image layer required."))
+            else:
+                self.lblRasterLayer.setStyleSheet('color:black')
+            try:
+                _ = float(self.lneNoDataVal.text())
+                self.lblNoDataVal.setStyleSheet("color:black")
+            except:
+                self.lblNoDataVal.setStyleSheet("color:red")
+                errorList.append(self.tr('The raster nodata value must be numeric'))
+
+            if self.mcboRasterLayer.currentLayer().crs() is None:
+                self.lblRasterLayer.setStyleSheet('color:red')
+                errorList.append(self.tr("Please assign a coordinate system to the image layer."))
             else:
                 self.lblRasterLayer.setStyleSheet('color:black')
 
@@ -454,18 +402,15 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
                 self.lblCalcStats.setStyleSheet('color:red')
                 errorList.append(self.tr("Please select at least one index to calculate."))
 
-            if self.outQgsCRS is None:
+            if self.mCRSoutput.crs().authid() == '':
                 self.lblOutCRSTitle.setStyleSheet('color:red')
-                self.lblOutCRS.setStyleSheet('color:red')
                 errorList.append(self.tr("Select output projected coordinate system"))
             else:
-                if self.outQgsCRS.geographicFlag():
+                if self.mCRSoutput.crs().isGeographic():
                     self.lblOutCRSTitle.setStyleSheet('color:red')
-                    self.lblOutCRS.setStyleSheet('color:red')
                     errorList.append(self.tr("Output projected coordinate system (not geographic) required"))
                 else:
                     self.lblOutCRSTitle.setStyleSheet('color:black')
-                    self.lblOutCRS.setStyleSheet('color:black')
 
             if self.lneOutputFolder.text() == '':
                 self.lblOutputFolder.setStyleSheet('color:red')
@@ -485,7 +430,7 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -503,12 +448,12 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
 
             # Change cursor to Wait cursor
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
-                                    level=QgsMessageBar.WARNING,
+                                    level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
             selectedIndices = [x.text() for x in self.chkgrpIndices.buttons() if x.isChecked()]
@@ -517,14 +462,13 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
             settingsStr = 'Parameters:---------------------------------------'
 
             settingsStr += '\n    {:20}\t{}'.format('Image layer:', self.mcboRasterLayer.currentLayer().name())
-            settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.spnNoDataVal.value())
+            settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.lblNoDataVal.text())
 
             if self.chkUsePoly.isChecked():
                 if self.chkUseSelected.isChecked():
                     settingsStr += '\n    {:20}\t{} with {} selected features'.format('Layer:',
                                                                                       self.mcboPolygonLayer.currentLayer().name(),
-                                                                                      len(
-                                                                                          self.mcboPolygonLayer.currentLayer().selectedFeatures()))
+                                                                                      self.mcboPolygonLayer.currentLayer().selectedFeatureCount())
                 else:
                     settingsStr += '\n    {:20}\t{}'.format('Boundary layer:',
                                                             self.mcboPolygonLayer.currentLayer().name())
@@ -534,12 +478,15 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
             settingsStr += '\n    {:20}\t{}'.format('Resample pixel size: ', self.dsbPixelSize.value())
 
-            for k, v in self.band_mapping.iteritems():
+            for k, v in self.band_mapping.items():
                 if v > 0:
                     settingsStr += '\n    {:20}\t{}'.format('{} Band:'.format(k.title()), v)
 
             settingsStr += '\n    {:20}\t{}'.format('Calculate Indices: ', ', '.join(selectedIndices))
-            settingsStr += '\n    {:30}\t{}'.format('Output Coordinate System:', self.lblOutCRS.text())
+            settingsStr += '\n    {:30}\t{} - {}'.format('Output Coordinate System:',
+                                                         self.mCRSoutput.crs().authid(),
+                                                         self.mCRSoutput.crs().description())
+
             settingsStr += '\n    {:30}\t{}\n'.format('Output Folder:', self.lneOutputFolder.text())
 
             LOGGER.info(settingsStr)
@@ -555,7 +502,7 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
                     if os.path.exists(filePoly):  removeFileFromQGIS(filePoly)
 
                     QgsVectorFileWriter.writeAsVectorFormat(lyrBoundary, filePoly, "utf-8", lyrBoundary.crs(),
-                                                            "ESRI Shapefile", onlySelected=True)
+                                                            driverName="ESRI Shapefile", onlySelected=True)
 
                     if self.DISP_TEMP_LAYERS:
                         addVectorFileToQGIS(filePoly, layer_name=os.path.splitext(os.path.basename(filePoly))[0]
@@ -563,22 +510,27 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
                 else:
                     filePoly = lyrBoundary.source()
 
+            # convert string to float or int without knowing which
+            x = self.lneNoDataVal.text()
+            nodata_val = int(float(x)) if int(float(x)) == float(x) else float(x)
+
             files = calc_indices_for_block(lyrRaster.source(),
                                            self.dsbPixelSize.value(),
                                            self.band_mapping,
                                            self.lneOutputFolder.text(),
                                            indices=selectedIndices,
                                            image_epsg=int(lyrRaster.crs().authid().replace('EPSG:', '')),
-                                           image_nodata=self.spnNoDataVal.value(),
+                                           image_nodata=nodata_val,
                                            polygon_shapefile=filePoly if self.chkUsePoly.isChecked() else None,
                                            groupby=self.mFieldComboBox.currentField() if self.mFieldComboBox.currentField() else None,
-                                           out_epsg=int(self.outQgsCRS.authid().replace('EPSG:', '')))
+                                           out_epsg=int(self.mCRSoutput.crs().authid().replace('EPSG:', '')))
 
             if self.chkAddToDisplay.isChecked():
                 for ea_file in files:
                     raster_sym = RASTER_SYMBOLOGY['Image Indices (ie PCD, NDVI)']
                     raster_lyr = addRasterFileToQGIS(ea_file,atTop=False,
                                          group_layer_name=os.path.basename(os.path.dirname(ea_file)))
+
                     raster_apply_classified_renderer(raster_lyr,
                                     rend_type=raster_sym['type'],
                                     num_classes=raster_sym['num_classes'],
@@ -589,17 +541,17 @@ class CalculateImageIndicesDialog(QtGui.QDialog, FORM_CLASS):
 
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return super(CalculateImageIndicesDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, core_QGIS=False, showLogPanel=True,
                                     exc_info=sys.exc_info())
 

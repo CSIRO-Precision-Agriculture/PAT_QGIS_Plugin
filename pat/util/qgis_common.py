@@ -50,6 +50,9 @@ from pyprecag import crs
 def get_UTM_Coordinate_System(x, y, epsg):
     """ Determine a utm coordinate system either from coordinates"""
 
+    if epsg == '' :
+        return QgsCoordinateReferenceSystem()
+    
     if isinstance(epsg, six.string_types):
         epsg = int(epsg.upper().replace('EPSG:', ''))
 
@@ -106,20 +109,27 @@ def get_pixel_size(layer):
     return pixel_size, pixel_units, ft
 
 
-def build_layer_table():
+def build_layer_table(layer_list=None):
     """Build a table of layer properties.
     Can be used in conjunction with selecting layers to exclude from mapcomboboxes
+
+    If Layer_list is None, then it will build the table from all layers in the QGIS project.
     """
     gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source',
                                           'epsg', 'crs_name', 'is_projected', 'extent', 'provider',
                                           'geometry'], geometry='geometry')  # pd.DataFrame()
-    
-    layermap = QgsProject.instance().mapLayers()
+
+
+    if layer_list is None or len(layer_list) == 0:
+        layermap = QgsProject.instance().mapLayers().values()
+
+    else:
+        layermap = layer_list
     new_rows = []
 
     dest_crs = QgsProject.instance().crs()
 
-    for name, layer in layermap.items():
+    for layer in layermap:
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
             continue
 
