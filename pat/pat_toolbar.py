@@ -45,7 +45,7 @@ from functools import partial
 from pkg_resources import parse_version
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
-from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton,QLabel
+from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton, QLabel
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProject, QgsMessageLog, Qgis
 from qgis.gui import QgsMessageBar
@@ -58,7 +58,7 @@ from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from .gui.about_dialog import AboutDialog
 from .gui.settings_dialog import SettingsDialog
 
-# from .gui.blockGrid_dialog import BlockGridDialog
+#from .gui.blockGrid_dialog import BlockGridDialog
 from .gui.cleanTrimPoints_wizard import CleanTrimPointsDialog
 from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
 from .gui.rasterSymbology_dialog import RasterSymbologyDialog
@@ -69,9 +69,9 @@ from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
 from .gui.gridExtract_dialog import GridExtractDialog
 from .gui.persistor_dialog import PersistorDialog
 from .gui.kMeansCluster_dialog import KMeansClusterDialog
+from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 
 # from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
-# from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 # from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
 # from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
 

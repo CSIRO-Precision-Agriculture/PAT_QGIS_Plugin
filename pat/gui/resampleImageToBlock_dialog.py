@@ -20,6 +20,8 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
@@ -34,11 +36,14 @@ from util.settings import read_setting, write_setting
 from pyprecag import config, crs
 from pyprecag.processing import resample_bands_to_block
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog, QFileDialog
 
-from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem)
-from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
+from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsApplication,
+                       Qgis, QgsMapLayerProxyModel)
+from qgis.gui import QgsMessageBar
+
+from pat.util.qgis_common import get_UTM_Coordinate_System
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'resampleImageToBlock_dialog_base.ui'))
 
@@ -46,7 +51,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
 
 
-class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
+class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
     """Extract statistics from a list of rasters at set locations."""
     toolKey = 'ResampleImageBandDialog'
 
@@ -62,33 +67,39 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
+        if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
         else:
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
-        self.outQgsCRS = None
-
-        self.exclude_map_layers()
         self.updateRaster()
-        self.updateUseSelected()
-        self.autoSetCoordinateSystem()
-
+        
         # GUI Runtime Customisation -----------------------------------------------
+        self.mcboPolygonLayer.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.mcboPolygonLayer.setExcludedProviders(['wms'])
+
+        self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboRasterLayer.setExcludedProviders(['wms'])
+        
+        #https://stackoverflow.com/questions/13422995/set-qlineedit-to-accept-only-numbers
+        #https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
+        regex_validator  = QtGui.QRegExpValidator(QtCore.QRegExp("[-+]?([0-9]*[.])?[0-9]+([eE][-+]?\d+)?"))
+        self.lneNoDataVal.setValidator(regex_validator)
+        
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_resampleToBlock.svg'))
         self.chkAddToDisplay.setChecked(False)
-        self.add_blank_field_to_cbo()
+
         # self.chkAddToDisplay.hide()
 
     def cleanMessageBars(self, AllBars=True):
@@ -97,7 +108,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -108,7 +119,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -116,7 +127,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -160,116 +171,78 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
             else:  # INFO = 0
                 LOGGER.info(message)
 
-    def exclude_map_layers(self):
-        """ Run through all loaded layers to find ones which should be excluded. In this case exclude services."""
-
-        exVlayer_list = []
-        exRlayer_list = []
-        for layer in self.iface.legendInterface().layers():
-            if layer.type() == QgsMapLayer.RasterLayer:
-                if layer.providerType() != 'gdal':
-                    exRlayer_list.append(layer)
-
-            elif layer.type() == QgsMapLayer.VectorLayer:
-                if layer.providerType() != 'ogr':
-                    exVlayer_list.append(layer)
-
-        self.mcboRasterLayer.setExceptedLayerList(exRlayer_list)
-        if len(exRlayer_list) > 0:
-            pass
-
-        if len(exVlayer_list) > 0:
-            self.mcboPolygonLayer.setExceptedLayerList(exVlayer_list)
-
     def updateRaster(self):
         if self.mcboRasterLayer.currentLayer() is None: return
 
         layer = self.mcboRasterLayer.currentLayer()
         provider = layer.dataProvider()
-
-        if provider.srcHasNoDataValue(1):
-            self.spnNoDataVal.setValue(provider.srcNoDataValue(1))
+        
+        if provider.sourceHasNoDataValue(1):
+            self.lneNoDataVal.setText(str(provider.sourceNoDataValue(1)))
         elif len(provider.userNoDataValues(1)) > 0:
-            self.spnNoDataVal.setValue(provider.userNoDataValues(1)[0].min())
+            self.lneNoDataVal.setText(str(provider.userNoDataValues(1)[0].min()))
         else:
-            self.spnNoDataVal.setValue(0)
+            self.lneNoDataVal.clear()
 
         # add a band list to the drop down box
         bandCount = self.mcboRasterLayer.currentLayer().bandCount()
         band_list = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
         self.cboBand.setMaxCount(bandCount + 1)
         self.cboBand.clear()
-        self.cboBand.addItems([u''] + sorted(band_list))
+        self.cboBand.addItems(sorted(band_list))
+        
+                #set default coordinate system
+        rast_crs = layer.crs()
+        if rast_crs.authid()== '':
+            # Convert from the older style strings
+            rast_crs = QgsCoordinateReferenceSystem()
+            if not rast_crs.createFromProj(layer.crs().toWkt()):
+                rast_crs = layer.crs()
+        
+        
+        rast_crs = get_UTM_Coordinate_System(layer.extent().xMinimum(),
+                                                   layer.extent().yMinimum(),
+                                                   rast_crs.authid())
 
-    def updateUseSelected(self):
-        """Update use selected checkbox if active layer has a feature selection"""
+        self.mCRSoutput.setCrs(rast_crs)
+        
 
+    def on_mcboRasterLayer_layerChanged(self):
+        self.updateRaster()
+
+        layer = self.mcboRasterLayer.currentLayer()
+        
+    
+    def on_mcboPolygonLayer_layerChanged(self):
         self.chkUseSelected.setChecked(False)
 
         if self.mcboPolygonLayer.count() == 0:
             return
-
+        
         polygon_lyr = self.mcboPolygonLayer.currentLayer()
         self.mFieldComboBox.setLayer(polygon_lyr)
+        
+        if polygon_lyr is None:
+            return 
+                        
+        polygon_lyr = self.mcboPolygonLayer.currentLayer()
         if len(polygon_lyr.selectedFeatures()) > 0:
-            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(len(polygon_lyr.selectedFeatures())))
+            self.chkUseSelected.setText(
+                'Use the {} selected feature(s) ?'.format(len(polygon_lyr.selectedFeatures())))
             self.chkUseSelected.setEnabled(True)
         else:
             self.chkUseSelected.setText('No features selected')
             self.chkUseSelected.setEnabled(False)
 
-    def autoSetCoordinateSystem(self):
-        if self.mcboRasterLayer.count() == 0:
-            return
-        self.cleanMessageBars()
-        raster_lyr = self.mcboRasterLayer.currentLayer()
-
-        raster_utm_crs = crs.getProjectedCRSForXY(raster_lyr.extent().xMinimum(),
-                                                  raster_lyr.extent().yMinimum(),
-                                                  int(raster_lyr.crs().authid().replace('EPSG:', '')))
-        self.outQgsCRS = None
-
-        if raster_utm_crs is not None:
-            raster_crs = QgsCoordinateReferenceSystem('EPSG:{}'.format(raster_utm_crs.epsg_number))
-            self.outQgsCRS = raster_crs
-
-        if self.outQgsCRS is not None:
-            self.lblOutCRS.setText('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid()))
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
-        else:
-            self.lblOutCRSTitle.setStyleSheet('color:red')
-            self.lblOutCRS.setStyleSheet('color:red')
-            self.lblOutCRS.setText('Unspecified')
-            self.send_to_messagebar(
-                'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
-                level=QgsMessageBar.CRITICAL, duration=5)
-        return
-
-    def add_blank_field_to_cbo(self,set=True):
-        """ Add a blank string to the field combo box.  Fixed in qgis 3"""
-
-        if self.mFieldComboBox.findText('', QtCore.Qt.MatchFixedString) == -1:
-            self.mFieldComboBox.addItem(u'')
-            if set == True:
-                self.mFieldComboBox.setField(u'')
-
-    def on_mcboRasterLayer_layerChanged(self):
-        self.updateRaster()
-        self.autoSetCoordinateSystem()
-
-    def on_mcboPolygonLayer_layerChanged(self):
-        self.updateUseSelected()
-        self.autoSetCoordinateSystem()
-
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
         self.chkUsePoly.setChecked(True)
 
-        self.add_blank_field_to_cbo()
-
+    @QtCore.pyqtSlot(int)
+    def on_mcboPolygonLayer_indexChanged(self, state):
+        print(state)
+        
     @QtCore.pyqtSlot(int)
     def on_chkUsePoly_stateChanged(self, state):
-        self.add_blank_field_to_cbo()
 
         self.mFieldComboBox.setEnabled(state)
         self.lblGroupByField.setEnabled(state)
@@ -285,28 +258,10 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
         if self.chkUseSelected.isChecked():
             self.chkUsePoly.setChecked(True)
 
-    @QtCore.pyqtSlot(name='on_cmdOutCRS_clicked')
-    def on_cmdOutCRS_clicked(self):
-        dlg = QgsGenericProjectionSelector(self)
-        dlg.setMessage(self.tr('Select coordinate system'))
-        if dlg.exec_():
-            if dlg.selectedAuthId() != '':
-                self.outQgsCRS = QgsCoordinateReferenceSystem(dlg.selectedAuthId())
+    def on_mCRSoutput_crsChanged(self):
+        #self.outQgsCRS = self.mCRSoutput.crs()
+        pass
 
-                if self.outQgsCRS.geographicFlag():
-                    self.outQgsCRS = None
-                    self.send_to_messagebar(
-                        unicode(self.tr("Geographic coordinate systems are not allowed. Resetting to default..")),
-                        level=QgsMessageBar.WARNING, duration=5)
-            else:
-                self.outQgsCRS = None
-
-            if self.outQgsCRS is None:
-                self.autoSetCoordinateSystem()
-
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
-            self.lblOutCRS.setText(self.tr('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid())))
 
     @QtCore.pyqtSlot(name='on_cmdOutputFolder_clicked')
     def on_cmdOutputFolder_clicked(self):
@@ -321,9 +276,9 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
             if outFolder is None or not os.path.exists(outFolder):
                 outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        s = QtGui.QFileDialog.getExistingDirectory(self, self.tr(
+        s = QFileDialog.getExistingDirectory(self, self.tr(
             "Save output files to a folder. A sub-folder will be created from the image name"),
-                                                   outFolder, QtGui.QFileDialog.ShowDirsOnly)
+                                                   outFolder, QFileDialog.ShowDirsOnly)
 
         self.cleanMessageBars(self)
         if s == '' or s is None:
@@ -361,18 +316,22 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
             else:
                 self.lblPixelSize.setStyleSheet('color:black')
 
-            if self.outQgsCRS is None:
+            try:
+                _ = float(self.lneNoDataVal.text())
+                self.lblNoDataVal.setStyleSheet("color:black")
+            except:
+                self.lblNoDataVal.setStyleSheet("color:red")
+                errorList.append(self.tr('The raster nodata value must be numeric'))
+
+            if self.mCRSoutput.crs().authid() == '':
                 self.lblOutCRSTitle.setStyleSheet('color:red')
-                self.lblOutCRS.setStyleSheet('color:red')
                 errorList.append(self.tr("Select output projected coordinate system"))
             else:
-                if self.outQgsCRS.geographicFlag():
+                if self.mCRSoutput.crs().isGeographic():
                     self.lblOutCRSTitle.setStyleSheet('color:red')
-                    self.lblOutCRS.setStyleSheet('color:red')
                     errorList.append(self.tr("Output projected coordinate system (not geographic) required"))
                 else:
                     self.lblOutCRSTitle.setStyleSheet('color:black')
-                    self.lblOutCRS.setStyleSheet('color:black')
 
             if self.lneOutputFolder.text() == '':
                 self.lblOutputFolder.setStyleSheet('color:red')
@@ -392,7 +351,7 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -410,25 +369,25 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
 
             # Change cursor to Wait cursor
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
-                                    level=QgsMessageBar.WARNING,
+                                    level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
             settingsStr += '\n    {:20}\t{}'.format('Image layer:', self.mcboRasterLayer.currentLayer().name())
             settingsStr += '\n    {:20}\t{}'.format('Image Band:', self.cboBand.currentText())
-            settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.spnNoDataVal.value())
+            settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.lneNoDataVal.text())
 
             if self.chkUsePoly.isChecked():
                 if self.chkUseSelected.isChecked():
-                    settingsStr += '\n    {:20}\t{} with {} selected features'.format('Layer:',
-                                                                                      self.mcboPolygonLayer.currentLayer().name(),
-                                                                                      len(self.mcboPolygonLayer.currentLayer().selectedFeatures()))
+                    settingsStr += '\n    {:20}\t{} with {} selected features'.format(
+                                        'Layer:', self.mcboPolygonLayer.currentLayer().name(),
+                                                  self.mcboPolygonLayer.currentLayer().selectedFeatureCount())
                 else:
                     settingsStr += '\n    {:20}\t{}'.format('Boundary layer:',
                                                             self.mcboPolygonLayer.currentLayer().name())
@@ -441,7 +400,9 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
 
             settingsStr += '\n    {:20}\t{}'.format('Resample pixel size: ', self.dsbPixelSize.value())
 
-            settingsStr += '\n    {:30}\t{}'.format('Output Coordinate System:', self.lblOutCRS.text())
+            settingsStr += '\n    {:30}\t{} - {}'.format('Output Coordinate System:',
+                                                         self.mCRSoutput.crs().authid(),self.mCRSoutput.crs().description())
+
             settingsStr += '\n    {:30}\t{}\n'.format('Output Folder:', self.lneOutputFolder.text())
 
             LOGGER.info(settingsStr)
@@ -457,47 +418,50 @@ class ResampleImageToBlockDialog(QtGui.QDialog, FORM_CLASS):
                     if os.path.exists(filePoly):  removeFileFromQGIS(filePoly)
 
                     QgsVectorFileWriter.writeAsVectorFormat(lyrBoundary, filePoly, "utf-8", lyrBoundary.crs(),
-                                                            "ESRI Shapefile", onlySelected=True)
+                                                            driverName="ESRI Shapefile", onlySelected=True)
 
                     if self.DISP_TEMP_LAYERS:
                         addVectorFileToQGIS(filePoly, layer_name=os.path.splitext(os.path.basename(filePoly))[0]
                                             , group_layer_name='DEBUG', atTop=True)
                 else:
                     filePoly = lyrBoundary.source()
-
+            
+            # convert string to float or int without knowing which
+            x = self.lneNoDataVal.text()
+            nodata_val = int(float(x)) if int(float(x)) == float(x) else float(x)
+            
             band_num = [int(self.cboBand.currentText().replace('Band ', ''))]
             files = resample_bands_to_block(lyrRaster.source(),
                                             self.dsbPixelSize.value(),
                                             self.lneOutputFolder.text(),
                                             band_nums=band_num,
                                             image_epsg=int(lyrRaster.crs().authid().replace('EPSG:', '')),
-                                            image_nodata=self.spnNoDataVal.value(),
+                                            image_nodata=self.lneNoDataVal.text(),
                                             polygon_shapefile=filePoly if self.chkUsePoly.isChecked() else None,
                                             groupby=self.mFieldComboBox.currentField() if self.mFieldComboBox.currentField() else None,
-                                            out_epsg=int(self.outQgsCRS.authid().replace('EPSG:', '')))
+                                            out_epsg=int(self.mCRSoutput.crs().authid().replace('EPSG:', '')))
 
             if self.chkAddToDisplay.isChecked():
                 for ea_file in files:
                     removeFileFromQGIS(ea_file)
-                    addRasterFileToQGIS(ea_file, group_layer_name=os.path.basename(os.path.dirname(ea_file)),
-                                        atTop=False)
+                    addRasterFileToQGIS(ea_file, group_layer_name=os.path.basename(os.path.dirname(ea_file)),atTop=False)
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return super(ResampleImageToBlockDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, core_QGIS=False, showLogPanel=True,
                                     exc_info=sys.exc_info())
 
