@@ -191,7 +191,7 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
         self.cboBand.clear()
         self.cboBand.addItems(sorted(band_list))
         
-                #set default coordinate system
+        #set default coordinate system
         rast_crs = layer.crs()
         if rast_crs.authid()== '':
             # Convert from the older style strings
@@ -210,8 +210,6 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
     def on_mcboRasterLayer_layerChanged(self):
         self.updateRaster()
 
-        layer = self.mcboRasterLayer.currentLayer()
-        
     
     def on_mcboPolygonLayer_layerChanged(self):
         self.chkUseSelected.setChecked(False)
@@ -237,10 +235,7 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
         self.chkUsePoly.setChecked(True)
 
-    @QtCore.pyqtSlot(int)
-    def on_mcboPolygonLayer_indexChanged(self, state):
-        print(state)
-        
+
     @QtCore.pyqtSlot(int)
     def on_chkUsePoly_stateChanged(self, state):
 
@@ -436,7 +431,7 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
                                             self.lneOutputFolder.text(),
                                             band_nums=band_num,
                                             image_epsg=int(lyrRaster.crs().authid().replace('EPSG:', '')),
-                                            image_nodata=self.lneNoDataVal.text(),
+                                            image_nodata=nodata_val,
                                             polygon_shapefile=filePoly if self.chkUsePoly.isChecked() else None,
                                             groupby=self.mFieldComboBox.currentField() if self.mFieldComboBox.currentField() else None,
                                             out_epsg=int(self.mCRSoutput.crs().authid().replace('EPSG:', '')))

@@ -80,6 +80,7 @@ class RandomPixelSelectionDialog(QDialog, FORM_CLASS):
 
         # GUI Customisation -----------------------------------------------
         self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboTargetLayer.setExcludedProviders(['wms'])
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_randomPixel.svg'))
 

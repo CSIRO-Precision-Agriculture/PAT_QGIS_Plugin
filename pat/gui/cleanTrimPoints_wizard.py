@@ -689,11 +689,11 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                     else:
                         self.lblYField.setStyleSheet('color:black')
 
-                    if self.qgsCRScsv.crs().isValid():
-                        self.lblInCRSTitle.setStyleSheet('color:black')
-                    else:
+                    if self.mCRSoutput.crs().authid() == '':
                         self.lblInCRSTitle.setStyleSheet('color:red')
                         errorList.append(self.tr("Select coordinate system for geometry fields"))
+                    else:
+                        self.lblInCRSTitle.setStyleSheet('color:black')
 
             if widget_page == 'pgeParameters' or widget_idx == self.stackedWidget.count():
                 if self.cboProcessField.currentText() == ' ':
