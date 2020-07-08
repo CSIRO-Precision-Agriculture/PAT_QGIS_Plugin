@@ -321,7 +321,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
         lyrTarget = self.mcboPointsLayer.currentLayer()
-        filename = os.path.splitext(lyrTarget.name())[0] + '_pixelvals.csv'
+        filename = os.path.splitext(lyrTarget.name())[0] + '_pixelvals'
 
         # Only use alpha numerics and underscore and hyphens.
         filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
