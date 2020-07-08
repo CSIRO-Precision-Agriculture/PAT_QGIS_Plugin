@@ -83,14 +83,14 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
         else:
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
-        self.updateRaster()
-        
         # GUI Runtime Customisation -----------------------------------------------
         self.mcboPolygonLayer.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.mcboPolygonLayer.setExcludedProviders(['wms'])
 
         self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mcboRasterLayer.setExcludedProviders(['wms'])
+        
+        self.updateRaster()
         
         #https://stackoverflow.com/questions/13422995/set-qlineedit-to-accept-only-numbers
         #https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers
