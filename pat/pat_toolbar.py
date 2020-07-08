@@ -58,7 +58,7 @@ from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from .gui.about_dialog import AboutDialog
 from .gui.settings_dialog import SettingsDialog
 
-#from .gui.blockGrid_dialog import BlockGridDialog
+from .gui.blockGrid_dialog import BlockGridDialog
 from .gui.cleanTrimPoints_wizard import CleanTrimPointsDialog
 from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
 from .gui.rasterSymbology_dialog import RasterSymbologyDialog
@@ -71,8 +71,7 @@ from .gui.persistor_dialog import PersistorDialog
 from .gui.kMeansCluster_dialog import KMeansClusterDialog
 from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
-
-# from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
+from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
 # from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
 
 from .util.check_dependencies import check_vesper_dependency, check_R_dependency
