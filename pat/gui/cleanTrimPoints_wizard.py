@@ -514,6 +514,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
 
         self.lneSavePointsFile.setText(s)
+        self.lblSavePointsFile.setEnabled(True)
         self.lblSavePointsFile.setStyleSheet('color:black')
         self.lblSaveCSVFile.setStyleSheet('color:black')
 

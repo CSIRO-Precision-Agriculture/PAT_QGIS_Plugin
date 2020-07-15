@@ -200,16 +200,16 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
         used_layers = [self.tabList.item(row, 0).text() for row in range(0, self.tabList.rowCount())]
 
-        df_sub = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
+        df_rastlyrs = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
 
         # Find layers that don't overlap, have a different pixel size or have already been added.
         if self.tabList.rowCount() == 0:
-            df_sub = df_sub[~df_sub.intersects(df_pts.unary_union)]
+            df_rastlyrs = df_rastlyrs[~df_rastlyrs.intersects(df_pts.unary_union)]
         else:
-            df_sub = df_sub[((df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size[0])) |
-                        (~df_sub.intersects(df_pts.unary_union))]
+            df_rastlyrs = df_rastlyrs[((df_rastlyrs['layer_id'].isin(used_layers)) | (df_rastlyrs['pixel_size'] != self.pixel_size[0])) |
+                        (~df_rastlyrs.intersects(df_pts.unary_union))]
             
-        self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
+        self.mcboRasterLayer.setExceptedLayerList(df_rastlyrs['layer'].tolist())
         
         self.tabList.horizontalHeader().setStyleSheet('color:black')
         self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s) with {}{} pixels".format(
