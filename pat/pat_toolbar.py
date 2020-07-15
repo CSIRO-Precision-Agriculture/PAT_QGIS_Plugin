@@ -72,7 +72,7 @@ from .gui.kMeansCluster_dialog import KMeansClusterDialog
 from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
 from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
 from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
-# from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
+from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
 
 from .util.check_dependencies import check_vesper_dependency, check_R_dependency
 from .util.custom_logging import stop_logging

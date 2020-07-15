@@ -30,14 +30,16 @@ from urllib.parse import urlparse
 import pandas as pd
 import geopandas as gpd
 from shapely import wkt
+import rasterio
+import numpy as np
 
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsProject, QgsRasterLayer,
-                       QgsFeature, QgsField, QgsProject, QgsUnitTypes, Qgis, QgsCoordinateReferenceSystem,
-                       QgsCoordinateTransform)
+from qgis.core import (QgsProject, QgsMapLayer, QgsVectorLayer,  QgsRasterLayer,
+                       QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,
+                       QgsFeature, QgsField)
 
 from pat import LOGGER_NAME
 
@@ -46,6 +48,9 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
 from pyprecag import crs
 
+dataTypes = {0:'Unk',1:'Byte',2:'UInt16',3:'Int16',4:'UInt32',5:'Int32',
+            6:'Float32', 7:'Float64' , 8:'CInt16', 9:'CInt32' , 10:'CFloat32',
+            11:'CFloat64'}
 
 def get_UTM_Coordinate_System(x, y, epsg):
     """ Determine a utm coordinate system either from coordinates"""
@@ -93,7 +98,7 @@ def get_pixel_size(layer):
     """
 
     if layer is None or layer.type() != QgsMapLayer.RasterLayer:
-        return None, None
+        return None, None, None
 
     if layer.crs().isGeographic():
         ft = 'f'  # this will convert 1.99348e-05 to 0.000020
@@ -106,18 +111,31 @@ def get_pixel_size(layer):
     #pixel_units = pixel_units.replace('meters', 'metres')
     pixel_size = format(layer.rasterUnitsPerPixelX(), ft)
 
+    #Convert to float or int
+    #pixel_size = int(float(pixel_size)) if int(float(pixel_size)) == float(pixel_size) else float(pixel_size)
+
     return pixel_size, pixel_units, ft
 
 
-def build_layer_table(layer_list=None):
+def build_layer_table(layer_list=None,only_raster_boundingbox=True):
     """Build a table of layer properties.
     Can be used in conjunction with selecting layers to exclude from mapcomboboxes
 
-    If Layer_list is None, then it will build the table from all layers in the QGIS project.
+    Layer_list: default  None
+                if None then it will build the table from all layers in the QGIS project
+                otherwise it will use the list.
+    
+    only_raster_boundingbox: default False 
+                    create a bounding box from the raster data 
+                   ie removing nodata from polygon. 
+                   This will slow it down if large numbers of rasters are present.
     """
-    gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source',
-                                          'epsg', 'crs_name', 'is_projected', 'extent', 'provider',
-                                          'geometry'], geometry='geometry')  # pd.DataFrame()
+
+    dest_crs = QgsProject.instance().crs()
+
+    gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source','format',
+                                           'epsg', 'crs_name', 'is_projected', 'extent', 'provider','geometry'],
+                                           geometry='geometry', crs=dest_crs.authid())  # pd.DataFrame()
 
 
     if layer_list is None or len(layer_list) == 0:
@@ -125,9 +143,8 @@ def build_layer_table(layer_list=None):
 
     else:
         layermap = layer_list
-    new_rows = []
 
-    dest_crs = QgsProject.instance().crs()
+    new_rows = []
 
     for layer in layermap:
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
@@ -135,7 +152,12 @@ def build_layer_table(layer_list=None):
 
         if layer.providerType() not in ['ogr','gdal','delimitedtext']:
             continue
-
+        
+        if layer.type() == QgsMapLayer.VectorLayer:
+            format = layer.dataProvider().storageType()
+        else:
+            format=None
+            
         if layer.crs().isValid() and layer.crs().authid() == '':
             # Try and convert older style coordinates systems
             # were correctly definied in QGIS 2 as GDA94 / MGA zone 54 
@@ -163,20 +185,42 @@ def build_layer_table(layer_list=None):
                     'layer_name': layer.name(),
                     'layer_id': layer.id(),
                     'layer_type': layer.type().name,
+                    'format': format,
                     'source': layer.source(),
                     'epsg': layer_crs.authid(),
                     'crs_name': layer_crs.description(),
                     'is_projected': not layer_crs.isGeographic(),
-                    'extent': prj_ext.asWktPolygon(),
                     'provider': layer.providerType(),
                     'geometry': wkt.loads(prj_ext.asWktPolygon())}
 
+            # 'extent': prj_ext.asWktPolygon(),
+
         if layer.type() == QgsMapLayer.RasterLayer:
-            pixel_size, pixel_units,_f= get_pixel_size(layer)
+            pixel_size = get_pixel_size(layer)
+            if not only_raster_boundingbox:
+                with rasterio.open(layer.source()) as src:
+                    msk = src.dataset_mask()  # 0 = nodata 255=valid
+                    rast_shapes = rasterio.features.shapes(np.ma.masked_equal(np.where(msk > 0, 1, 0), 0),
+                                                           transform=src.transform)
+                try:
+                    results = ({'properties': {'raster_val': v}, 'geometry': s} for i, (s, v) in enumerate(rast_shapes))
+    
+                    geoms = list(results)
+                    gpd_rPoly = gpd.GeoDataFrame.from_features(geoms, crs=layer.crs().authid())
+                    dest_crs.authid().replace('epgs:', '')
+                    gpd_rPoly.to_crs(dest_crs.authid().replace('epgs:', ''), inplace=True)
+                    row_dict.update({'geometry': gpd_rPoly.unary_union})
+    
+                    del gpd_rPoly, results, msk,rast_shapes
+                except:
+                    pass
+
             row_dict.update({'bandcount': layer.bandCount(),
-                             'pixel_size': pixel_size,
-                             'pixel_text': '{} {}'.format(pixel_size, pixel_units),
-                            })
+                        'datatype':dataTypes[layer.dataProvider().dataType(1)],
+                        'pixel_size': pixel_size[0],
+                        'pixel_text': '{} {}'.format(*pixel_size),
+                        })
+
         new_rows.append(row_dict)
 
 #    gdf_layers = gpd.GeoDataFrame(new_rows, geometry='extent')

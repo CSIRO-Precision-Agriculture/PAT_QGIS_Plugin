@@ -20,12 +20,15 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
 import traceback
 
 import geopandas as gpd
+import pandas as pd
 from shapely import wkt
 import rasterio
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
@@ -40,13 +43,14 @@ from util.settings import read_setting, write_setting
 from pyprecag import config, crs, describe
 from pyprecag.processing import ttest_analysis
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QPushButton, QDialog, QFileDialog, QApplication
 
 from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter,
-                       QgsCoordinateReferenceSystem, QgsUnitTypes)
+                       QgsCoordinateReferenceSystem, QgsUnitTypes, QgsApplication, QgsMapLayerProxyModel, Qgis,
+                       QgsCoordinateTransform, QgsProject)
 
-from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
+from qgis.gui import QgsMessageBar
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__),
                                             'tTestAnalysis_dialog_base.ui'))
@@ -55,7 +59,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())
 
 
-class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
+class tTestAnalysisDialog(QDialog, FORM_CLASS):
     """Extract statistics from a list of rasters at set locations."""
     toolKey = 'tTestAnalysisDialog'
 
@@ -71,16 +75,16 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
+        if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -88,9 +92,22 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             # for use with Vertical/horizontal layout box
             self.layout().insertWidget(0, self.messageBar)
 
-        self.pixel_size = [0, '']
+
+        for cbo in [self.mcboRasterLayer, self.mcboCtrlRasterLayer, self.mcboZoneRasterLyr]:
+            cbo.setFilters(QgsMapLayerProxyModel.RasterLayer)
+            cbo.setExcludedProviders(['wms'])
+            cbo.setAllowEmptyLayer(True)
+            cbo.setCurrentIndex(0)
+
+
+        self.mcboPointsLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.mcboPointsLayer.setExcludedProviders(['wms'])
+        self.mcboPointsLayer.setAllowEmptyLayer(True)
+        self.mcboPointsLayer.setCurrentIndex(0)
+
+        self.pixel_size = ['0', 'm', '']
         self.layer_table = build_layer_table()
-        self.exclude_map_layers()
+        self.setMapLayers()
         self.updateUseSelected()
 
         self.raster_filter_message = self.lblLayerFilter.text()
@@ -104,7 +121,7 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Default - True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -115,7 +132,7 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5,
                            exc_info=None, core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -123,7 +140,7 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -170,113 +187,111 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             else:  # INFO = 0
                 LOGGER.info(message)
 
-    def exclude_map_layers(self):
+    def setMapLayers(self):
         """ Run through all loaded layers to find ones which should be excluded.
             In this case exclude services."""
         
         if len(self.layer_table) == 0:
             return
-        
+
+        cbo_list = [self.mcboRasterLayer, self.mcboCtrlRasterLayer, self.mcboZoneRasterLyr]
+
         if self.mcboPointsLayer.currentLayer() is None:
+            for cbo in cbo_list:
+                cbo.setExceptedLayerList([])
             return
+
+        df_pts = self.layer_table[self.layer_table['layer_id'] == self.mcboPointsLayer.currentLayer().id()]
         
-        if self.mcboCtrlRasterLayer.currentLayer() is None:
-            return
         
-        # df = self.layer_table[self.layer_table['layer_type']==QgsMapLayer.VectorLayer]
-        # df = df[df['is_projected']==True]
-        # self.mcboPointsLayer.setExceptedLayerList(self.create_excluded_list(df)['layer'])
+        used_layers = [cbo.currentLayer().id() for cbo in cbo_list if cbo.currentLayer() is not None]
+        
+        df_rastlyrs = self.layer_table[(self.layer_table['provider'] == 'gdal') & (self.layer_table['layer_type'] == 'RasterLayer')]
 
-        old_exRLayer_ids = []
-        if self.mcboCtrlRasterLayer.count() > 0:
-            old_exRLayer_ids = [ea_lyr.id() for ea_lyr in self.mcboCtrlRasterLayer.exceptedLayerList()]
+        if self.chkUseSelected.isChecked():
+            layer=self.mcboPointsLayer.currentLayer()
 
-        df = self.layer_table[self.layer_table['layer_type'] == QgsMapLayer.RasterLayer]
+            transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(df_pts['epsg'].values[0]),
+                                               QgsProject.instance().crs(),
+                                               QgsProject.instance())
 
-        # check for coordinate system
-        pts_layer = self.mcboPointsLayer.currentLayer()
-        df = df[df['epsg'] == pts_layer.crs().authid()].copy()
-
-        # check for overlap with points
-        df['overlap'] = df['extent'].apply(lambda x :
-                                           check_for_overlap(pts_layer.extent().asWktPolygon(), x))
-        df = df[df['overlap'] == True]
-
-        rasterLayerExcl = self.create_excluded_list(df)
-
-        self.mcboRasterLayer.setExceptedLayerList(rasterLayerExcl['layer'])
-        # the above line changed the mcbo list with out triggering an event so update the pixel size.
-        pix = get_pixel_size(self.mcboRasterLayer.currentLayer())
-        self.pixel_size = pix
-
-        if self.pixel_size[0] > 0:
-            df = df[df['pixel_size'] == self.pixel_size[0] ]
-            rasterLayerExcl = self.create_excluded_list(df)
-
-        if len(rasterLayerExcl) > 0 and old_exRLayer_ids != rasterLayerExcl['id']:
-            self.mcboCtrlRasterLayer.setExceptedLayerList(rasterLayerExcl['layer'])
-            self.mcboZoneRasterLyr.setExceptedLayerList(rasterLayerExcl['layer'])
-            self.chkCtrlRasterLayer.setChecked(False)
-            self.chkZoneLayer.setChecked(False)
-
-        if self.mcboRasterLayer.count() > 0:
-            crs_desc = self.mcboRasterLayer.currentLayer().crs().description()
-            self.lblLayerFilter.setText('Raster lists below have been <b>filtered</b> to only show rasters with'
-                                        +'<br>    - a pixelsize of <b>{} {}</b>'.format(pix[0], pix[1])
-                                        +'<br>    - a coordinate system of <b>{}</b>'.format(crs_desc)
-                                        +'<br>    - and <b>overlaps</b> with the points layer')
-
-        self.mcboCtrlRasterLayer.setEnabled(self.mcboCtrlRasterLayer.count() > 1)
-        self.mcboZoneRasterLyr.setEnabled(self.mcboCtrlRasterLayer.count() > 1)
-
-        self.chkCtrlRasterLayer.setEnabled(self.mcboCtrlRasterLayer.count() > 1)
-        self.chkZoneLayer.setEnabled(self.mcboCtrlRasterLayer.count() > 1)
-
-    def create_excluded_list(self, df):
-        from collections import defaultdict
-        exclude = defaultdict(list)
-
-        for layer in self.iface.legendInterface().layers():
-            if layer.type() not in  df['layer_type'].unique().tolist():
-                continue
-            if layer.id() not in df['layer_id'].unique().tolist() and layer.id() not in exclude['id']:
-                exclude['layer'].append(layer)
-                exclude['id'].append(layer.id())
-
-        return exclude
+            prj_ext = transform.transformBoundingBox(layer.boundingBoxOfSelected())
+            df_pts['geometry'] = wkt.loads(prj_ext.asWktPolygon())
+            
+            #recreate the geodataframe or unary_union wont work
+            df_pts = gpd.GeoDataFrame(df_pts,geometry='geometry',crs=df_pts.crs)
+            
+        if self.pixel_size[0] == '0':
+            # Find layers that overlap.
+            if len(df_pts)>0:
+                df_keep = df_rastlyrs[df_rastlyrs.intersects(df_pts.unary_union)]
+            
+        else:
+            # Find layers that overlap and have the same pixel size.
+            if len(df_pts)>0:
+                df_keep = df_rastlyrs[(df_rastlyrs['pixel_size'] == self.pixel_size[0]) & (df_rastlyrs.intersects(df_pts.unary_union))]
+            
+        # process for each raster layer cbo
+        for cbo in cbo_list:
+            df_cbo = df_keep.copy()
+            
+            if cbo.currentLayer() is None:
+                loop_used_layers = used_layers
+            else:
+                loop_used_layers = [ea for ea in used_layers if cbo.currentLayer().id() != ea]
+            
+            #add it back the current one.
+            df_cbo =  df_cbo[~df_cbo['layer_id'].isin(loop_used_layers)]
+        
+            # find those we don't want to keep; 
+            df_remove = pd.concat([df_rastlyrs,df_cbo]).drop_duplicates(keep=False)
+            
+            cbo.setExceptedLayerList(df_remove['layer'].tolist())    
 
     def updateUseSelected(self):
         """Update use selected checkbox if active layer has a feature selection"""
 
         self.chkUseSelected.setChecked(False)
 
-        if self.mcboPointsLayer.count() == 0:
+        if self.mcboPointsLayer.count() == 0 or self.mcboPointsLayer.currentLayer() is None:
             return
-
+         
         point_lyr = self.mcboPointsLayer.currentLayer()
-        if len(point_lyr.selectedFeatures()) > 0:
-            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(
-                len(point_lyr.selectedFeatures())))
+        if point_lyr.selectedFeatureCount() > 0:
+            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(point_lyr.selectedFeatureCount()))
             self.chkUseSelected.setEnabled(True)
         else:
             self.chkUseSelected.setText('No features selected')
             self.chkUseSelected.setEnabled(False)
 
     def on_mcboRasterLayer_layerChanged(self):
-        if not self.mcboRasterLayer.currentLayer() is None:
+        if self.mcboRasterLayer.currentLayer() is None:
+            self.pixel_size = ['0', 'm', '']
+            self.lblLayerFilter.setText(self.raster_filter_message)
+             
+        else:
             self.pixel_size = get_pixel_size(self.mcboRasterLayer.currentLayer())
-        self.exclude_map_layers()
+            self.lblLayerFilter.setText('Raster lists below have been <b>filtered</b> to only show rasters with <br/>'
+                                        +'- a pixelsize of <b>{} {}</b><br/>'.format( self.pixel_size[0],  self.pixel_size[1])
+                                        +'- and <b>overlaps</b> with the points layer')
+ 
+        self.mcboCtrlRasterLayer.setEnabled(self.mcboCtrlRasterLayer.count() > 1)
+        self.mcboZoneRasterLyr.setEnabled(self.mcboCtrlRasterLayer.count() > 1)
+            
+        self.setMapLayers()
+
+    def on_chkUseSelected_stateChanged(self, state):
+        self.setMapLayers()
 
     def on_mcboCtrlRasterLayer_layerChanged(self):
-        self.chkCtrlRasterLayer.setChecked(True)
-
+        self.setMapLayers()
+    
     def on_mcboZoneRasterLyr_layerChanged(self):
-        # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
-        self.chkZoneLayer.setChecked(True)
+            self.setMapLayers()
 
     def on_mcboPointsLayer_layerChanged(self):
         self.updateUseSelected()
-        self.exclude_map_layers()
+        self.setMapLayers()
 
     @QtCore.pyqtSlot(name='on_cmdOutputFolder_clicked')
     def on_cmdOutputFolder_clicked(self):
@@ -291,9 +306,9 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             if outFolder is None or not os.path.exists(outFolder):
                 outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        s = QtGui.QFileDialog.getExistingDirectory(self, self.tr(
+        s = QFileDialog.getExistingDirectory(self, self.tr(
             "Save output files to a folder. A sub-folder will be created from the image name"),
-                                                   outFolder, QtGui.QFileDialog.ShowDirsOnly)
+                                                   outFolder, QFileDialog.ShowDirsOnly)
 
         self.cleanMessageBars(self)
         if s == '' or s is None:
@@ -321,31 +336,11 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
 
             if self.mcboRasterLayer.currentLayer() is None:
                 self.lblRasterLayer.setStyleSheet('color:red')
-                errorList.append(self.tr("Input image layer required."))
+                errorList.append(self.tr("Input strips raster layer required."))
             else:
                 self.lblRasterLayer.setStyleSheet('color:black')
 
-            selected_layers = []
-            duplicate_raster = False
-
-            for cbo, chk in [(self.mcboRasterLayer, None),
-                           (self.mcboCtrlRasterLayer, self.chkCtrlRasterLayer),
-                           (self.mcboZoneRasterLyr, self.chkZoneLayer)]:
-                if not chk:
-                    selected_layers.append(cbo.currentLayer().id())
-
-                elif chk.isChecked():
-                    if not cbo.currentLayer().id() in selected_layers:
-                        selected_layers.append(cbo.currentLayer().id())
-                        chk.setStyleSheet('color:black')
-
-                    else:
-                        chk.setStyleSheet('color:red')
-                        duplicate_raster = True
-
-            if duplicate_raster:
-                errorList.append(self.tr("Input rasters can only be used once"))
-
+            
             if self.dsbMovingWinSize.value() <= 0:
                 self.lblMovingWinSize.setStyleSheet('color:red')
                 errorList.append(self.tr("Pixel size must be greater than 0."))
@@ -370,7 +365,7 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING,
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning,
                                             duration=(i + 1) * 5)
                 return False
 
@@ -389,14 +384,13 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
 
             # Change cursor to Wait cursor
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            self.iface.mainWindow().statusBar().showMessage(
-                'Processing {}'.format(self.windowTitle()))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
 
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait. QGIS will be locked. See log panel for progress.",
-                                    level=QgsMessageBar.WARNING,
+                                    level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
             # Add settings to log
@@ -405,7 +399,7 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             if self.chkUseSelected.isChecked():
                 settingsStr += '\n    {:20}\t{} with {} selected features'.format(
                     'Strip points layer:', self.mcboPointsLayer.currentLayer().name(),
-                    len(self.mcboPointsLayer.currentLayer().selectedFeatures()))
+                    self.mcboPointsLayer.currentLayer().selectedFeatureCount())
             else:
                 settingsStr += '\n    {:20}\t{}'.format('Strip points layer:',
                                                         self.mcboPointsLayer.currentLayer().name())
@@ -414,35 +408,34 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
                                                     self.mcboRasterLayer.currentLayer().name())
 
             control_file, zone_file = ['', '']
-            if  self.chkCtrlRasterLayer.isChecked():
-                settingsStr += '\n    {:20}\t{}'.format(
-                    'Control values raster:', self.mcboCtrlRasterLayer.currentLayer().name())
+            if self.mcboCtrlRasterLayer.currentLayer() is not None:
+                settingsStr += '\n    {:20}\t{}'.format('Control values raster:', self.mcboCtrlRasterLayer.currentLayer().name())
                 control_file = self.mcboCtrlRasterLayer.currentLayer().source()
-            if  self.chkZoneLayer.isChecked():
-                settingsStr += '\n    {:20}\t{}'.format(
-                    'Control values raster:', self.mcboZoneRasterLyr.currentLayer().name())
+            
+            if self.mcboZoneRasterLyr.currentLayer() is not None:
+                settingsStr += '\n    {:20}\t{}'.format('Control values raster:', self.mcboZoneRasterLyr.currentLayer().name())
                 zone_file = self.mcboZoneRasterLyr.currentLayer().source()
 
-            settingsStr += '\n    {:20}\t{}'.format('Moving window size: ',
-                                                    self.dsbMovingWinSize.value())
-            settingsStr += '\n    {:30}\t{}\n'.format('Output folder:',
-                                                      self.lneOutputFolder.text())
+            settingsStr += '\n    {:20}\t{}'.format('Moving window size: ', self.dsbMovingWinSize.value())
+            settingsStr += '\n    {:30}\t{}\n'.format('Output folder:', self.lneOutputFolder.text())
 
             LOGGER.info(settingsStr)
 
             lyrPoints = self.mcboPointsLayer.currentLayer()
+            
             if self.chkUseSelected.isChecked() or lyrPoints.providerType() == 'delimitedtext':
                 savePtsName = lyrPoints.name() + '_strippts.shp'
                 fileStripPts = os.path.join(TEMPDIR, savePtsName)
-                if os.path.exists(fileStripPts):  removeFileFromQGIS(fileStripPts)
+                
+                if os.path.exists(fileStripPts):  
+                    removeFileFromQGIS(fileStripPts)
 
                 QgsVectorFileWriter.writeAsVectorFormat(lyrPoints, fileStripPts, "utf-8",
-                                                        lyrPoints.crs(), "ESRI Shapefile",
+                                                        lyrPoints.crs(), driverName="ESRI Shapefile",
                                                         onlySelected=self.chkUseSelected.isChecked())
 
                 if self.DISP_TEMP_LAYERS:
-                    addVectorFileToQGIS(fileStripPts, layer_name=os.path.splitext(
-                        os.path.basename(fileStripPts))[0], group_layer_name='DEBUG', atTop=True)
+                    addVectorFileToQGIS(fileStripPts, layer_name=os.path.splitext(os.path.basename(fileStripPts))[0], group_layer_name='DEBUG', atTop=True)
             else:
                 fileStripPts = lyrPoints.source()
 
@@ -461,17 +454,17 @@ class tTestAnalysisDialog(QtGui.QDialog, FORM_CLASS):
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return super(tTestAnalysisDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, core_QGIS=False, showLogPanel=True,
                                     exc_info=sys.exc_info())
 
