@@ -20,6 +20,8 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import re
@@ -28,20 +30,25 @@ import traceback
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QColor, QPushButton
-from qgis._core import QgsMapLayer, QgsVectorFileWriter, QgsMessageLog, \
-    QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer
-from qgis.gui import QgsMessageBar
+from qgis.core import Qgis, QgsApplication
+
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import QPushButton, QDialog, QApplication
+from qgis.core import QgsMapLayer, QgsVectorFileWriter, QgsMessageLog, \
+    QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer, QgsMapLayerProxyModel
+from qgis.gui import QgsMessageBar, QgsProjectionSelectionWidget
 
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS, \
-     save_as_dialog
+from util.qgis_common import (removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS,
+                                save_as_dialog, get_UTM_Coordinate_System)
 from util.qgis_symbology import raster_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
 from pyprecag import config, processing
 from pyprecag.convert import numeric_pixelsize_to_string
+
+
 from pat.util.qgis_symbology import RASTER_SYMBOLOGY
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -51,7 +58,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # Handle logging, no logging has been configured
 
 
-class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
+class BlockGridDialog(QDialog, FORM_CLASS):
     """Convert a polygon boundary to a 0,1 raster and generate a VESPER compatible list of coordinates for kriging.
     """
 
@@ -68,25 +75,29 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         # The qgis interface
         self.iface = iface
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
-
+        self.outQgsCRS = None
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
-
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), QtGui.QFormLayout):
+        if isinstance(self.layout(), QtWidgets.QFormLayout):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
         else:
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
-        self.setMapLayers()
+        #self.setMapLayers()
+        self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+        self.mcboTargetLayer.setAllowEmptyLayer(False)
+        self.mcboTargetLayer.setShowCrs(True)
+        self.mcboTargetLayer.setLayer(None)    # set default to empty layer
+
         # GUI Runtime Customisation -----------------------------------------------
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_blockGrid.svg'))
@@ -102,7 +113,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         """
 
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -113,7 +124,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -121,7 +132,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -175,7 +186,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             if layer.type() != QgsMapLayer.VectorLayer:
                 continue
 
-            if layer.crs().geographicFlag():
+            if layer.crs().isGeographic():
                 exlayer_list.append(layer)
 
             if len(exlayer_list) > 0:
@@ -185,22 +196,42 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
 
     def updateUseSelected(self):
         """Update use selected checkbox if active layer has a feature selection"""
+        if self.mcboTargetLayer.currentLayer() is None:
+            return
 
         if self.mcboTargetLayer.count() == 0:
             return
 
+
         lyrTarget = self.mcboTargetLayer.currentLayer()
 
-        if len(lyrTarget.selectedFeatures()) > 0:
-            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(len(lyrTarget.selectedFeatures())))
+        if lyrTarget.selectedFeatureCount()  > 0:
+            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(lyrTarget.selectedFeatureCount()))
             self.chkUseSelected.setEnabled(True)
         else:
             self.chkUseSelected.setText('No features selected')
             self.chkUseSelected.setEnabled(False)
 
     def on_mcboTargetLayer_layerChanged(self):
+        if self.mcboTargetLayer.currentLayer() is None:
+            return
+        
+        if self.mcboTargetLayer.currentLayer().crs().authid() == '':
+            return 
+        
         self.updateUseSelected()
-        self.lblTargetLayer.setStyleSheet('color:black')
+        layer = self.mcboTargetLayer.currentLayer()
+        if layer.crs().isGeographic():
+            self.outQgsCRS = get_UTM_Coordinate_System(layer.extent().xMinimum(),
+                                                   layer.extent().yMinimum(),
+                                                   layer.crs().authid())
+        else:
+            self.outQgsCRS = layer.crs()
+
+        if self.outQgsCRS:
+            self.mCRSoutput.setCrs(self.outQgsCRS)
+
+            self.lblTargetLayer.setStyleSheet('color:black')
 
     @QtCore.pyqtSlot(name='on_cmdSaveRasterFile_clicked')
     def on_cmdSaveRasterFile_clicked(self):
@@ -210,7 +241,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
 
         pixel_size_str = numeric_pixelsize_to_string(self.dsbPixelSize.value())
-        filename = '{}_BlockGrid_{}'.format(self.mcboTargetLayer.currentText(), pixel_size_str)
+        filename = '{}_BlockGrid_{}'.format(self.mcboTargetLayer.currentLayer().name(), pixel_size_str)
         filename = re.sub('[^A-Za-z0-9_-]+', '', filename)
 
         s = save_as_dialog(self, self.tr("Save As"),
@@ -224,6 +255,17 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         self.lneSaveRasterFile.setText(s)
         self.lneSaveRasterFile.setStyleSheet('color:black')
 
+    @QtCore.pyqtSlot(int)
+    def on_chkAutoCRS_stateChanged(self, state):
+        if self.chkAutoCRS.isChecked():
+            layer = self.mcboTargetLayer.currentLayer()
+            self.outQgsCRS = get_UTM_Coordinate_System(self, layer.extent().xMinimum(),
+                                                    layer.extent().yMinimum(),
+                                                    int(layer.crs().authid().replace('EPSG:', '')))
+
+            if self.outQgsCRS:
+                self.mCRSoutput.setCrs(self.outQgsCRS)
+
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
 
@@ -232,11 +274,18 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
         try:
             errorList = []
             targetLayer = self.mcboTargetLayer.currentLayer()
-            if targetLayer is None or self.mcboTargetLayer.currentText() == '':
+            if targetLayer is None or self.mcboTargetLayer.currentLayer().name() == '':
                 self.lblTargetLayer.setStyleSheet('color:red')
-                errorList.append(self.tr('Target layer is not set. Please load a PROJECTED raster layer into QGIS'))
+                errorList.append(self.tr('Target layer is not set'))
             else:
                 self.lblTargetLayer.setStyleSheet('color:black')
+
+            if not self.mCRSoutput.crs().isValid() or self.mCRSoutput.crs().isGeographic():
+
+                errorList.append(self.tr('Output coordinate system is geographic. Please select a PROJECTED coordinate system'))
+                self.lblOutCRSTitle.setStyleSheet('color:red')
+            else:
+                self.lblOutCRSTitle.setStyleSheet('color:black')
 
             if self.lneSaveRasterFile.text() == '':
                 self.lneSaveRasterFile.setStyleSheet('color:red')
@@ -254,7 +303,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -264,8 +313,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             return False
 
         try:
-
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
@@ -275,8 +323,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             if self.chkUseSelected.isChecked():
                 settingsStr += '\n    {:30}\t{} with {} selected features'.format('Layer:',
                                                                                   self.mcboTargetLayer.currentLayer().name(),
-                                                                                  len(
-                                                                                      self.mcboTargetLayer.currentLayer().selectedFeatures()))
+                                                                                  self.mcboTargetLayer.currentLayer().selectedFeatureCount())
             else:
                 settingsStr += '\n    {:30}\t{}'.format('Layer:', self.mcboTargetLayer.currentLayer().name())
 
@@ -284,9 +331,12 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             settingsStr += '\n    {:30}\t{}'.format('Pixel Size:', self.dsbPixelSize.value())
             settingsStr += '\n    {:30}\t{}'.format('No Data Value:', self.spnNoDataVal.value())
             settingsStr += '\n    {:30}\t{}'.format('Snap To Extent:', self.chkSnapExtent.isChecked())
-            settingsStr += '\nDerived Parameters:---------------------------------------'
-            settingsStr += '\n    {:30}\t{}\n\n'.format('Output Vesper File:',
+            settingsStr += '\n Derived Parameters:---------------------------------------'
+            settingsStr += '\n    {:30}\t{}'.format('Output Vesper File:',
                                                         os.path.splitext(self.lneSaveRasterFile.text())[0] + '_v.txt')
+            settingsStr += '\n    {:30}\t{} - {}\n'.format('Output Projected Coordinate System:',
+                                                              self.mCRSoutput.crs().authid(),
+                                                              self.mCRSoutput.crs().description())
 
             LOGGER.info(settingsStr)
 
@@ -318,6 +368,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
                                   out_vesperfilename=os.path.splitext(rasterFile)[0] + '_v.txt',
                                   nodata_val=self.spnNoDataVal.value(),
                                   snap=self.chkSnapExtent.isChecked(),
+                                  out_epsg=int(self.mCRSoutput.crs().authid().replace("EPSG:",'')),
                                   overwrite=True)  # The saveAS dialog takes care of the overwrite issue.
 
             if self.chkDisplayResults.isChecked():
@@ -328,15 +379,16 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
                                                invert=raster_sym['invert'])
 
 
-            QtGui.qApp.restoreOverrideCursor()
+            #QApplication.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
 
             return super(BlockGridDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
+            self.send_to_messagebar(str(err), level=Qgis.Critical, duration=0, addToLog=True,
                                     showLogPanel=True, exc_info=sys.exc_info())
             return False  # leave dialog open
