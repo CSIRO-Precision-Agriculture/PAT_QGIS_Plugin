@@ -12,8 +12,6 @@
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
         email      : PAT@csiro.au
 
- Modified from: Spreadsheet Layers QGIS Plugin on 21/08/2017
-     https://github.com/camptocamp/QGIS-SpreadSheetLayers/blob/master/widgets/SpreadsheetLayersDialog.py
  ***************************************************************************/
 
 /***************************************************************************
@@ -162,6 +160,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget.currentChanged.connect(self.update_prev_next_buttons)
         self.button_box.button(QDialogButtonBox.Ok).setVisible(False)
+                
         for obj, lay_filter in [(self.mcboTargetLayer,QgsMapLayerProxyModel.PointLayer),
                             (self.mcboClipPolyLayer,QgsMapLayerProxyModel.PolygonLayer)]:
 
@@ -362,7 +361,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 self.getOutputCRS()
                 para_summary = self.create_summary()
                 
-                para_summary = para_summary.split('\n')[:-4]
+                para_summary = para_summary.split('\n')
                 self.lblSummary.setText('\n'.join(para_summary))                
             
             self.stackedWidget.setCurrentIndex(idx+moveby)
@@ -370,13 +369,17 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cmdInFile_clicked')
     def on_cmdInFile_clicked(self):
         self.resetFormToDefaults()
-        
+
+        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder")
+        if inFolder is None or not os.path.exists(inFolder):
+            inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
+
         """Click Button Event."""
         self.optFile.setChecked(True)
         s = QFileDialog.getOpenFileName(
             self,
             caption=self.tr("Choose a file to open"),
-            directory=r'C:\_Projects\PAT\PAT_Demo_internal\Sample_Data',
+            directory=inFolder,
             filter=self.tr("Delimited files") + " (*.csv *.txt);;")
                    # + self.tr("Spreadsheet files") + " (*.ods *.xls *.xlsx);;"
                    # + self.tr("GDAL Virtual Format") + " (*.vrt);;")
@@ -387,9 +390,8 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         if s == '':
             return
 
-        
         self.lneInCSVFile.setText(s)
-        
+        write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder", os.path.dirname(s))
         
     @QtCore.pyqtSlot(int)
     def on_spnIgnoreRows_valueChanged(self, value):
@@ -496,7 +498,8 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 lyrTarget = self.mcboTargetLayer.currentLayer()
                 filename = lyrTarget.name() + '_{}_normtrimmed.shp'.format(fld)
             else:
-                filename = self.lneLayerName.text() + '_{}_normtrimmed.shp'.format(fld)
+                fn,ext = os.path.splitext(self.lneSaveCSVFile.text())
+                filename = fn+'.shp'
         else:
             filename = os.path.splitext(self.lneSaveCSVFile.text())[0]
 
@@ -514,6 +517,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
 
         self.lneSavePointsFile.setText(s)
+        self.lneSavePointsFile.setEnabled(True)
         self.lblSavePointsFile.setEnabled(True)
         self.lblSavePointsFile.setStyleSheet('color:black')
         self.lblSaveCSVFile.setStyleSheet('color:black')
@@ -791,6 +795,13 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         settingsStr += '\n    {:32}\t{}'.format("Trim Iteratively:", self.chkIterate.isChecked())
 
         if self.lneSaveCSVFile.text() != '':
+            settingsStr += '\n    {:32}\t{} - {}'.format('Output Projected Coordinate System:',
+                                                         self.mCRSoutput.crs().authid(),
+                                                         self.mCRSoutput.crs().description())
+            
+            settingsStr += '\n    {:32}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())
+                
+        if self.lneSavePointsFile.text() != '':
             points_clean_shp = self.lneSavePointsFile.text()
             if 'norm_trim' in os.path.basename(points_clean_shp):
                 points_remove_shp = self.lneSavePointsFile.text().replace('_normtrimmed', '_removedpts')
@@ -799,11 +810,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
 
             settingsStr += '\n    {:32}\t{}'.format('Saved Points:', points_clean_shp)
             settingsStr += '\n    {:32}\t{}'.format('Saved Removed Points:', points_remove_shp)
-
-        settingsStr += '\n    {:32}\t{}'.format('Output CSV File:', self.lneSaveCSVFile.text())
-        settingsStr += '\n    {:32}\t{} - {}'.format('Output Projected Coordinate System:',
-                                                         self.mCRSoutput.crs().authid(),
-                                                         self.mCRSoutput.crs().description())
+                        
         return settingsStr
 
     def accept(self, *args, **kwargs):

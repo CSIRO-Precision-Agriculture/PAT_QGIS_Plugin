@@ -22,6 +22,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from future import standard_library
+from qgis import processing
 
 standard_library.install_aliases()
 
@@ -47,12 +48,7 @@ from pkg_resources import parse_version
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
 from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton, QLabel
 from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsProject, QgsMessageLog, Qgis
-from qgis.gui import QgsMessageBar
-
-# from processing.core.Processing import Processing
-# from processing.tools import general
-#from processing.gui.CommanderWindow import CommanderWindow
+from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from .gui.about_dialog import AboutDialog
@@ -79,8 +75,7 @@ from .util.custom_logging import stop_logging
 from .util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from .util.settings import read_setting, write_setting
 from .util.processing_alg_logging import ProcessingAlgMessages
-from .util.qgis_symbology import (raster_apply_unique_value_renderer, RASTER_SYMBOLOGY,
-                                    raster_apply_classified_renderer)
+from .util.qgis_symbology import ( RASTER_SYMBOLOGY, raster_apply_classified_renderer)
 
 import pyprecag
 from pyprecag import config
@@ -343,14 +338,14 @@ class pat_toolbar(object):
             callback=self.run_tTestAnalysis,
             parent=self.iface.mainWindow())
 
-        self.add_action(
-            icon_path=':/plugins/pat/icons/icon_wholeOfBlockExp.svg',
-            text=self.tr(u'Whole-of-block analysis'),
-            tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
-            status_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
-            add_to_toolbar=True,
-            callback=self.run_wholeOfBlockAnalysis,
-            parent=self.iface.mainWindow())
+        # self.add_action(
+        #     icon_path=':/plugins/pat/icons/icon_wholeOfBlockExp.svg',
+        #     text=self.tr(u'Whole-of-block analysis'),
+        #     tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
+        #     status_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
+        #     add_to_toolbar=True,
+        #     callback=self.run_wholeOfBlockAnalysis,
+        #     parent=self.iface.mainWindow())
 
         self.add_action(
             icon_path=':/plugins/pat/icons/icon_persistor.svg',
@@ -667,49 +662,58 @@ class pat_toolbar(object):
         """Run method for the fit to block grid dialog"""
         # https://gis.stackexchange.com/a/160146
 
-        result = check_R_dependency()
-        if result is not True:
-            self.iface.messageBar().pushMessage("R configuration", result,
-                                                level=Qgis.Warning, duration=15)
-            return
+        # result = check_R_dependency()
+        # if result is not True:
+        #     self.iface.messageBar().pushMessage("R configuration", result,
+        #                                         level=Qgis.Warning, duration=15)
+        #     return
 
         proc_alg_mess = ProcessingAlgMessages(self.iface)
-        QgsMessageLog.instance().messageReceived.connect(proc_alg_mess.processingCatcher)
+        QgsApplication.messageLog().messageReceived.connect(proc_alg_mess.processingCatcher)
 
-        # Then get the algorithm you're interested in (for instance, Join Attributes):
-        alg = Processing.getAlgorithm("r:wholeofblockanalysis")
+        # Then get the algorithm you're interested in:
+        alg = QgsApplication.processingRegistry().algorithmById("r:wholeofblockanalysis")
         if alg is None:
             self.iface.messageBar().pushMessage("Whole-of-block analysis algorithm could not"
                                                 " be found", level=Qgis.Critical)
             return
-        # Instantiate the commander window and open the algorithm's interface
-        cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
-        if alg is not None:
-            cw.runAlgorithm(alg)
 
-        # if proc_alg_mess.alg_name == '' then cancel was clicked
+        """https://www.qgistutorials.com/sl/docs/3/processing_python_plugin.html
+        https://gis.stackexchange.com/questions/306954/launch-processing-tool-ui-in-pyqgis
+        https://gis.stackexchange.com/questions/312935/get-progression-bar-into-pyqgis-3-standalone-script
+        """
 
-        if proc_alg_mess.error:
-            self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
-                                                level=Qgis.Critical, duration=0)
-        elif proc_alg_mess.alg_name != '':
-            data_column = proc_alg_mess.parameters['Data_Column']
-
-            # load rasters into qgis as grouped layers.
-            for key, val in list(proc_alg_mess.output_files.items()):
-
-                grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
-
-                for ea_file in val['files']:
-                    removeFileFromQGIS(ea_file)
-                    raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
-                    if key in ['p_val']:
-                        raster_apply_unique_value_renderer(raster_layer)
-
-            self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
-                                                level=Qgis.Info, duration=15)
-
-        del proc_alg_mess
+        initial_params = {}
+        results = processing.execAlgorithmDialog("r:wob", initial_params)
+        print(results)
+#         # Instantiate the commander window and open the algorithm's interface
+#         cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
+#         if alg is not None:
+#             cw.runAlgorithm(alg)
+# 
+#         # if proc_alg_mess.alg_name == '' then cancel was clicked
+# 
+#         if proc_alg_mess.error:
+#             self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
+#                                                 level=Qgis.Critical, duration=0)
+#         elif proc_alg_mess.alg_name != '':
+#             data_column = proc_alg_mess.parameters['Data_Column']
+# 
+#             # load rasters into qgis as grouped layers.
+#             for key, val in list(proc_alg_mess.output_files.items()):
+# 
+#                 grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
+# 
+#                 for ea_file in val['files']:
+#                     removeFileFromQGIS(ea_file)
+#                     raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
+#                     if key in ['p_val']:
+#                         raster_apply_unique_value_renderer(raster_layer)
+# 
+#             self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
+#                                                 level=Qgis.Info, duration=15)
+# 
+#         del proc_alg_mess
 
     def run_stripTrialPoints(self):
 
@@ -1008,7 +1012,6 @@ class pat_toolbar(object):
 
         # Refresh QGIS
         QCoreApplication.processEvents()
-
 
     def run_pointTrailToPolygon(self):
         """Run method for pointTrailToPolygon dialog"""

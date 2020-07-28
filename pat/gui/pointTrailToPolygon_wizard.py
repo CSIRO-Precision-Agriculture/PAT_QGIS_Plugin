@@ -333,12 +333,16 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
     def on_cmdInFile_clicked(self):
         self.resetFormToDefaults()
 
+        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder")
+        if inFolder is None or not os.path.exists(inFolder):
+            inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
+
         """Click Button Event."""
         self.optFile.setChecked(True)
         s = QFileDialog.getOpenFileName(
             self,
             caption=self.tr("Choose a file to open"),
-            directory=r'C:\_Projects\PAT\PAT_Demo_internal\Sample_Data',
+            directory=inFolder,
             filter=self.tr("Delimited files") + " (*.csv *.txt);;")
                    # + self.tr("Spreadsheet files") + " (*.ods *.xls *.xlsx);;"
                    # + self.tr("GDAL Virtual Format") + " (*.vrt);;")
@@ -350,6 +354,8 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
             return
 
         self.lneInCSVFile.setText(s)
+
+        write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder", os.path.dirname(s))
 
     @QtCore.pyqtSlot(int)
     def on_spnIgnoreRows_valueChanged(self, value):

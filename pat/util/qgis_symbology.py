@@ -91,7 +91,7 @@ def random_colours(number_of_colours=1):
      adapted from  https://gist.github.com/adewes/5884820#file-generate_random_color-py
     """
     colours=[]
-    for i in range(0,10):
+    for i in range(0,number_of_colours):
         colours.append(generate_new_color(colours))
 
     return colours
@@ -221,7 +221,7 @@ def vector_apply_unique_value_renderer(vector_layer, column):
     uniq_vals = vector_layer.dataProvider().uniqueValues(vector_layer.fields().lookupField(column))
     randcolors = random_colours(len(uniq_vals))
 
-    for i, ea_value in enumerate(uniq_vals):
+    for i, ea_value in enumerate(sorted(uniq_vals)):
         # initialize the default symbol for this geometry type
         symbol = QgsSymbol.defaultSymbol(vector_layer.geometryType())
 

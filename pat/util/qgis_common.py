@@ -275,7 +275,9 @@ def file_in_use(filename, display_msgbox=True):
 
     try:
         # Try and open the file. If in use creates IOError: [Errno 13] Permission denied error
-        open(filename, "a")
+        with open(filename, "a") as f:
+            pass
+        
     except IOError:
         reply = QMessageBox.question(None, 'File in Use',
                                      '{} is currently in use.\nPlease close the file or use a'

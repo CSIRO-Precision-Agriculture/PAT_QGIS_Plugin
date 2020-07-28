@@ -271,10 +271,10 @@ p, li { white-space: pre-wrap; }
             <height>20</height>
            </size>
           </property>
-          <property name="allowEmptyLayer">
+          <property name="allowEmptyLayer" stdset="0">
            <bool>true</bool>
           </property>
-          <property name="showCrs">
+          <property name="showCrs" stdset="0">
            <bool>true</bool>
           </property>
          </widget>
@@ -303,10 +303,10 @@ p, li { white-space: pre-wrap; }
             <height>20</height>
            </size>
           </property>
-          <property name="allowEmptyLayer">
+          <property name="allowEmptyLayer" stdset="0">
            <bool>true</bool>
           </property>
-          <property name="showCrs">
+          <property name="showCrs" stdset="0">
            <bool>true</bool>
           </property>
          </widget>
@@ -428,7 +428,7 @@ window size of</string>
            </size>
           </property>
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Save output image to this folder. A sub-folder with the image name will be created.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string/>
           </property>
          </widget>
         </item>
