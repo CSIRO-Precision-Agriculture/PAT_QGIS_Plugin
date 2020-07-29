@@ -99,17 +99,17 @@ def classFactory(iface):
     LOGGER.addHandler(logging.NullHandler())   # logging.StreamHandler()
 
     from .util.check_dependencies import (check_pat_symbols, check_R_dependency,check_gdal_dependency,
-                                          check_python_dependencies, check_vesper_dependency)
+                                          check_python_dependencies)
 
     meta_version = pluginMetadata('pat','version')
     plugin_state = '\nPAT Plugin:\n'
     plugin_state += '    {:25}\t{}\n'.format('QGIS Version:', Qgis.QGIS_VERSION)
     plugin_state += '    {:25}\t{}\n'.format('Python Version:',  sys.version)
     plugin_state += '    {:25}\t{} {}'.format('PAT:', pluginMetadata('pat', 'version'),
-                                                        pluginMetadata('pat', 'update_date'))
+                                                      pluginMetadata('pat', 'update_date'))
     LOGGER.info(plugin_state)
 
-    gdal_ver = check_gdal_dependency()
+
 
     # if not check_gdal:
     #     LOGGER.critical('QGIS Version {} and GDAL {} is are not currently supported.'.format(Qgis.QGIS_VERSION, gdal_ver))
@@ -123,12 +123,10 @@ def classFactory(iface):
     #     QMessageBox.critical(None, 'Failed Dependency Check', message)
     #     sys.exit(message)
 
-    #from util.check_dependencies import check_python_dependencies, check_vesper_dependency
-
+    gdal_ver = check_gdal_dependency()
     check_python_dependencies(PLUGIN_DIR, iface)
     check_pat_symbols()
     check_R_dependency()
-    vesper_exe = check_vesper_dependency()
 
     from .pat_toolbar import pat_toolbar
 

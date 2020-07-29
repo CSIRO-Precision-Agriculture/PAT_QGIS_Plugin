@@ -32,7 +32,7 @@ from pat import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 
 from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget
 from qgis.PyQt.Qt import QCoreApplication
-from qgis._gui import QgsMessageBar
+from qgis.gui import QgsMessageBar
 from qgis.core import QgsMessageLog
 from qgis.utils import iface
 
@@ -159,7 +159,7 @@ def setup_logger(logger_name, log_file=None):
     add_logging_handler_once(logger, logging.NullHandler())
 
     # create formatter that will be added to the handlers
-    formatter = logging.Formatter("%(asctime)s %(name)-37s %(levelname)-8s  %(message)s")
+    formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
 
     # create syslog handler which logs even debug messages
     log_path = os.path.join(TEMPDIR, 'PAT.log')
