@@ -18,11 +18,11 @@ makes use of the CSIRO developed [pyPrecAg](https://github.com/CSIRO-Precision-A
 <img src="pat/icons/CSIRO_Grad_RGB.png" width="70" height="70" style="float" align="left"/>
 <img src="pat/icons/WineAustralia_Logo.png" width="90" height="90" style="float" align="right"/>
 <blockquote>   The Precision Agriculture Tools (PAT) is developed by the CSIRO Precision Agriculture team.  
-   This project is supported by Wine Australia through funding from the Australian Government Department of Agriculture as part of its Rural R&D for Profit program.</blockquote>
+  This project was initiated by CSIRO with support from Wine Australia and the Australia Federal Government’s Department of Agriculture as part of its Rural R&D for Profit program. Development of this QGIS 3 compatible version was supported by CSIRO.”</blockquote>
 
 Requirements and Installation
 -----------------------------
-PAT is only available using QGIS Long Term Release versions 2.18.21 to 2.18.26 for Windows [32bit](http://download.osgeo.org/qgis/win64/QGIS-OSGeo4W-2.18.26-1-Setup-x86.exe) or [64bit](http://download.osgeo.org/qgis/win64/QGIS-OSGeo4W-2.18.26-1-Setup-x86_64.exe). PAT is not currently available in QGIS 3.
+PAT is available for QGIS 3.x. The latest release of QGIS can be download from the [Official QGIS site](https://www.qgis.org/en/site/forusers/download.html).
 
 To fully use the on-the-go data workflow, users must also download and install [VESPER](https://precision-agriculture.sydney.edu.au/resources/software/download-vesper).
 
