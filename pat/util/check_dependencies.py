@@ -368,7 +368,7 @@ def check_python_dependencies(plugin_path, iface):
              'py_version': struct.calcsize("P") * 8}  # this will return 64 or 32
 
         # 'osgeo_uninst': ' -x python3-'.join(['fiona', 'geopandas', 'rasterio'])
-        temp_file = os.path.join(plugin_path, 'python_packages', 'Install_PAT3_Extras.template')
+        temp_file = os.path.join(plugin_path, 'util', 'Install_PAT3_Extras.template')
         install_file = os.path.join(plugin_path, 'python_packages', title + '.bat')
         uninstall_file = os.path.join(plugin_path, 'python_packages', 'Un{}.bat'.format(title))
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
