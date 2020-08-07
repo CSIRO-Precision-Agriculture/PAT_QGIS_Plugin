@@ -131,8 +131,7 @@ def check_R_dependency():
     if r_scripts_fold is None:
         return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
 
-    files = glob.glob(os.path.join(PLUGIN_DIR, "R-Scripts", "*.rsx"))
-    files += glob.glob(os.path.join(PLUGIN_DIR, "R-Scripts", "*.rsx.help"))
+    files = glob.glob(os.path.join(PLUGIN_DIR, "R-Scripts", "Whole*.rsx"))
 
     for src_file in files:
         dest_file = os.path.join(r_scripts_fold, os.path.basename(src_file))
@@ -316,7 +315,7 @@ def check_python_dependencies(plugin_path, iface):
         #     os.environ['GDAL_VERSION'] = gdal_ver
 
         # the name of the install file.
-        title = 'Install_PAT_Extras'
+        title = 'Install_PAT3_Extras'
         if platform.system() == 'Windows':
             user_path = os.path.join(os.path.expanduser('~'))
             shortcutPath = os.path.join(user_path, 'Desktop', title.replace('_', ' ') + '.lnk')
@@ -338,7 +337,7 @@ def check_python_dependencies(plugin_path, iface):
         for argCheck in ['geopandas', 'rasterio']:
             packCheck[argCheck] = check_package(argCheck)
             if packCheck[argCheck]['Action'] == 'Install':
-                osgeo_packs += ['{}'.format(argCheck)]
+                osgeo_packs += [argCheck]
 
         packCheck['pyprecag'] = check_package('pyprecag')
         cur_pyprecag_ver = check_pip_for_update('pyprecag')
@@ -357,25 +356,19 @@ def check_python_dependencies(plugin_path, iface):
 
         failDependencyCheck = [key for key, val in packCheck.items() if val['Action'] in ['Install', 'Upgrade']]
 
-        if len(osgeo_packs) == 0:
-            osgeo_packs = ['geopandas', 'rasterio']
-
-        if len(pip_packs) == 0:
-            pip_packs = ["pyprecag"]
-
         # create a dictionary to use with the template file.
         d = {'dependency_log': os.path.join(plugin_path, 'python_packages',
                                             'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))),
              'QGIS_PATH': osgeo_path,
              'setup_exe': os.path.join(os.environ['OSGEO4W_ROOT'], 'bin', 'osgeo4w-setup.exe'),
              'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
-             'osgeo_packs': '' if len(osgeo_packs) == 0 else '-k -P python3-' + ' -P python3-'.join(osgeo_packs),
+             'osgeo_packs': '' if len(osgeo_packs) == 0 else '-P python3-' + ' -P python3-'.join(osgeo_packs),
              'pip_func': 'install',
              'pip_packs': '' if len(pip_packs) == 0 else ' '.join(pip_packs),
              'py_version': struct.calcsize("P") * 8}  # this will return 64 or 32
 
         # 'osgeo_uninst': ' -x python3-'.join(['fiona', 'geopandas', 'rasterio'])
-        temp_file = os.path.join(plugin_path, 'python_packages', 'Install_PAT_Extras.template')
+        temp_file = os.path.join(plugin_path, 'python_packages', 'Install_PAT3_Extras.template')
         install_file = os.path.join(plugin_path, 'python_packages', title + '.bat')
         uninstall_file = os.path.join(plugin_path, 'python_packages', 'Un{}.bat'.format(title))
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
@@ -407,8 +400,9 @@ def check_python_dependencies(plugin_path, iface):
                                            level=Qgis.Critical,
                                            duration=0)
             QMessageBox.critical(None, 'Failed Dependency Check', message)
-            sys.exit(message)
+            return(message)
         else:
+
             settings_version = read_setting(PLUGIN_NAME + "/PAT_VERSION")
              
             if settings_version is None:
@@ -421,6 +415,20 @@ def check_python_dependencies(plugin_path, iface):
                     LOGGER.info('Successfully downgraded and setup PAT from {} to {})'.format(settings_version, meta_version))
 
             write_setting(PLUGIN_NAME + '/PAT_VERSION', meta_version)
+
+            if os.path.exists(shortcutPath):
+                os.remove(shortcutPath)
+
+            if len(osgeo_packs) == 0:
+                osgeo_packs = ['geopandas', 'rasterio']
+     
+            if len(pip_packs) == 0:
+                pip_packs = ["pyprecag"]
+
+            d.update({'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
+                      'osgeo_packs': '' if len(osgeo_packs) == 0 else '-P python3-' + ' -P python3-'.join(osgeo_packs),
+                      'pip_packs': '' if len(pip_packs) == 0 else ' '.join(pip_packs),
+                      })
 
             # Create master un&install files
             create_file_from_template(temp_file, d, install_file)
