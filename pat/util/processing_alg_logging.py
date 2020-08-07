@@ -27,13 +27,11 @@ import os
 from collections import OrderedDict
 import re
 import fnmatch
-from qgis.PyQt.QtCore import QCoreApplication
-from qgis.gui import QgsMessageBar
-from qgis.core import QgsProject, QgsMessageLog
-from qgis.utils import iface
+
+from qgis.core import QgsApplication
 
 from pat import LOGGER_NAME
-from util.custom_logging import errorCatcher
+from pat.util.custom_logging import errorCatcher
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())
@@ -52,7 +50,7 @@ class ProcessingAlgMessages(object):
         self.log_file = ''
         QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
-    def processingCatcher(self,msg, tag, level):
+    def processingCatcher(self, msg, tag, level):
         """ Catch messages written to the proccessing algorithm's log and report them to the user.
 
         source:https://gis.stackexchange.com/a/223965
