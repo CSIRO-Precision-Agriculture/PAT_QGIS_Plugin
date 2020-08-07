@@ -338,14 +338,14 @@ class pat_toolbar(object):
             callback=self.run_tTestAnalysis,
             parent=self.iface.mainWindow())
 
-        # self.add_action(
-        #     icon_path=':/plugins/pat/icons/icon_wholeOfBlockExp.svg',
-        #     text=self.tr(u'Whole-of-block analysis'),
-        #     tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
-        #     status_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
-        #     add_to_toolbar=True,
-        #     callback=self.run_wholeOfBlockAnalysis,
-        #     parent=self.iface.mainWindow())
+        self.add_action(
+            icon_path=':/plugins/pat/icons/icon_wholeOfBlockExp.svg',
+            text=self.tr(u'Whole-of-block analysis'),
+            tool_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
+            status_tip=self.tr(u'Whole-of-block analysis using co-kriging'),
+            add_to_toolbar=True,
+            callback=self.run_wholeOfBlockAnalysis,
+            parent=self.iface.mainWindow())
 
         self.add_action(
             icon_path=':/plugins/pat/icons/icon_persistor.svg',
@@ -659,14 +659,26 @@ class pat_toolbar(object):
         QCoreApplication.processEvents()
 
     def run_wholeOfBlockAnalysis(self):
+        """*** Whole of Block is disabled until errors relating to the R Processing provider
+        and the co-kriging R script are resolved. ***
+        """
+
+        QMessageBox.warning (self.iface.mainWindow(),
+                                "Not available",
+                                "Whole-of-block Analysis is not currently available in QGIS 3 & PAT. \n\n"
+                                "Continue using PAT in QGIS 2.18.26 to run Whole-of-block Analysis.",
+                                QMessageBox.Ok)
+
+        return
+
         """Run method for the fit to block grid dialog"""
         # https://gis.stackexchange.com/a/160146
 
-        # result = check_R_dependency()
-        # if result is not True:
-        #     self.iface.messageBar().pushMessage("R configuration", result,
-        #                                         level=Qgis.Warning, duration=15)
-        #     return
+        result = check_R_dependency()
+        if result is not True:
+            self.iface.messageBar().pushMessage("R configuration", result,
+                                                level=Qgis.Warning, duration=15)
+            return
 
         proc_alg_mess = ProcessingAlgMessages(self.iface)
         QgsApplication.messageLog().messageReceived.connect(proc_alg_mess.processingCatcher)
@@ -684,36 +696,36 @@ class pat_toolbar(object):
         """
 
         initial_params = {}
-        results = processing.execAlgorithmDialog("r:wob", initial_params)
-        print(results)
-#         # Instantiate the commander window and open the algorithm's interface
-#         cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
-#         if alg is not None:
-#             cw.runAlgorithm(alg)
-# 
-#         # if proc_alg_mess.alg_name == '' then cancel was clicked
-# 
-#         if proc_alg_mess.error:
-#             self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
-#                                                 level=Qgis.Critical, duration=0)
-#         elif proc_alg_mess.alg_name != '':
-#             data_column = proc_alg_mess.parameters['Data_Column']
-# 
-#             # load rasters into qgis as grouped layers.
-#             for key, val in list(proc_alg_mess.output_files.items()):
-# 
-#                 grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
-# 
-#                 for ea_file in val['files']:
-#                     removeFileFromQGIS(ea_file)
-#                     raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
-#                     if key in ['p_val']:
-#                         raster_apply_unique_value_renderer(raster_layer)
-# 
-#             self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
-#                                                 level=Qgis.Info, duration=15)
-# 
-#         del proc_alg_mess
+        results = processing.execAlgorithmDialog("r:wholeofblockanalysis", initial_params)
+
+        # # Instantiate the commander window and open the algorithm's interface
+        # cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
+        # if alg is not None:
+        #     cw.runAlgorithm(alg)
+        #
+        # # if proc_alg_mess.alg_name == '' then cancel was clicked
+        #
+        # if proc_alg_mess.error:
+        #     self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
+        #                                         level=Qgis.Critical, duration=0)
+        # elif proc_alg_mess.alg_name != '':
+        #     data_column = proc_alg_mess.parameters['Data_Column']
+        #
+        #     # load rasters into qgis as grouped layers.
+        #     for key, val in list(proc_alg_mess.output_files.items()):
+        #
+        #         grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
+        #
+        #         for ea_file in val['files']:
+        #             removeFileFromQGIS(ea_file)
+        #             raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
+        #             if key in ['p_val']:
+        #                 raster_apply_unique_value_renderer(raster_layer)
+        #
+        #     self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
+        #                                         level=Qgis.Info, duration=15)
+
+        del proc_alg_mess
 
     def run_stripTrialPoints(self):
 
