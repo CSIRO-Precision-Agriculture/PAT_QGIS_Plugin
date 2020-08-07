@@ -178,6 +178,9 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
 
         layer = self.mcboLineLayer.currentLayer()
 
+        if layer is None:
+            return
+        
         line_crs = layer.crs()
         if line_crs.authid() == '':
             # Convert from the older style strings

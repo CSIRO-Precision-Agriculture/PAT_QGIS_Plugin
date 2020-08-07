@@ -83,7 +83,11 @@ class tTestAnalysisDialog(QDialog, FORM_CLASS):
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
         self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
-
+        
+        self.raster_filter_message = self.lblLayerFilter.text()
+        self.pixel_size = ['0', 'm', '']
+        self.layer_table = build_layer_table()
+        
         if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
@@ -99,18 +103,15 @@ class tTestAnalysisDialog(QDialog, FORM_CLASS):
             cbo.setAllowEmptyLayer(True)
             cbo.setCurrentIndex(0)
 
-
         self.mcboPointsLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
         self.mcboPointsLayer.setExcludedProviders(['wms'])
         self.mcboPointsLayer.setAllowEmptyLayer(True)
         self.mcboPointsLayer.setCurrentIndex(0)
-
-        self.pixel_size = ['0', 'm', '']
-        self.layer_table = build_layer_table()
+       
         self.setMapLayers()
         self.updateUseSelected()
 
-        self.raster_filter_message = self.lblLayerFilter.text()
+        
 
         # GUI Runtime Customisation -----------------------------------------------
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_t-test.svg'))
@@ -268,6 +269,7 @@ class tTestAnalysisDialog(QDialog, FORM_CLASS):
         if self.mcboRasterLayer.currentLayer() is None:
             self.pixel_size = ['0', 'm', '']
             self.lblLayerFilter.setText(self.raster_filter_message)
+            return
              
         else:
             self.pixel_size = get_pixel_size(self.mcboRasterLayer.currentLayer())

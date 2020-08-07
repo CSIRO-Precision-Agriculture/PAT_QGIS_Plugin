@@ -97,8 +97,9 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
         self.mcboRasterLayer.setExcludedProviders(['wms'])
         
         rastlyrs_df = build_layer_table([self.mcboRasterLayer.layer(i) for i in range(self.mcboRasterLayer.count())])
-        exc_lyrs = rastlyrs_df[rastlyrs_df['bandcount']<=1]
-        self.mcboRasterLayer.setExceptedLayerList(exc_lyrs['layer'].tolist())
+        if self.mcboRasterLayer.count() > 0:
+            exc_lyrs = rastlyrs_df[rastlyrs_df['bandcount']<=1]
+            self.mcboRasterLayer.setExceptedLayerList(exc_lyrs['layer'].tolist())
         
         self.updateRaster()
       
