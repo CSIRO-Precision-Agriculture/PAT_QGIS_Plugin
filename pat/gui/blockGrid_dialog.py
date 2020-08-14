@@ -275,8 +275,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
             if self.chkUseSelected.isChecked():
                 settingsStr += '\n    {:30}\t{} with {} selected features'.format('Layer:',
                                                                                   self.mcboTargetLayer.currentLayer().name(),
-                                                                                  len(
-                                                                                      self.mcboTargetLayer.currentLayer().selectedFeatures()))
+                                                                                  len(self.mcboTargetLayer.currentLayer().selectedFeatures()))
             else:
                 settingsStr += '\n    {:30}\t{}'.format('Layer:', self.mcboTargetLayer.currentLayer().name())
 
@@ -318,6 +317,7 @@ class BlockGridDialog(QtGui.QDialog, FORM_CLASS):
                                   out_vesperfilename=os.path.splitext(rasterFile)[0] + '_v.txt',
                                   nodata_val=self.spnNoDataVal.value(),
                                   snap=self.chkSnapExtent.isChecked(),
+                                  out_epsg=int(lyrTarget.crs().authid().replace("EPSG:",'')),
                                   overwrite=True)  # The saveAS dialog takes care of the overwrite issue.
 
             if self.chkDisplayResults.isChecked():
