@@ -174,23 +174,6 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QCheckBox" name="chkSaveLinesFile">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>Save line 
-shapefile:</string>
-          </property>
-          <property name="tristate">
-           <bool>false</bool>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="0">
          <widget class="QLabel" name="lblOutCRSTitle">
           <property name="sizePolicy">
@@ -231,7 +214,23 @@ shapefile:</string>
          </widget>
         </item>
         <item row="0" column="1">
-         <widget class="QgsProjectionSelectionWidget" name="mCRSoutput"/>
+         <widget class="QgsProjectionSelectionWidget" name="mCRSoutput" native="true"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="lblSaveLinesFile">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Lines shapefile: (optional)</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -267,7 +266,7 @@ shapefile:</string>
             <height>20</height>
            </size>
           </property>
-          <property name="allowEmptyLayer">
+          <property name="allowEmptyLayer" stdset="0">
            <bool>true</bool>
           </property>
          </widget>

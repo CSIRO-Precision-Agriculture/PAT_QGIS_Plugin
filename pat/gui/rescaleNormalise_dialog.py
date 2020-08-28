@@ -37,7 +37,7 @@ from qgis.gui import QgsMessageBar
 import rasterio
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, save_as_dialog
+from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, save_as_dialog, get_layer_source
 from util.settings import read_setting, write_setting
 
 from pyprecag.raster_ops import rescale, normalise
@@ -258,7 +258,7 @@ class RescaleNormaliseDialog(QDialog, FORM_CLASS):
             rasterOut = self.lneSaveRasterFile.text()
             removeFileFromQGIS(rasterOut)
 
-            rasterIn = lyrTarget.source()
+            rasterIn = get_layer_source(lyrTarget)
             # need this to maintain correct wkt otherwise gda/mga defaults to utm zonal
             in_crswkt = lyrTarget.crs().toWkt()
 

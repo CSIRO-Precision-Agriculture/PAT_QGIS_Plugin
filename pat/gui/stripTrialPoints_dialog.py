@@ -40,7 +40,7 @@ from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoord
                        Qgis, QgsMapLayerProxyModel)
 from qgis.gui import QgsMessageBar
 
-from pat.util.qgis_common import get_UTM_Coordinate_System
+from pat.util.qgis_common import get_UTM_Coordinate_System, get_layer_source
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'stripTrialPoints_dialog_base.ui'))
 
@@ -99,7 +99,6 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_stripTrialPoints.svg'))
         self.chkUseSelected.setChecked(False)
         self.chkUseSelected.hide()
-        self.chkSaveLinesFile.setChecked(False)
 
         #self.updateUseSelected()
 
@@ -180,7 +179,7 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
 
         if layer is None:
             return
-        
+
         line_crs = layer.crs()
         if line_crs.authid() == '':
             # Convert from the older style strings
@@ -223,27 +222,6 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
         self.lblSavePointsFile.setStyleSheet('color:black')
         self.lneSavePointsFile.setStyleSheet('color:black')
 
-    @QtCore.pyqtSlot(int)
-    def on_chkSaveLinesFile_stateChanged(self, state):
-        self.lneSaveLinesFile.setEnabled(state)
-        if state :
-            lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
-            if lastFolder is None or not os.path.exists(lastFolder):
-                lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
-
-            if self.lneSavePointsFile.text() == '':
-                filename = os.path.join(lastFolder, self.mcboLineLayer.currentLayer().name() + '_strip-trial-lines.shp')
-            else:
-                path, file = os.path.split(self.lneSavePointsFile.text())
-                file, ext = os.path.splitext(file)
-                filename = os.path.join(path, file.replace('-points', '') + '-lines' + ext)
-
-            self.lneSaveLinesFile.setText(filename)
-            self.chkSaveLinesFile.setStyleSheet('color:black')
-            self.lneSaveLinesFile.setStyleSheet('color:black')
-        else:
-            self.lneSaveLinesFile.setText('')
-
     @QtCore.pyqtSlot(name='on_cmdSaveLinesFile_clicked')
     def on_cmdSaveLinesFile_clicked(self):
         self.messageBar.clearWidgets()
@@ -271,10 +249,10 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
 
-        self.chkSaveLinesFile.setChecked(True)
+        self.lneSaveLinesFile.setEnabled(True)
         self.lneSaveLinesFile.setText(s)
-        self.chkSaveLinesFile.setStyleSheet('color:black')
         self.lneSaveLinesFile.setStyleSheet('color:black')
+        self.lblSaveLinesFile.setStyleSheet('color:black')
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
@@ -309,7 +287,7 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
                     errorList.append(self.tr("Output projected coordinate system (not geographic) required"))
                 else:
                     self.lblOutCRSTitle.setStyleSheet('color:black')
-                    
+
             if self.lneSavePointsFile.text() == '':
                 self.lblSavePointsFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Save points shapefile"))
@@ -321,18 +299,16 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
                 self.lblSavePointsFile.setStyleSheet('color:black')
                 self.lneSavePointsFile.setStyleSheet('color:black')
 
-            if self.chkSaveLinesFile.isChecked():
-                if self.lneSaveLinesFile.text() == '':
-                    self.chkSaveLinesFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Save lines shapefile"))
-                elif not os.path.exists(os.path.dirname(self.lneSaveLinesFile.text())):
-                    self.lneSaveLinesFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Output shapefile folder cannot be found"))
-                else:
-                    self.chkSaveLinesFile.setStyleSheet('color:black')
-                    self.lneSaveLinesFile.setStyleSheet('color:black')
+            if self.lneSaveLinesFile.text() == '':
+                self.lblSaveLinesFile.setStyleSheet('color:red')
+                self.lneSaveLinesFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Save lines shapefile"))
+            elif not os.path.exists(os.path.dirname(self.lneSaveLinesFile.text())):
+                self.lblSaveLinesFile.setStyleSheet('color:red')
+                self.lneSaveLinesFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Output shapefile folder cannot be found"))
             else:
-                self.chkSaveLinesFile.setStyleSheet('color:black')
+                self.lblSaveLinesFile.setStyleSheet('color:black')
                 self.lneSaveLinesFile.setStyleSheet('color:black')
 
             if len(errorList) > 0:
@@ -382,13 +358,13 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
                                                     'Layer:', self.mcboLineLayer.currentLayer().name(),
                                                     self.mcboLineLayer.currentLayer().selectedFeatureCount())
 
-            settingsStr += '\n    {:30}\t{} - {}'.format('Output coordinate system:', 
+            settingsStr += '\n    {:30}\t{} - {}'.format('Output coordinate system:',
                                                          self.mCRSoutput.crs().authid(),
                                                          self.mCRSoutput.crs().description())
-            
+
             settingsStr += '\n    {:30}\t{}'.format('Output points :', self.lneSavePointsFile.text())
 
-            if self.chkSaveLinesFile.isChecked():
+            if self.lneSaveLinesFile.text() == '':
                 settingsStr += '\n    {:30}\t{}\n'.format('Output lines:', self.lneSaveLinesFile.text())
 
             LOGGER.info(settingsStr)
@@ -407,14 +383,14 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
                     addVectorFileToQGIS(line_shapefile, layer_name=os.path.splitext(os.path.basename(line_shapefile))[0]
                                         , group_layer_name='DEBUG', atTop=True)
             else:
-                line_shapefile = lyr_line.source()
+                line_shapefile = get_layer_source(lyr_line)
 
             lines_desc = describe.VectorDescribe(line_shapefile)
             gdf_lines = lines_desc.open_geo_dataframe()
             epsgOut = int(self.mCRSoutput.crs().authid().replace('EPSG:', ''))
 
             out_lines = None
-            if self.chkSaveLinesFile.isChecked():
+            if self.lneSaveLinesFile.text() == '':
                 out_lines = self.lneSaveLinesFile.text()
 
             _ = create_points_along_line(gdf_lines, lines_desc.crs, self.dsbDistBtwnPoints.value(),
@@ -426,7 +402,7 @@ class StripTrialPointsDialog(QDialog, FORM_CLASS):
                                                  os.path.splitext(os.path.basename(self.lneSavePointsFile.text()))[0])
             vector_apply_unique_value_renderer(out_lyr_points, 'Strip_Name')
 
-            if self.chkSaveLinesFile.isChecked():
+            if self.lneSaveLinesFile.text() == '':
                 out_lyr_lines = addVectorFileToQGIS(self.lneSaveLinesFile.text(), atTop=True,
                                                     layer_name=os.path.splitext(os.path.basename(self.lneSaveLinesFile.text()))[0])
 

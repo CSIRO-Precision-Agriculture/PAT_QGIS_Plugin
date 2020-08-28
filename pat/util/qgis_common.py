@@ -37,7 +37,7 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import (QgsProject, QgsMapLayer, QgsVectorLayer,  QgsRasterLayer,
+from qgis.core import (QgsProject, QgsProviderRegistry, QgsMapLayer, QgsVectorLayer, QgsRasterLayer,
                        QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,
                        QgsFeature, QgsField)
 
@@ -52,16 +52,18 @@ dataTypes = {0:'Unk',1:'Byte',2:'UInt16',3:'Int16',4:'UInt32',5:'Int32',
             6:'Float32', 7:'Float64' , 8:'CInt16', 9:'CInt32' , 10:'CFloat32',
             11:'CFloat64'}
 
+layerTypes= {0:'VectorLayer',  1:'RasterLayer',2:'PluginLayer',3:'MeshLayer',4:"VectorTileLayer"}     
+
+
 def get_UTM_Coordinate_System(x, y, epsg):
     """ Determine a utm coordinate system either from coordinates"""
-
-    if epsg == '' :
+    if epsg == '':
         return QgsCoordinateReferenceSystem()
     
     if isinstance(epsg, six.string_types):
         epsg = int(epsg.upper().replace('EPSG:', ''))
 
-    utm_crs = crs.getProjectedCRSForXY (x, y, epsg)
+    utm_crs = crs.getProjectedCRSForXY(x, y, epsg)
 
     if utm_crs is not None:
         out_crs = QgsCoordinateReferenceSystem().fromEpsgId(utm_crs.epsg_number)
@@ -184,9 +186,9 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
         row_dict = {'layer': layer,
                     'layer_name': layer.name(),
                     'layer_id': layer.id(),
-                    'layer_type': layer.type().name,
+                    'layer_type': layerTypes[ layer.type()],
                     'format': format,
-                    'source': layer.source(),
+                    'source': get_layer_source(layer),
                     'epsg': layer_crs.authid(),
                     'crs_name': layer_crs.description(),
                     'is_projected': not layer_crs.isGeographic(),
@@ -198,7 +200,7 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
         if layer.type() == QgsMapLayer.RasterLayer:
             pixel_size = get_pixel_size(layer)
             if not only_raster_boundingbox:
-                with rasterio.open(layer.source()) as src:
+                with rasterio.open(get_layer_source(layer)) as src:
                     msk = src.dataset_mask()  # 0 = nodata 255=valid
                     rast_shapes = rasterio.features.shapes(np.ma.masked_equal(np.where(msk > 0, 1, 0), 0),
                                                            transform=src.transform)
@@ -236,6 +238,20 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
 
     #df_layers.set_geometry('geometry')
     return gdf_layers
+
+
+def get_layer_source(layer):
+    """
+    layer.source() sometimes returns  'C:/data/Temp/My_points_wgs84.shp|layername=My_points_wgs84' 
+    so this will break this down and return only the path.
+    """
+    
+    result = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.dataProvider().dataSourceUri())
+    
+    if len(result) == 0 or result['path'] == '':
+        return layer.source()
+    else:
+        return result['path'] 
 
 
 def save_as_dialog(dialog, caption, file_filter, default_name=''):
@@ -296,7 +312,7 @@ def file_in_use(filename, display_msgbox=True):
             if os.path.normpath(url.path.strip('/')).upper() == filename.upper():
                 found_lyrs += [layer.name()]
         else:
-            if os.path.normpath(layer.source()) == os.path.normpath(filename):
+            if os.path.normpath(get_layer_source(layer)) == os.path.normpath(filename):
                 found_lyrs += [layer.name()]
 
     if display_msgbox and len(found_lyrs) > 0:
@@ -418,7 +434,7 @@ def removeFileFromQGIS(filename):
     # Loop through layers in reverse so the count/indexing of layers persists if one is removed.
     layermap = QgsProject.instance().mapLayers()
     for name, layer in layermap.items():
-        if layer.source() == filename:
+        if get_layer_source(layer) == filename:
             remove_layers.append(layer.id())
 
     if len(remove_layers) > 0:

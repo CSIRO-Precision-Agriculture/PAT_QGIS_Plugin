@@ -241,7 +241,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.cboMethod.setCurrentIndex(0)
         self.dfCSV = None
 
-        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastCSVFolder")
+        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_CSV")
         if inFolder is None or not os.path.exists(inFolder):
             inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
@@ -309,7 +309,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(epsg))
 
         write_setting(PLUGIN_NAME + "/" + self.toolKey +
-                      "/LastCSVFolder", os.path.dirname(s))
+                      "/LastInFolder_CSV", os.path.dirname(s))
         del descCSV
         self.updateCtrlFileName()
 
@@ -318,11 +318,11 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lneInGridFile.clear()
         self.messageBar.clearWidgets()
 
-        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVesperGridFolder")
+        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_VesperGrid")
 
         if inFolder is None or not os.path.exists(inFolder):
 
-            inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastCSVFolder")
+            inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_CSV")
 
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
@@ -348,7 +348,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.lblInGridFile.setStyleSheet('color:black')
             if overlaps:
                 self.lneInGridFile.setText(s)
-                write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVesperGridFolder",
+                write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_VesperGrid",
                               os.path.dirname(s))
         else:
             self.send_to_messagebar(message,
@@ -361,10 +361,10 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lneVariogramFile.clear()
         self.messageBar.clearWidgets()
 
-        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVariogramFolder")
+        inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_Variogram")
 
         if inFolder is None or not os.path.exists(inFolder):
-            inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastVariogramFolder")
+            inFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_Variogram")
 
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
@@ -397,7 +397,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lneVariogramFile.setStyleSheet('color:black')
         self.lneVariogramFile.setText(s)
         write_setting(PLUGIN_NAME + "/" + self.toolKey +
-                      "/LastVariogramFolder", os.path.dirname(s))
+                      "/LastInFolder_Variogram", os.path.dirname(s))
 
     @QtCore.pyqtSlot(name='on_cmdVesperFold_clicked')
     def on_cmdVesperFold_clicked(self):
@@ -410,7 +410,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
 
         if outFolder == '':
             outFolder = read_setting(
-                PLUGIN_NAME + "/" + self.toolKey + "/LastVesperOutFolder")
+                PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
             if outFolder is None or not os.path.exists(outFolder):
                 outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
@@ -426,8 +426,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lblVesperFold.setStyleSheet('color:black')
         self.lneVesperFold.setStyleSheet('color:black')
         self.lneVesperFold.setText(s)
-        write_setting(PLUGIN_NAME + "/" + self.toolKey +
-                      "/LastVesperOutFolder", s)
+        write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", s)
 
     @QtCore.pyqtSlot(int)
     def on_chkAutoCtrlFileName_stateChanged(self, state):
@@ -641,6 +640,14 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                     self.lneMinPoint.setStyleSheet('color:black')
                     self.lneMinPoint.setStyleSheet('color:black')
 
+            if len(self.lneCtrlFile.text()) > 100:
+                self.lblCtrlFile.setStyleSheet('color:red')
+                self.lneCtrlFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Control file name should be less than 100 characters"))
+            else:
+                self.lblCtrlFile.setStyleSheet('color:black')
+                self.lneCtrlFile.setStyleSheet('color:black')
+
             if self.lneVesperFold.text() == '':
                 self.lblVesperFold.setStyleSheet('color:red')
                 errorList.append(self.tr("Select output Vesper data folder"))
@@ -658,16 +665,14 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 message = 'Vesper Control File {} already exists. Do you want to' \
                           ' overwrite?'.format(self.lneCtrlFile.text())
 
-                reply = QMessageBox.question(
-                    self, 'Control File', message, QMessageBox.Yes, QMessageBox.No)
+                reply = QMessageBox.question(self, 'Control File', message, QMessageBox.Yes, QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     self.overwrite_ctrl_file = True
                     self.lblVesperFold.setStyleSheet('color:black')
                 else:
                     self.overwrite_ctrl_file = False
                     self.lblCtrlFile.setStyleSheet('color:red')
-                    errorList.append(
-                        self.tr("Output control file exists please choose a different name"))
+                    errorList.append(self.tr("Output control file exists please choose a different name"))
 
             if len(errorList) > 0:
                 raise ValueError(errorList)
@@ -676,8 +681,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(
-                        str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True

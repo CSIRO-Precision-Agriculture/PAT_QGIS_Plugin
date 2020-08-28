@@ -43,7 +43,7 @@ from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoord
                        Qgis, QgsMapLayerProxyModel)
 from qgis.gui import QgsMessageBar
 
-from pat.util.qgis_common import get_UTM_Coordinate_System
+from pat.util.qgis_common import get_UTM_Coordinate_System, get_layer_source
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'resampleImageToBlock_dialog_base.ui'))
 
@@ -86,7 +86,8 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
         # GUI Runtime Customisation -----------------------------------------------
         self.mcboPolygonLayer.setFilters(QgsMapLayerProxyModel.PolygonLayer)
         self.mcboPolygonLayer.setExcludedProviders(['wms'])
-
+        self.mcboPolygonLayer.setLayer(None)
+        
         self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mcboRasterLayer.setExcludedProviders(['wms'])
         
@@ -98,8 +99,7 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
         self.lneNoDataVal.setValidator(regex_validator)
         
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_resampleToBlock.svg'))
-        self.chkAddToDisplay.setChecked(False)
-
+        # self.chkAddToDisplay.setChecked(False)
         # self.chkAddToDisplay.hide()
 
     def cleanMessageBars(self, AllBars=True):
@@ -216,31 +216,30 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
 
         if self.mcboPolygonLayer.count() == 0:
             return
-        
+
+        self.mFieldComboBox.setLayer(None)
+
+        if self.mcboPolygonLayer.currentLayer() is  None:
+            return
+
         polygon_lyr = self.mcboPolygonLayer.currentLayer()
         self.mFieldComboBox.setLayer(polygon_lyr)
-        
-        if polygon_lyr is None:
-            return 
-                        
-        polygon_lyr = self.mcboPolygonLayer.currentLayer()
+
         if len(polygon_lyr.selectedFeatures()) > 0:
-            self.chkUseSelected.setText(
-                'Use the {} selected feature(s) ?'.format(len(polygon_lyr.selectedFeatures())))
+            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(len(polygon_lyr.selectedFeatures())))
             self.chkUseSelected.setEnabled(True)
         else:
             self.chkUseSelected.setText('No features selected')
             self.chkUseSelected.setEnabled(False)
 
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
-        self.chkUsePoly.setChecked(True)
+        # self.chkUsePoly.setChecked(True)
 
 
-    @QtCore.pyqtSlot(int)
-    def on_chkUsePoly_stateChanged(self, state):
-
-        self.mFieldComboBox.setEnabled(state)
-        self.lblGroupByField.setEnabled(state)
+    # @QtCore.pyqtSlot(int)
+    # def on_chkUsePoly_stateChanged(self, state):
+    #     self.mFieldComboBox.setEnabled(state)
+    #     self.lblGroupByField.setEnabled(state)
 
 #     def on_mFieldComboBox_fieldChanged(self, field):
 #         # Problem : after selecting a field, the blank is removed from the pick list.
@@ -249,9 +248,9 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
 #             # work around for not having a physical blank in the list. Fixed in qgis 3
 #             self.mFieldComboBox.addItem(u'')
 
-    def on_chkUseSelected_stateChanged(self, state):
-        if self.chkUseSelected.isChecked():
-            self.chkUsePoly.setChecked(True)
+    # def on_chkUseSelected_stateChanged(self, state):
+    #     if self.chkUseSelected.isChecked():
+    #         self.chkUsePoly.setChecked(True)
 
     def on_mCRSoutput_crsChanged(self):
         #self.outQgsCRS = self.mCRSoutput.crs()
@@ -378,7 +377,7 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
             settingsStr += '\n    {:20}\t{}'.format('Image Band:', self.cboBand.currentText())
             settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.lneNoDataVal.text())
 
-            if self.chkUsePoly.isChecked():
+            if self.mcboPolygonLayer.currentLayer() is not None:
                 if self.chkUseSelected.isChecked():
                     settingsStr += '\n    {:20}\t{} with {} selected features'.format(
                                         'Layer:', self.mcboPolygonLayer.currentLayer().name(),
@@ -404,7 +403,9 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
 
             lyrRaster = self.mcboRasterLayer.currentLayer()
 
-            if self.chkUsePoly.isChecked():
+            filePoly = None
+
+            if self.mcboPolygonLayer.currentLayer() is not None:
                 lyrBoundary = self.mcboPolygonLayer.currentLayer()
 
                 if self.chkUseSelected.isChecked():
@@ -419,27 +420,31 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
                         addVectorFileToQGIS(filePoly, layer_name=os.path.splitext(os.path.basename(filePoly))[0]
                                             , group_layer_name='DEBUG', atTop=True)
                 else:
-                    filePoly = lyrBoundary.source()
+                    filePoly = get_layer_source(lyrBoundary)
             
             # convert string to float or int without knowing which
             x = self.lneNoDataVal.text()
             nodata_val = int(float(x)) if int(float(x)) == float(x) else float(x)
             
             band_num = [int(self.cboBand.currentText().replace('Band ', ''))]
-            files = resample_bands_to_block(lyrRaster.source(),
+            files = resample_bands_to_block(get_layer_source(lyrRaster),
                                             self.dsbPixelSize.value(),
                                             self.lneOutputFolder.text(),
                                             band_nums=band_num,
                                             image_epsg=int(lyrRaster.crs().authid().replace('EPSG:', '')),
                                             image_nodata=nodata_val,
-                                            polygon_shapefile=filePoly if self.chkUsePoly.isChecked() else None,
+                                            polygon_shapefile=filePoly,
                                             groupby=self.mFieldComboBox.currentField() if self.mFieldComboBox.currentField() else None,
                                             out_epsg=int(self.mCRSoutput.crs().authid().replace('EPSG:', '')))
 
             if self.chkAddToDisplay.isChecked():
                 for ea_file in files:
                     removeFileFromQGIS(ea_file)
-                    addRasterFileToQGIS(ea_file, group_layer_name=os.path.basename(os.path.dirname(ea_file)),atTop=False)
+                    group_name =  os.path.basename(os.path.dirname(ea_file))
+                    if self.mFieldComboBox.currentField():
+                        group_name = os.path.basename(ea_file).split('_')[0] + ' - ' + os.path.basename(os.path.dirname(ea_file))
+                    
+                    addRasterFileToQGIS(ea_file, group_layer_name=group_name,atTop=False)
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)

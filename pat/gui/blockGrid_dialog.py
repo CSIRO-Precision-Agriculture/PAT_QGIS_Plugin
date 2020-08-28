@@ -41,15 +41,13 @@ from qgis.gui import QgsMessageBar, QgsProjectionSelectionWidget
 
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import (removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS,
-                                save_as_dialog, get_UTM_Coordinate_System)
-from util.qgis_symbology import raster_apply_unique_value_renderer
+                                save_as_dialog, get_UTM_Coordinate_System,get_layer_source)
+from util.qgis_symbology import RASTER_SYMBOLOGY, raster_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
 from pyprecag import config, processing
 from pyprecag.convert import numeric_pixelsize_to_string
 
-
-from pat.util.qgis_symbology import RASTER_SYMBOLOGY
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'blockGrid_dialog_base.ui'))
@@ -360,7 +358,7 @@ class BlockGridDialog(QDialog, FORM_CLASS):
                     addVectorFileToQGIS(polyFile, group_layer_name='DEBUG', atTop=True)
 
             else:
-                polyFile = lyrTarget.source()
+                polyFile = get_layer_source(lyrTarget)
 
             processing.block_grid(in_shapefilename=polyFile,
                                   pixel_size=self.dsbPixelSize.value(),

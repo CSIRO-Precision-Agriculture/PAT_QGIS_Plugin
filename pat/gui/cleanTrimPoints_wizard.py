@@ -30,7 +30,6 @@ from  datetime import timedelta
 from builtins import str
 from builtins import range
 
-
 import logging
 
 import re
@@ -58,7 +57,7 @@ from qgis.core import (QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsMes
                        QgsApplication, Qgis)
 from qgis.gui import QgsMessageBar, QgsProjectionSelectionWidget
 
-from util.qgis_common import (copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, save_as_dialog,
+from util.qgis_common import (copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, save_as_dialog,get_layer_source,
                               file_in_use, get_UTM_Coordinate_System)
 from util.settings import read_setting, write_setting
 
@@ -160,19 +159,18 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         self.stackedWidget.setCurrentIndex(0)
         self.stackedWidget.currentChanged.connect(self.update_prev_next_buttons)
         self.button_box.button(QDialogButtonBox.Ok).setVisible(False)
-                
-        for obj, lay_filter in [(self.mcboTargetLayer,QgsMapLayerProxyModel.PointLayer),
-                            (self.mcboClipPolyLayer,QgsMapLayerProxyModel.PolygonLayer)]:
+
+        for obj, lay_filter in [(self.mcboTargetLayer, QgsMapLayerProxyModel.PointLayer),
+                            (self.mcboClipPolyLayer, QgsMapLayerProxyModel.PolygonLayer)]:
 
             obj.setFilters(lay_filter)
 
             if hasattr(obj, "setAllowEmptyLayer"):
                 obj.setAllowEmptyLayer(True)
                 obj.setShowCrs(True)
-                obj.setLayer(None)    # set default to empty layer
+                obj.setLayer(None)  # set default to empty layer
 
-        #print(self.mgbPreviewTable.isCollapsed())
-
+        # print(self.mgbPreviewTable.isCollapsed())
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -254,10 +252,8 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
 
     def on_mcboClipPolyLayer_layerChanged(self):
         if self.mcboClipPolyLayer.currentLayer() is None:
-            self.chkClipToPoly.setChecked(False)
             return
 
-        self.chkClipToPoly.setChecked(True)
         lyrTarget = self.mcboClipPolyLayer.currentLayer()
 
         if lyrTarget.selectedFeatureCount() == 0:
@@ -270,7 +266,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 'Use the {} selected feature(s) ?'.format(lyrTarget.selectedFeatureCount()))
             self.chkUseSelected_ClipPoly.setEnabled(True)
             self.chkUseSelected_ClipPoly.setStyleSheet('font:bold')
-            
+
     def on_mcboTargetLayer_layerChanged(self):
         if not self.mcboTargetLayer.currentLayer():
             return
@@ -279,7 +275,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
 
         self.cboProcessField.clear()
         self.cboProcessField.addItems(process_fields)
-        
+
         self.optLayer.setChecked(True)
         lyrTarget = self.mcboTargetLayer.currentLayer()
 
@@ -299,14 +295,39 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         self.cmdInFile.setEnabled(self.optFile.isChecked())
 
     def on_mgbPreviewTable_collapsedStateChanged(self):
-        a= self.mgbPreviewTable.isCollapsed()
+        a = self.mgbPreviewTable.isCollapsed()
+
+    @QtCore.pyqtSlot(int)
+    def on_chkReproject_stateChanged(self, state):
+
+        self.fraCleanTrim.setDisabled(state)
+        if state:
+            self.dsbThinDist.setValue(0)
+            self.dsbStdCount.setValue(0)
+            self.chkUseSelected_ClipPoly.setChecked(False)
+            self.chkUseSelected_ClipPoly.setText('No features selected')
+            self.mcboClipPolyLayer.setLayer(None)
+        else:
+            self.dsbStdCount.setValue(3.00)
+            self.dsbThinDist.setValue(1.00)
+
+        self.chkRemoveZero.setChecked(not state)
+        self.chkIterate.setChecked(not state)
+
+        self.cboProcessField.setCurrentIndex(0)
+        self.cboProcessField.setDisabled(state)
+        self.lblProcessField.setDisabled(state)
+        self.lblClipPolyLayer.setDisabled(state)
+        self.mcboClipPolyLayer.setDisabled(state)
+        self.chkUseSelected_ClipPoly.setDisabled(state)
+        
 
     @QtCore.pyqtSlot(int)
     def on_chkAutoCRS_stateChanged(self, state):
         if self.chkAutoCRS.isChecked() :
 
             layer = self.mcboTargetLayer.currentLayer()
-            out_crs= get_UTM_Coordinate_System(layer.extent().xMinimum(),
+            out_crs = get_UTM_Coordinate_System(layer.extent().xMinimum(),
                                       layer.extent().yMinimum(),
                                       layer.crs().authid())
 
@@ -321,10 +342,10 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         idx = self.stackedWidget.currentIndex()
 
         widget_page = self.stackedWidget.currentWidget().objectName()
-        moveby=1
+        moveby = 1
 
-        if (widget_page=='pgeParameters' and not self.optFile.isChecked()):
-            moveby=2
+        if (widget_page == 'pgeParameters' and not self.optFile.isChecked()):
+            moveby = 2
 
         self.stackedWidget.setCurrentIndex(idx - moveby)
 
@@ -332,39 +353,39 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
     def on_cmdNext_clicked(self):
         self.button_box.button(QDialogButtonBox.Ok).setVisible(False)
         self.cmdNext.setVisible(True)
-                
+
         if self.validate():
-            moveby = 1 
+            moveby = 1
             idx = self.stackedWidget.currentIndex()
 
             widget_page = self.stackedWidget.currentWidget().objectName()
-            
-            if self.stackedWidget.currentIndex() == 0 or widget_page=='pgeSource':
+
+            if self.stackedWidget.currentIndex() == 0 or widget_page == 'pgeSource':
                 if self.optFile.isChecked():
                     self.csv_properties(self.lneInCSVFile.text())
                     self.loadTablePreview()
-                    
+
                     # set default coordinate system
                     self.qgsCRScsv.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(4326))
-                    
+
                 else:
-                    self.lneInCSVFile.clear()    
-                    #move by two
+                    self.lneInCSVFile.clear()
+                    # move by two
                     moveby = 2
-                    
-            elif idx == 1 or widget_page=='pgeFromFile':
+
+            elif idx == 1 or widget_page == 'pgeFromFile':
                 self.mgbPreviewTable.setCollapsed(False)
-                
-            elif idx == 2 or widget_page=='pgeParameters':
+
+            elif idx == 2 or widget_page == 'pgeParameters':
                 self.button_box.button(QDialogButtonBox.Ok).setVisible(True)
                 self.cmdNext.setVisible(False)
                 self.getOutputCRS()
                 para_summary = self.create_summary()
-                
+
                 para_summary = para_summary.split('\n')
-                self.lblSummary.setText('\n'.join(para_summary))                
-            
-            self.stackedWidget.setCurrentIndex(idx+moveby)
+                self.lblSummary.setText('\n'.join(para_summary))
+
+            self.stackedWidget.setCurrentIndex(idx + moveby)
 
     @QtCore.pyqtSlot(name='on_cmdInFile_clicked')
     def on_cmdInFile_clicked(self):
@@ -392,7 +413,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
 
         self.lneInCSVFile.setText(s)
         write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder", os.path.dirname(s))
-        
+
     @QtCore.pyqtSlot(int)
     def on_spnIgnoreRows_valueChanged(self, value):
         self.loadTablePreview()
@@ -422,8 +443,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         except:
             self.crs = None
 
-        #print(projSelector.crs().authid() + projSelector.crs().description())
-
+        # print(projSelector.crs().authid() + projSelector.crs().description())
 
     @QtCore.pyqtSlot(name='on_cmdSaveCSVFile_clicked')
     def on_cmdSaveCSVFile_clicked(self):
@@ -459,7 +479,10 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         filename = re.sub(fld, '', filename)
 
         # add the chosen field name to the filename
-        filename = '{}_{}_normtrimmed.csv'.format(filename, fld)
+        if self.chkReproject.isChecked():
+            filename = '{}_{}_reprojected.csv'.format(filename, fld)
+        else:
+            filename = '{}_{}_normtrimmed.csv'.format(filename, fld)
 
         # replace more than one instance of underscore with a single one.
         # ie'file____norm__control___yield_h__' to 'file_norm_control_yield_h_'
@@ -490,16 +513,14 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        fld = re.sub('[^A-Za-z0-9_-]+', '', unidecode(self.processField()))[:10]
-
-        if self.lneSaveCSVFile.text() != '':
-
+        if self.lneSaveCSVFile.text() == '':
+            fld = re.sub('[^A-Za-z0-9_-]+', '', unidecode(self.processField()))[:10]
             if self.optLayer.isChecked():
                 lyrTarget = self.mcboTargetLayer.currentLayer()
                 filename = lyrTarget.name() + '_{}_normtrimmed.shp'.format(fld)
             else:
-                fn,ext = os.path.splitext(self.lneSaveCSVFile.text())
-                filename = fn+'.shp'
+                fn, ext = os.path.splitext(self.lneSaveCSVFile.text())
+                filename = fn + '.shp'
         else:
             filename = os.path.splitext(self.lneSaveCSVFile.text())[0]
 
@@ -528,7 +549,8 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         index = self.cboProcessField.currentIndex()
         if index == -1:
             return ''
-        return self.cboProcessField.itemData(index, QtCore.Qt.EditRole)
+        result = self.cboProcessField.itemData(index, QtCore.Qt.EditRole)
+        return result.strip()
 
     def update_prev_next_buttons(self):
         i = self.stackedWidget.currentIndex()
@@ -537,7 +559,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
     def resetFormToDefaults(self):
         for name, obj in inspect.getmembers(self):
             if isinstance(obj, QSpinBox):
-                obj.setValue( self.default_vals[obj.objectName()])
+                obj.setValue(self.default_vals[obj.objectName()])
 
     def csv_properties(self, csv_file):
         detector = chardet.UniversalDetector()
@@ -568,6 +590,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                             'has_header': hasFieldHeader,
                             'field_types': {},
                             }
+
     def loadTablePreview(self):
         # # build a dictionary of args dependent on form selections
         readArgs = {}
@@ -606,27 +629,26 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
 
         # #https://centaurialpha.github.io/resize-qheaderview-to-contents-and-interactive
         self.tvwSample.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        
+
         # get numeric fields
-        #df.select_dtypes(include=np.number).columns.tolist()
-        #df.select_dtypes('number').columns
+        # df.select_dtypes(include=np.number).columns.tolist()
+        # df.select_dtypes('number').columns
         coord_cols = predictCoordinateColumnNames(df.columns.tolist())
 
-        for i,obj in enumerate([self.cboXField,self.cboYField]):
+        for i, obj in enumerate([self.cboXField, self.cboYField]):
             obj.clear()
             obj.addItems([' '] + df.select_dtypes('number').columns.tolist())
             index = obj.findText(coord_cols[i], QtCore.Qt.MatchFixedString)
             if index >= 0:
                 obj.setCurrentIndex(index)
-        
+
         self.cboProcessField.clear()
         self.cboProcessField.addItems([' '] + df.select_dtypes('number').columns.tolist())
-
 
     def getOutputCRS(self):
         if not self.chkAutoCRS.isChecked():
             return
-        out_crs= QgsCoordinateReferenceSystem()
+        out_crs = QgsCoordinateReferenceSystem()
         if self.optLayer.isChecked():
             if not self.mcboTargetLayer.currentLayer():
                 return
@@ -640,13 +662,12 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         else:
 
             df = self.tvwSample.model()._dataFrame
-            
+
             x = float(df[self.cboXField.currentText()].min())
             y = float(df[self.cboYField.currentText()].min())
 
-            out_crs = get_UTM_Coordinate_System(x,y, self.qgsCRScsv.crs().authid())
-        
-        
+            out_crs = get_UTM_Coordinate_System(x, y, self.qgsCRScsv.crs().authid())
+
         if out_crs:
             try:
                 self.mCRSoutput.setCrs(out_crs)
@@ -662,9 +683,9 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
             widget_page = self.stackedWidget.currentWidget().objectName()
             widget_idx = self.stackedWidget.currentIndex() + 1
 
-            if widget_page =='pgeSource' or widget_idx == self.stackedWidget.count():
+            if widget_page == 'pgeSource' or widget_idx == self.stackedWidget.count():
                 if self.optFile.isChecked():
-                    if self.lneInCSVFile.text()== '':
+                    if self.lneInCSVFile.text() == '':
                         self.optFile.setStyleSheet('color:red')
                         errorList.append(self.tr("Select an input file"))
                     else:
@@ -681,13 +702,13 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
 
             if widget_page == 'pgeFromFile' or widget_idx == self.stackedWidget.count():
                 if self.optFile.isChecked():
-                    if self.cboXField.currentText() == ' ':
+                    if self.cboXField.currentText() == '':
                         self.lblXField.setStyleSheet('color:red')
                         errorList.append(self.tr("Select an x field"))
                     else:
                         self.lblXField.setStyleSheet('color:black')
 
-                    if self.cboYField.currentText() == ' ':
+                    if self.cboYField.currentText() == '':
                         self.lblYField.setStyleSheet('color:red')
                         errorList.append(self.tr("Select an y field"))
                     else:
@@ -700,7 +721,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                         self.lblInCRSTitle.setStyleSheet('color:black')
 
             if widget_page == 'pgeParameters' or widget_idx == self.stackedWidget.count():
-                if self.cboProcessField.currentText() == ' ':
+                if  self.processField() == '' and not self.chkReproject.isChecked():
                     self.lblProcessField.setStyleSheet('color:red')
                     errorList.append(self.tr("Select a field to process"))
                 else:
@@ -766,51 +787,56 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         # Add settings to log
         settingsStr = 'Parameters:---------------------------------------'
         if self.optFile.isChecked():
-            settingsStr += '\n    {:32}\t{}'.format('File:', self.lneInCSVFile.text())
-            settingsStr += '\n    {:32}\t{}, {}'.format('Geometry Fields:', self.cboXField.currentText(),
+            settingsStr += '\n    {:40}\t\t{}'.format('File:', self.lneInCSVFile.text())
+            settingsStr += '\n    {:40}\t{}, {}'.format('Geometry Fields:', self.cboXField.currentText(),
                                                         self.cboYField.currentText())
-            settingsStr += '\n    {:32}\t{} - {}'.format('CSV Coordinate System:', self.qgsCRScsv.crs().authid(),
+            settingsStr += '\n    {:40}\t{} - {}'.format('CSV Coordinate System:', self.qgsCRScsv.crs().authid(),
                                                          self.qgsCRScsv.crs().description())
         else:
             if self.chkUseSelected.isChecked():
-                settingsStr += '\n    {:32}\t{} with {} selected features'.format('Layer:',
+                settingsStr += '\n    {:40}\t{} with {} selected features'.format('Layer:',
                                                                                   self.mcboTargetLayer.currentLayer().name(),
                                                                                   self.mcboTargetLayer.currentLayer().selectedFeatureCount())
             else:
-                settingsStr += '\n    {:32}\t{}'.format('Layer:', self.mcboTargetLayer.currentLayer().name())
+                settingsStr += '\n    {:40}\t{}'.format('Layer:', self.mcboTargetLayer.currentLayer().name())
 
-        settingsStr += '\n    {:32}\t{}'.format('Process Field:', self.processField())
-
-        if self.chkClipToPoly.isChecked():
+        if self.mcboClipPolyLayer.currentLayer() is not None:
             if self.chkUseSelected_ClipPoly.isChecked():
-                settingsStr += '\n    {:32}\t{} with {} selected features'.format('Clip Layer:',
+                settingsStr += '\n    {:40}\t{} with {} selected features'.format('Clip Layer:',
                                                                                   self.mcboClipPolyLayer.currentLayer().name(),
                                                                                   self.mcboClipPolyLayer.currentLayer().selectedFeatureCount())
             else:
-                settingsStr += '\n    {:32}\t{}'.format('Clip Layer:', self.mcboClipPolyLayer.currentLayer().name())
+                settingsStr += '\n    {:40}\t{}'.format('Clip Layer:', self.mcboClipPolyLayer.currentLayer().name())
 
-        settingsStr += '\n    {:32}\t{}m'.format('Thinning Distance:', self.dsbThinDist.value())
-        settingsStr += '\n    {:32}\t{}'.format('Remove Zeros:', self.chkRemoveZero.isChecked())
-        settingsStr += '\n    {:32}\t{}'.format("Standard Devs to Use:", self.dsbStdCount.value())
-        settingsStr += '\n    {:32}\t{}'.format("Trim Iteratively:", self.chkIterate.isChecked())
+        if self.chkReproject.isChecked():
+            settingsStr += '\n    {:35}\t{}'.format('Only Change Coordinate System:', self.chkReproject.isChecked())
+        else:
+            settingsStr += '\n    {:40}\t{}'.format('Process Field:', self.processField() if self.processField() != '' else 'None')
+            settingsStr += '\n    {:40}\t{}m'.format('Thinning Distance:', self.dsbThinDist.value())
+            settingsStr += '\n    {:40}\t{}'.format('Remove Zeros:', self.chkRemoveZero.isChecked())
+            settingsStr += '\n    {:40}\t{}'.format("Standard Devs to Use:", str(self.dsbStdCount.value()))
+            settingsStr += '\n    {:40}\t{}'.format("Trim Iteratively:", self.chkIterate.isChecked())
 
         if self.lneSaveCSVFile.text() != '':
-            settingsStr += '\n    {:32}\t{} - {}'.format('Output Projected Coordinate System:',
+            settingsStr += '\n    {:40}\t{} - {}'.format('Output Projected Coordinate System:',
                                                          self.mCRSoutput.crs().authid(),
                                                          self.mCRSoutput.crs().description())
-            
-            settingsStr += '\n    {:32}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())
-                
+
+            settingsStr += '\n    {:40}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())
+
         if self.lneSavePointsFile.text() != '':
             points_clean_shp = self.lneSavePointsFile.text()
-            if 'norm_trim' in os.path.basename(points_clean_shp):
-                points_remove_shp = self.lneSavePointsFile.text().replace('_normtrimmed', '_removedpts')
-            else:
-                points_remove_shp = self.lneSavePointsFile.text().replace('.shp', '_removedpts.shp')
+            
+            settingsStr += '\n    {:40}\t{}'.format('Saved Points:', points_clean_shp)
 
-            settingsStr += '\n    {:32}\t{}'.format('Saved Points:', points_clean_shp)
-            settingsStr += '\n    {:32}\t{}'.format('Saved Removed Points:', points_remove_shp)
-                        
+            if not self.chkReproject.isChecked():
+                if 'norm_trim' in os.path.basename(points_clean_shp):
+                    points_remove_shp = self.lneSavePointsFile.text().replace('_normtrimmed', '_removedpts')
+                else:
+                    points_remove_shp = self.lneSavePointsFile.text().replace('.shp', '_removedpts.shp')
+
+                settingsStr += '\n    {:40}\t{}'.format('Saved Removed Points:', points_remove_shp)
+
         return settingsStr
 
     def accept(self, *args, **kwargs):
@@ -857,17 +883,17 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
             stepTime = time.time()
 
             if self.optFile.isChecked():
-                in_epsg = int(self.qgsCRScsv.crs().authid().replace('EPSG:',''))
+                in_epsg = int(self.qgsCRScsv.crs().authid().replace('EPSG:', ''))
                 in_crs = self.qgsCRScsv.crs()
-            else: 
-                in_epsg =self.mcboTargetLayer.currentLayer().crs().authid().replace('EPSG:','')
+            else:
+                in_epsg = self.mcboTargetLayer.currentLayer().crs().authid().replace('EPSG:', '')
                 in_crs = self.mcboTargetLayer.currentLayer().crs()
-                
-            out_epsg = int(self.mCRSoutput.crs().authid().replace('EPSG:',''))
-            
+
+            out_epsg = int(self.mCRSoutput.crs().authid().replace('EPSG:', ''))
+
             filePoly = None
 
-            if self.chkClipToPoly.isChecked():
+            if self.mcboClipPolyLayer.currentLayer() is not None:
                 lyrPlyTarget = self.mcboClipPolyLayer.currentLayer()
 
                 if self.chkUseSelected_ClipPoly.isChecked():
@@ -876,8 +902,8 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                     filePoly = os.path.join(TEMPDIR, savePlyName)
                     if os.path.exists(filePoly):  removeFileFromQGIS(filePoly)
 
-                    QgsVectorFileWriter.writeAsVectorFormat(lyrPlyTarget, filePoly,'utf-8',
-                                                            driverName='ESRI Shapefile',onlySelected=True)
+                    QgsVectorFileWriter.writeAsVectorFormat(lyrPlyTarget, filePoly, 'utf-8',
+                                                            driverName='ESRI Shapefile', onlySelected=True)
 
                     LOGGER.info('{:<30} {d:<15} {}'.format('Save Clip Polygon layer selection to file', filePoly,
                                                          d=str(timedelta(seconds=time.time() - stepTime))))
@@ -887,7 +913,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                                             , group_layer_name='DEBUG', atTop=True)
 
                 else:
-                    filePoly = lyrPlyTarget.source()
+                    filePoly = get_layer_source(lyrPlyTarget)
 
             gdfPoints = None
             filePoints = None
@@ -913,15 +939,16 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                                                                                        self.cboXField.currentText(),
                                                                                        self.cboYField.currentText()],
                                                                                    coord_columns_epsg=in_epsg)
+
+
                     del pdfxls
 
-                LOGGER.info('{:<30} {d:<15} {}'.format('Add Geometry to Table',filePoints,
+                LOGGER.info('{:<30} {d:<15} {}'.format('Add Geometry to Table', filePoints,
                                                           d=str(timedelta(seconds=time.time() - stepTime))))
                 stepTime = time.time()
 
                 if filePoints is not None:
-                    describe.save_geopandas_tofile(gdfPoints, filePoints) #, file_encoding=self.file_encoding)
-
+                    describe.save_geopandas_tofile(gdfPoints, filePoints)  # , file_encoding=self.file_encoding)
 
                 if self.DISP_TEMP_LAYERS and filePoints != '':
                     addVectorFileToQGIS(filePoints, layer_name=os.path.splitext(os.path.basename(filePoints))[0],
@@ -931,7 +958,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 layerPts = self.mcboTargetLayer.currentLayer()
 
                 if layerPts.providerType() == 'delimitedtext' or \
-                        os.path.splitext(layerPts.source())[-1] == '.vrt' or \
+                        os.path.splitext(get_layer_source(layerPts))[-1] == '.vrt' or \
                         self.chkUseSelected.isChecked() or self.optFile.isChecked():
 
                     filePoints = os.path.join(TEMPDIR, "{}_points.shp".format(layerPts.name()))
@@ -955,7 +982,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                     if idx == -1:
                         self.cboProcessField.addItem(shpField)
                         idx = self.cboProcessField.findText(shpField)
-                        
+
                     self.cboProcessField.setCurrentIndex(idx)
 
                     del ptsLayer
@@ -965,18 +992,28 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                                             group_layer_name='DEBUG', atTop=True)
 
                 else:
-                    filePoints = layerPts.source()
-
+                    filePoints = get_layer_source(layerPts)
+                    
             if gdfPoints is None:
                 ptsDesc = describe.VectorDescribe(filePoints)
                 gdfPtsCrs = ptsDesc.crs
                 gdfPoints = ptsDesc.open_geo_dataframe()
 
             if in_crs.authid() != self.mCRSoutput.crs().authid():
-                
+
                 gdfPoints = gdfPoints.to_crs(epsg=out_epsg)
                 gdfPtsCrs = pyprecag_crs.crs()
                 gdfPtsCrs.getFromEPSG(out_epsg)
+
+                # check for geographic xy cols
+                xy_fields = predictCoordinateColumnNames(gdfPoints.columns.tolist())
+                if any(xy_fields):
+                    gdfPoints.drop(xy_fields, axis=1, inplace=True)
+
+                # Add x,y coordinates to match coordinate system
+                gdfPoints['Easting'] = gdfPoints.geometry.apply(lambda p: p.x)
+                gdfPoints['Northing'] = gdfPoints.geometry.apply(lambda p: p.y)
+                gdfPoints['EN_EPSG'] = out_epsg
 
                 if self.DEBUG:
                     filePoints = os.path.join(TEMPDIR, os.path.basename(
@@ -993,14 +1030,28 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                                                 layer_name=os.path.splitext(os.path.basename(filePoints))[0],
                                                 atTop=True)
 
-            _ = processing.clean_trim_points(gdfPoints, gdfPtsCrs, self.processField(),
-                                             output_csvfile=self.lneSaveCSVFile.text(), boundary_polyfile=filePoly,
-                                             out_keep_shapefile=points_clean_shp,
-                                             out_removed_shapefile=points_remove_shp,
-                                             thin_dist_m=self.dsbThinDist.value(),
-                                             remove_zeros=self.chkRemoveZero.isChecked(),
-                                             stdevs=self.dsbStdCount.value(),
-                                             iterative=self.chkIterate.isChecked())
+
+            if self.chkReproject.isChecked():
+                step_time = time.time()
+                gdfPoints.drop(['geometry'], axis=1).to_csv(self.lneSaveCSVFile.text(), index=False) # , encoding=file_encoding)
+
+                LOGGER.info('{:<30} {:>10,}   {:<15} {dur}'.format( 'Save to CSV', len(gdfPoints),
+                                                                    os.path.basename(self.lneSaveCSVFile.text()), 
+                                                                    dur=timedelta(seconds=time.time() - step_time)))
+                
+                if points_clean_shp is not None:
+                    describe.save_geopandas_tofile(gdfPoints,points_clean_shp)
+                    points_remove_shp=None
+                
+            else:
+                _ = processing.clean_trim_points(gdfPoints, gdfPtsCrs, self.processField(),
+                                                 output_csvfile=self.lneSaveCSVFile.text(), boundary_polyfile=filePoly,
+                                                 out_keep_shapefile=points_clean_shp,
+                                                 out_removed_shapefile=points_remove_shp,
+                                                 thin_dist_m=self.dsbThinDist.value(),
+                                                 remove_zeros=self.chkRemoveZero.isChecked(),
+                                                 stdevs=self.dsbStdCount.value(),
+                                                 iterative=self.chkIterate.isChecked())
 
             if points_clean_shp is not None and points_clean_shp != '':
                 lyrFilter = addVectorFileToQGIS(points_clean_shp,
@@ -1008,7 +1059,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                                                 atTop=True, group_layer_name=gp_layer_name)
 
             if points_remove_shp is not None and points_remove_shp != '':
-                lyrRemoveFilter = addVectorFileToQGIS(points_remove_shp, 
+                lyrRemoveFilter = addVectorFileToQGIS(points_remove_shp,
                                                       layer_name=os.path.basename(os.path.splitext(points_remove_shp)[0]),
                                                       atTop=True, group_layer_name=gp_layer_name)
 

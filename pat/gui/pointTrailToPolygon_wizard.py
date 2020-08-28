@@ -57,7 +57,7 @@ from qgis.core import (QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsMes
 from qgis.gui import QgsMessageBar, QgsProjectionSelectionWidget
 
 from util.qgis_common import (copyLayerToMemory, removeFileFromQGIS, addVectorFileToQGIS, save_as_dialog,
-                              file_in_use, get_UTM_Coordinate_System)
+                              file_in_use, get_UTM_Coordinate_System, get_layer_source)
 from util.settings import read_setting, write_setting
 
 from util.custom_logging import errorCatcher, openLogPanel
@@ -455,10 +455,10 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
         s = os.path.normpath(s)
 
-        self.chkSavePointsFile.setChecked(True)
-        self.lneSavePointsFile.setEnabled(self.chkSavePointsFile.isChecked())
         self.lneSavePointsFile.setText(s)
-        self.chkSavePointsFile.setStyleSheet('color:black')
+        self.lneSavePointsFile.setEnabled(True)
+        self.lblSavePointsFile.setStyleSheet('color:black')
+
         self.lblSavePolyFile.setStyleSheet('color:black')
 
         write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
@@ -662,19 +662,21 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     self.lblSavePolyFile.setStyleSheet('color:black')
                     self.lneSavePolyFile.setStyleSheet('color:black')
 
-                if self.chkSavePointsFile.isChecked():
-                    if self.lneSavePointsFile.text() == '':
-                        self.chkSavePointsFile.setStyleSheet('color:red')
-                        errorList.append(self.tr("Enter output points shapefile file"))
-                    elif not os.path.exists(os.path.dirname(self.lneSavePointsFile.text())):
-                        self.lneSavePointsFile.setStyleSheet('color:red')
-                        errorList.append(self.tr("Output shapefile folder cannot be found"))
-                    else:
-                        self.chkSavePointsFile.setStyleSheet('color:black')
-                        self.lneSavePointsFile.setStyleSheet('color:black')
+                if self.lneSavePointsFile.text() == '':
+                    self.lblSavePointsFile.setStyleSheet('color:red')
+                    errorList.append(self.tr("Enter output points shapefile file"))
+                elif not os.path.exists(os.path.dirname(self.lneSavePointsFile.text())):
+                    self.lneSavePointsFile.setStyleSheet('color:red')
+                    errorList.append(self.tr("Output shapefile folder cannot be found"))
+                elif os.path.exists(self.lneSavePointsFile.text()) and file_in_use(self.lneSavePointsFile.text(), False):
+                    self.lneSaveCSVFile.setStyleSheet('color:red')
+                    self.lblSaveCSVFile.setStyleSheet('color:red')
+                    errorList.append(self.tr("Output file {} is open in QGIS or another application".format(
+                        os.path.basename(self.lneSaveCSVFile.text()))))
                 else:
-                    self.chkSavePointsFile.setStyleSheet('color:black')
+                    self.lblSavePointsFile.setStyleSheet('color:black')
                     self.lneSavePointsFile.setStyleSheet('color:black')
+
 
             if len(errorList) > 0:
                 raise ValueError(errorList)
@@ -737,7 +739,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
             settingsStr += '\n    {:30}\t{}'.format('Output Polygon Shapefile:', self.lneSavePolyFile.text())
 
-            if self.chkSavePointsFile.isChecked():
+            if self.lneSavePointsFile.text() == '':
                 settingsStr += '\n    {:30}\t{}'.format('Saved Points Shapefile:', self.lneSavePointsFile.text())
 
             settingsStr += '\n    {:30}\t{} - {}\n\n'.format('Output Projected Coordinate System:',
@@ -798,7 +800,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                 layerPts = self.mcboTargetLayer.currentLayer()
 
                 if layerPts.providerType() == 'delimitedtext' or \
-                        os.path.splitext(layerPts.source())[-1] == '.vrt' or \
+                        os.path.splitext(get_layer_source(layerPts))[-1] == '.vrt' or \
                         self.chkUseSelected.isChecked() or self.optFile.isChecked():
 
                     filePoints = os.path.join(TEMPDIR, "{}_points.shp".format(layerPts.name()))
@@ -826,7 +828,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                                             group_layer_name='DEBUG', atTop=True)
 
                 else:
-                    filePoints = layerPts.source()
+                    filePoints = get_layer_source(layerPts)
 
             if gdfPoints is None:
                 ptsDesc = describe.VectorDescribe(filePoints)

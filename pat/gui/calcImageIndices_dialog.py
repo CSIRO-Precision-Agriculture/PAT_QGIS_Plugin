@@ -47,7 +47,7 @@ from qgis.gui import QgsMessageBar
 
 from pyprecag.processing import calc_indices_for_block
 
-from pat.util.qgis_common import get_UTM_Coordinate_System, build_layer_table
+from pat.util.qgis_common import get_UTM_Coordinate_System, build_layer_table, get_layer_source
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'calcImageIndices_dialog_base.ui'))
 
@@ -103,7 +103,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
         
         self.updateRaster()
       
-        self.chkAddToDisplay.setChecked(False)
+        # self.chkAddToDisplay.setChecked(False)
         # self.chkAddToDisplay.hide()
         self.chkgrpIndices.setExclusive(False)  # allow for multi selection
 
@@ -259,11 +259,12 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
         if self.mcboPolygonLayer.count() == 0:
             return
 
+        self.mFieldComboBox.setLayer(None)
+        if self.mcboPolygonLayer.currentLayer() is None:
+            return
+
         polygon_lyr = self.mcboPolygonLayer.currentLayer()
         self.mFieldComboBox.setLayer(polygon_lyr)
-
-        if polygon_lyr is None:
-            return
 
         if polygon_lyr.selectedFeatureCount() > 0:
             self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(polygon_lyr.selectedFeatureCount()))
@@ -273,7 +274,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
             self.chkUseSelected.setEnabled(False)
 
         # ToDo: QGIS 3 implement QgsMapLayerComboBox.allowEmptyLayer() instead of chkUsePoly checkbox
-        self.chkUsePoly.setChecked(True)
+        #self.chkUsePoly.setChecked(True)
 
     def on_cboBandRed_currentIndexChanged(self, index):
         band_num = 0
@@ -320,14 +321,14 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
         self.update_bandlist()
 
     @QtCore.pyqtSlot(int)
-    def on_chkUsePoly_stateChanged(self, state):
-
-        self.mFieldComboBox.setEnabled(state)
-        self.lblGroupByField.setEnabled(state)
-
-    def on_chkUseSelected_stateChanged(self, state):
-        if self.chkUseSelected.isChecked():
-            self.chkUsePoly.setChecked(True)
+    # def on_chkUsePoly_stateChanged(self, state):
+    #
+    #     self.mFieldComboBox.setEnabled(state)
+    #     self.lblGroupByField.setEnabled(state)
+    #
+    # def on_chkUseSelected_stateChanged(self, state):
+    #     if self.chkUseSelected.isChecked():
+    #         self.chkUsePoly.setChecked(True)
 
 
     @QtCore.pyqtSlot(name='on_cmdOutputFolder_clicked')
@@ -465,7 +466,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
             settingsStr += '\n    {:20}\t{}'.format('Image layer:', self.mcboRasterLayer.currentLayer().name())
             settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.lblNoDataVal.text())
 
-            if self.chkUsePoly.isChecked():
+            if self.mcboPolygonLayer.currentLayer() is not None:
                 if self.chkUseSelected.isChecked():
                     settingsStr += '\n    {:20}\t{} with {} selected features'.format('Layer:',
                                                                                       self.mcboPolygonLayer.currentLayer().name(),
@@ -493,8 +494,8 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
             LOGGER.info(settingsStr)
 
             lyrRaster = self.mcboRasterLayer.currentLayer()
-
-            if self.chkUsePoly.isChecked():
+            filePoly=None
+            if self.mcboPolygonLayer.currentLayer() is not None:
                 lyrBoundary = self.mcboPolygonLayer.currentLayer()
 
                 if self.chkUseSelected.isChecked():
@@ -509,28 +510,31 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
                         addVectorFileToQGIS(filePoly, layer_name=os.path.splitext(os.path.basename(filePoly))[0]
                                             , group_layer_name='DEBUG', atTop=True)
                 else:
-                    filePoly = lyrBoundary.source()
+                    filePoly = get_layer_source(lyrBoundary)
 
             # convert string to float or int without knowing which
             x = self.lneNoDataVal.text()
             nodata_val = int(float(x)) if int(float(x)) == float(x) else float(x)
 
-            files = calc_indices_for_block(lyrRaster.source(),
+            files = calc_indices_for_block(get_layer_source(lyrRaster),
                                            self.dsbPixelSize.value(),
                                            self.band_mapping,
                                            self.lneOutputFolder.text(),
                                            indices=selectedIndices,
                                            image_epsg=int(lyrRaster.crs().authid().replace('EPSG:', '')),
                                            image_nodata=nodata_val,
-                                           polygon_shapefile=filePoly if self.chkUsePoly.isChecked() else None,
+                                           polygon_shapefile=filePoly,
                                            groupby=self.mFieldComboBox.currentField() if self.mFieldComboBox.currentField() else None,
                                            out_epsg=int(self.mCRSoutput.crs().authid().replace('EPSG:', '')))
 
             if self.chkAddToDisplay.isChecked():
                 for ea_file in files:
                     raster_sym = RASTER_SYMBOLOGY['Image Indices (ie PCD, NDVI)']
-                    raster_lyr = addRasterFileToQGIS(ea_file,atTop=False,
-                                         group_layer_name=os.path.basename(os.path.dirname(ea_file)))
+                    group_name =  os.path.basename(os.path.dirname(ea_file))
+                    if self.mFieldComboBox.currentField():
+                        group_name = os.path.basename(ea_file).split('_')[0] + ' - ' + os.path.basename(os.path.dirname(ea_file))
+                    
+                    raster_lyr = addRasterFileToQGIS(ea_file,atTop=False, group_layer_name=group_name)
 
                     raster_apply_classified_renderer(raster_lyr,
                                     rend_type=raster_sym['type'],

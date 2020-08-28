@@ -44,7 +44,7 @@ from qgis.core import QgsProject, QgsMapLayer, QgsMessageLog, QgsVectorFileWrite
     QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
 
-from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS
+from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS, get_layer_source
 
 from pat.util.qgis_common import build_layer_table, get_pixel_size
 
@@ -442,8 +442,10 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             registry = QgsProject.instance()
             rasterSource = [registry.mapLayer(self.tabList.item(row, 0).text()).source() for row in
                             range(0, self.tabList.rowCount())]
+
             rasterLyrNames = [registry.mapLayer(self.tabList.item(row, 0).text()).name() for row in
                               range(0, self.tabList.rowCount())]
+
             selectedStats = [x.text() for x in self.chkgrpStatistics.buttons() if x.isChecked()]
             statsFunctions = [self.statsMapping[x.lower()] for x in selectedStats]
 
@@ -472,7 +474,8 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
             layerPts = self.mcboPointsLayer.currentLayer()
             stepTime = time.time()
-            if layerPts.providerType() == 'delimitedtext' or os.path.splitext(layerPts.source())[-1] == '.vrt' or \
+            if layerPts.providerType() == 'delimitedtext' or \
+                    os.path.splitext(get_layer_source(layerPts))[-1] == '.vrt' or \
                     self.chkUseSelected.isChecked():
 
                 filePoints = os.path.join(TEMPDIR, "{}_GEpoints.shp".format(layerPts.name()))
@@ -499,7 +502,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
                     addVectorFileToQGIS(filePoints, group_layer_name='DEBUG', atTop=True)
 
             else:
-                filePoints = layerPts.source()
+                filePoints = get_layer_source(layerPts)
 
             ptsDesc = describe.VectorDescribe(filePoints)
             gdfPoints = ptsDesc.open_geo_dataframe()

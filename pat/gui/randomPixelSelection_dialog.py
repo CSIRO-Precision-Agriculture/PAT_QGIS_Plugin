@@ -37,7 +37,7 @@ from qgis.gui import QgsMessageBar
 
 from pyprecag import processing, crs as pyprecag_crs
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import removeFileFromQGIS, save_as_dialog, addVectorFileToQGIS
+from util.qgis_common import removeFileFromQGIS, save_as_dialog, addVectorFileToQGIS, get_layer_source
 from util.settings import read_setting, write_setting
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'randomPixelSelection_dialog_base.ui'))
@@ -84,10 +84,10 @@ class RandomPixelSelectionDialog(QDialog, FORM_CLASS):
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_randomPixel.svg'))
 
-        last_size = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize")
+        last_size = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSampleSize")
 
         if last_size is not None and int(last_size) > 0:
-            self.dsbSize.setValue(read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize", int))
+            self.dsbSize.setValue(read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSampleSize", int))
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -235,7 +235,7 @@ class RandomPixelSelectionDialog(QDialog, FORM_CLASS):
         try:
             QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
-            write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSize", self.dsbSize.value())
+            write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSampleSize", self.dsbSize.value())
 
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
@@ -251,7 +251,7 @@ class RandomPixelSelectionDialog(QDialog, FORM_CLASS):
             lyrTarget = self.mcboTargetLayer.currentLayer()
             removeFileFromQGIS(self.lneSaveFile.text())
 
-            raster_file = lyrTarget.source()
+            raster_file = get_layer_source(lyrTarget)
             rasterCRS = pyprecag_crs.getCRSfromRasterFile(raster_file)
 
             if rasterCRS.epsg is None:
