@@ -1,5 +1,8 @@
 @echo off 
-cd %~dp0 
+ECHO $pip_func Python 3 extras to support PAT.
+ECHO for $QGIS_VERSION   $QGIS_PATH
+
+cd %~dp0
 tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL 
 if "%ERRORLEVEL%"=="0" ( 
     echo QGIS is Currently Running. Please save your work and close
@@ -28,17 +31,20 @@ GOTO :END
         pause
         goto eof
     )
-
+    ECHO. Running "%OSGEO4W_ROOT%\bin\o4w_env.bat"
     CALL "%OSGEO4W_ROOT%\bin\o4w_env.bat"
 
+    ECHO. Running "%OSGEO4W_ROOT%\bin\py3_env.bat"
     REM py3_env includes setting PYTHONHOME & PYTHONPATH & PATH
     CALL "%OSGEO4W_ROOT%\bin\py3_env.bat"
+
+    SET OSGEO4W_ROOT=$QGIS_PATH
 
     if "$osgeo_packs" NEQ "" (
         ECHO. & ECHO Osgeo4w $osgeo_message -----------------------------------------------
         REM  see https://trac.osgeo.org/osgeo4w/wiki/CommandLine
         REM      https://gis.stackexchange.com/questions/303166/unattended-qgis-updates-with-osgeo4w
-        ECHO & ECHO. | $setup_exe -q -b -A -k -s http://download.osgeo.org/osgeo4w/ $osgeo_packs
+        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\osgeo4w-setup.exe" -q -b -A -k -s -n http://download.osgeo.org/osgeo4w/ $osgeo_packs
     ) ELSE (
         ECHO No OSGEO installation required
     )

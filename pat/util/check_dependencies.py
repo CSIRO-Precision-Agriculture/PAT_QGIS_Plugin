@@ -48,13 +48,13 @@ from qgis.PyQt.QtXml import QDomDocument
 from qgis.PyQt.QtCore import QFile, QIODevice
 
 import osgeo.gdal
+import pythoncom
 
 if platform.system() == 'Windows':
     import win32api
     from win32com.shell import shell, shellcon
     from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
 
-import pythoncom
 import struct
 
 from pat import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR
@@ -253,8 +253,8 @@ def check_pip_for_update(package):
     source: https://stackoverflow.com/a/40745656
     """
 
-    # only check once a month for pyprecag updates. 
-    last_pip_check = read_setting(PLUGIN_NAME + "/last_pip_check")
+    # only check once a month for pyprecag updates.
+    last_pip_check = read_setting(PLUGIN_NAME + "/LAST_PIP_CHECK")
     if last_pip_check is not None:
         last_pip_check = datetime.strptime(last_pip_check, '%Y-%m-%d')
 
@@ -264,7 +264,7 @@ def check_pip_for_update(package):
             releases = requests.get(url).json()['releases']
             current_version = sorted(releases, key=parse_version, reverse=True)[0]
 
-            write_setting(PLUGIN_NAME + '/last_pip_check', datetime.now().strftime('%Y-%m-%d'))
+            write_setting(PLUGIN_NAME + '/LAST_PIP_CHECK', datetime.now().strftime('%Y-%m-%d'))
 
             return current_version
         except requests.ConnectionError:
@@ -305,7 +305,7 @@ def check_python_dependencies(plugin_path, iface):
     try:
         # comes from metadata.txt
         from qgis.utils import pluginMetadata
-        meta_version = '{} {} '.format(pluginMetadata('pat', 'version') , pluginMetadata('pat', 'update_date'))  
+        meta_version = '{} {} '.format(pluginMetadata('pat', 'version') , pluginMetadata('pat', 'update_date'))
 
         # # get the list of wheels matching the gdal version
         # if not os.environ.get('GDAL_VERSION', None):
@@ -347,7 +347,7 @@ def check_python_dependencies(plugin_path, iface):
 
         # Install via a tar wheel file prior to publishing via pip to test pyprecag bug fixes
         # otherwise just use a standard pip install.
-        local_wheel = glob.glob1(os.path.join(plugin_path, 'python_packages'), "pyprecag*")
+        local_wheel = glob.glob1(os.path.join(plugin_path, 'install_files'), "pyprecag*")
         if len(local_wheel) == 1 and 'installed' not in local_wheel[0]:
             packCheck['pyprecag']['Action'] = 'Upgrade'
             pip_packs += [local_wheel[0]]
@@ -357,10 +357,10 @@ def check_python_dependencies(plugin_path, iface):
         failDependencyCheck = [key for key, val in packCheck.items() if val['Action'] in ['Install', 'Upgrade']]
 
         # create a dictionary to use with the template file.
-        d = {'dependency_log': os.path.join(plugin_path, 'python_packages',
+        d = {'dependency_log': os.path.join(plugin_path, 'install_files',
                                             'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))),
              'QGIS_PATH': osgeo_path,
-             'setup_exe': os.path.join(os.environ['OSGEO4W_ROOT'], 'bin', 'osgeo4w-setup.exe'),
+             'QGIS_VERSION':Qgis.QGIS_VERSION,
              'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
              'osgeo_packs': '' if len(osgeo_packs) == 0 else '-P python3-' + ' -P python3-'.join(osgeo_packs),
              'pip_func': 'install',
@@ -369,9 +369,12 @@ def check_python_dependencies(plugin_path, iface):
 
         # 'osgeo_uninst': ' -x python3-'.join(['fiona', 'geopandas', 'rasterio'])
         temp_file = os.path.join(plugin_path, 'util', 'Install_PAT3_Extras.template')
-        install_file = os.path.join(plugin_path, 'python_packages', title + '.bat')
-        uninstall_file = os.path.join(plugin_path, 'python_packages', 'Un{}.bat'.format(title))
+        install_file = os.path.join(plugin_path, 'install_files', '{}_4_qgis{}.bat'.format(title,str(Qgis.QGIS_VERSION_INT)[:-2]))
+        uninstall_file = os.path.join(plugin_path, 'install_files', 'Un{}_4_qgis{}.bat'.format(title,str(Qgis.QGIS_VERSION_INT)[:-2]))
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
+
+        if not os.path.exists(os.path.dirname(install_file)):
+            os.mkdir(os.path.dirname(install_file))
 
         if len(failDependencyCheck) > 0:
 
@@ -404,7 +407,7 @@ def check_python_dependencies(plugin_path, iface):
         else:
 
             settings_version = read_setting(PLUGIN_NAME + "/PAT_VERSION")
-             
+
             if settings_version is None:
                 LOGGER.info('Successfully installed and setup PAT {}'.format(meta_version))
             else:
@@ -421,7 +424,7 @@ def check_python_dependencies(plugin_path, iface):
 
             if len(osgeo_packs) == 0:
                 osgeo_packs = ['geopandas', 'rasterio']
-     
+
             if len(pip_packs) == 0:
                 pip_packs = ["pyprecag"]
 
