@@ -22,7 +22,6 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from future import standard_library
-from qgis import processing
 
 standard_library.install_aliases()
 
@@ -44,6 +43,11 @@ import traceback
 import webbrowser
 from functools import partial
 from pkg_resources import parse_version
+try:
+    from qgis import processing
+except:
+    # required for qgis 3.4
+    import processing
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
 from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton, QLabel
