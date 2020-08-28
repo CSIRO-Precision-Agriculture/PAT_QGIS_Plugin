@@ -20,7 +20,6 @@
  ***************************************************************************/
 """
 
-
 try:
     import ConfigParser as configparser
 except ImportError:
@@ -147,7 +146,30 @@ class pat_toolbar:
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
+        
+        pat3_mess = read_setting(PLUGIN_NAME + "/SHOW_PAT_3_MESSAGE", bool)
+        if pat3_mess is None or pat3_mess:
+            message =   '''<html><head/><body><p><span style=" font-size:14pt; font-weight:600;"> 
+                        PAT is now available for QGIS 3.</span></p><p><span style=" font-size:10pt;">
+                        Please download and install QGIS and install PAT from the plugin menu. 
+                        </span></p><p><span style=" font-size:10pt;">
+                        For further information please see the </span><a href="http://nbviewer.jupyter.org/github/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf">
+                        <span style="font-size:10pt; text-decoration: underline; color:#0000ff;">
+                        User Manual</span></a></p></body></html>'''
+                        
+            msgBox = QMessageBox()
+            msgBox.setText(message)
+            msgBox.setStandardButtons(QMessageBox.Ok)
+            msgBox.addButton(QPushButton('Do not show again'), QMessageBox.YesRole)
+            
+            ret = msgBox.exec_()  
+            if ret != QMessageBox.Ok:
+                 write_setting(PLUGIN_NAME + "/SHOW_PAT_3_MESSAGE", False)
 
+        self.iface.messageBar().pushMessage('PAT is now available for QGIS 3. Please upgrade !!', level=QgsMessageBar.INFO, duration=30)
+        LOGGER.info('PAT is now available for QGIS 3. Please upgrade !!')
+
+    
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -459,7 +481,7 @@ class pat_toolbar:
                 , None) is not None:
 
             self.iface.messageBar().pushMessage('Control file is already in the VESPER queue. {}'.format(
-                vesp_dict['control_file']),level=QgsMessageBar.WARNING, duration=15)
+                vesp_dict['control_file']), level=QgsMessageBar.WARNING, duration=15)
 
             self.queueDisplay()
 
@@ -683,7 +705,7 @@ class pat_toolbar:
             # load rasters into qgis as grouped layers.
             for key, val in proc_alg_mess.output_files.items():
 
-                grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
+                grplyr = os.path.join('Whole-of-block {}'.format(data_column), val['title'])
 
                 for ea_file in val['files']:
                     removeFileFromQGIS(ea_file)
@@ -739,9 +761,9 @@ class pat_toolbar:
             output_folder = dlg_tTestAnalysis.lneOutputFolder.text()
             import webbrowser
             try:
-                from urllib import pathname2url         # Python 2.x
+                from urllib import pathname2url  # Python 2.x
             except:
-                from urllib.request import pathname2url # Python 3.x
+                from urllib.request import pathname2url  # Python 3.x
 
             def open_folder():
                 url = 'file:{}'.format(pathname2url(os.path.abspath(output_folder)))
@@ -845,7 +867,7 @@ class pat_toolbar:
                 webbrowser.open(url)
 
             message = 'Raster statistics for points extracted successfully !'
-            #add a button to open the file outside qgis
+            # add a button to open the file outside qgis
             widget = self.iface.messageBar().createMessage('', message)
             button = QPushButton(widget)
             button.setText('Open File')
@@ -993,7 +1015,6 @@ class pat_toolbar:
 
         # Refresh QGIS
         QCoreApplication.processEvents()
-
 
     def run_pointTrailToPolygon(self):
         """Run method for pointTrailToPolygon dialog"""
