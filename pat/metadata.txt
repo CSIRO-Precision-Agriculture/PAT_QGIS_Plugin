@@ -44,6 +44,12 @@ Software Collection. https://doi.org/10.25919/5d23f9fb58722
 
 # Uncomment the following line and add your changelog:
 changelog=
+  1.0.1: Python 2to3 & QGIS 2to3
+         Migrated all tools including converting Clean Trim Points, Point Trail to Polygon Tools to wizards.
+         Added new colour ramps
+         Updated User manual
+         Revised install from bat file using a template file.
+         Whole-of-block temporarily withdraw due to bugs.
   0.3.5: Add PAT 3 available notification
   0.3.4: Bug fixes including:
          Support for Geopandas 0.6.0 and above
