@@ -20,6 +20,8 @@
  ***************************************************************************/
 """
 
+from builtins import str
+from builtins import range
 import logging
 import os
 import sys
@@ -32,11 +34,13 @@ from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, \
 from util.qgis_symbology import vector_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QPushButton, QDialog, QApplication
+from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsApplication,
+                       Qgis, QgsMapLayerProxyModel)
+from qgis.gui import QgsMessageBar
 
-from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoordinateReferenceSystem)
-from qgis.gui import QgsMessageBar, QgsGenericProjectionSelector
+from pat.util.qgis_common import get_UTM_Coordinate_System, get_layer_source
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'stripTrialPoints_dialog_base.ui'))
 
@@ -54,7 +58,7 @@ except ImportError:
                    "Upgrade to version 0.2.0+".format(pyprecag.__version__))
 
 
-class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
+class StripTrialPointsDialog(QDialog, FORM_CLASS):
     """Extract statistics from a list of rasters at set locations."""
     toolKey = 'StripTrialPointsDialog'
 
@@ -70,33 +74,34 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         self.DEBUG = config.get_debug_mode()
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), (QtGui.QFormLayout, QtGui.QGridLayout)):
+        if isinstance(self.layout(), (QtWidgets.QFormLayout, QtWidgets.QGridLayout)):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
         else:
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
-        self.outQgsCRS = None
-
-        self.exclude_map_layers()
-        # self.updateUseSelected()
-        self.autoSetCoordinateSystem()
-
         # GUI Runtime Customisation -----------------------------------------------
+        self.mcboLineLayer.setFilters(QgsMapLayerProxyModel.LineLayer)
+        self.mcboLineLayer.setExcludedProviders(['wms'])
+        if self.mcboLineLayer.count() > 0:
+            self.mcboLineLayer.setCurrentIndex(0)
+
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_stripTrialPoints.svg'))
         self.chkUseSelected.setChecked(False)
         self.chkUseSelected.hide()
-        self.chkSaveLinesFile.setChecked(False)
+
+        #self.updateUseSelected()
+
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -104,7 +109,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -115,7 +120,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -123,7 +128,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -167,96 +172,31 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             else:  # INFO = 0
                 LOGGER.info(message)
 
-    def exclude_map_layers(self):
-        """ Run through all loaded layers to find ones which should be excluded. In this case exclude services."""
-
-        exVlayer_list = []
-
-        for layer in self.iface.legendInterface().layers():
-            if layer.type() == QgsMapLayer.VectorLayer:
-                if layer.providerType() != 'ogr':
-                    exVlayer_list.append(layer)
-
-        if len(exVlayer_list) > 0:
-            self.mcboLineLayer.setExceptedLayerList(exVlayer_list)
-
-    def updateUseSelected(self):
-        """Update use selected checkbox if active layer has a feature selection"""
-
-        self.chkUseSelected.setChecked(False)
-
-        if self.mcboLineLayer.count() == 0:
-            return
-
-        line_lyr = self.mcboLineLayer.currentLayer()
-        self.mFieldComboBox.setLayer(line_lyr)
-        if len(line_lyr.selectedFeatures()) > 0:
-            self.chkUseSelected.setText('Use the {} selected feature(s) ?'.format(len(line_lyr.selectedFeatures())))
-            self.chkUseSelected.setEnabled(True)
-        else:
-            self.chkUseSelected.setText('No features selected')
-            self.chkUseSelected.setEnabled(False)
-
-    def autoSetCoordinateSystem(self):
-        if self.mcboLineLayer.count() == 0:
-            return
-
-        self.cleanMessageBars()
-        line_lyr = self.mcboLineLayer.currentLayer()
-
-        line_utm_crs = crs.getProjectedCRSForXY(line_lyr.extent().xMinimum(),
-                                                  line_lyr.extent().yMinimum(),
-                                                  int(line_lyr.crs().authid().replace('EPSG:', '')))
-        self.outQgsCRS = None
-
-        if line_utm_crs is not None:
-            line_crs = QgsCoordinateReferenceSystem('EPSG:{}'.format(line_utm_crs.epsg_number))
-            self.outQgsCRS = line_crs
-
-        if self.outQgsCRS is not None:
-            self.lblOutCRS.setText('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid()))
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
-        else:
-            self.lblOutCRSTitle.setStyleSheet('color:red')
-            self.lblOutCRS.setStyleSheet('color:red')
-            self.lblOutCRS.setText('Unspecified')
-            self.send_to_messagebar(
-                'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
-                level=QgsMessageBar.CRITICAL, duration=5)
-        return
-
     def on_mcboLineLayer_layerChanged(self):
-        # self.updateUseSelected()
-        self.autoSetCoordinateSystem()
+        # set default coordinate system
+
+        layer = self.mcboLineLayer.currentLayer()
+
+        if layer is None:
+            return
+
+        line_crs = layer.crs()
+        if line_crs.authid() == '':
+            # Convert from the older style strings
+            line_crs = QgsCoordinateReferenceSystem()
+            if not line_crs.createFromProj(layer.crs().toWkt()):
+                line_crs = layer.crs()
+
+        line_crs = get_UTM_Coordinate_System(layer.extent().xMinimum(),
+                                             layer.extent().yMinimum(),
+                                             line_crs.authid())
+
+        self.mCRSoutput.setCrs(line_crs)
 
     @QtCore.pyqtSlot(int)
     def on_chkUseSelected_stateChanged(self, state):
         if self.chkUseSelected.isChecked():
             self.chkUsePoly.setChecked(True)
-
-    @QtCore.pyqtSlot(name='on_cmdOutCRS_clicked')
-    def on_cmdOutCRS_clicked(self):
-        dlg = QgsGenericProjectionSelector(self)
-        dlg.setMessage(self.tr('Select coordinate system'))
-        if dlg.exec_():
-            if dlg.selectedAuthId() != '':
-                self.outQgsCRS = QgsCoordinateReferenceSystem(dlg.selectedAuthId())
-
-                if self.outQgsCRS.geographicFlag():
-                    self.outQgsCRS = None
-                    self.send_to_messagebar(
-                        unicode(self.tr("Geographic coordinate systems are not allowed. Resetting to default..")),
-                        level=QgsMessageBar.WARNING, duration=5)
-            else:
-                self.outQgsCRS = None
-
-            if self.outQgsCRS is None:
-                self.autoSetCoordinateSystem()
-
-            self.lblOutCRSTitle.setStyleSheet('color:black')
-            self.lblOutCRS.setStyleSheet('color:black')
-            self.lblOutCRS.setText(self.tr('{}  -  {}'.format(self.outQgsCRS.description(), self.outQgsCRS.authid())))
 
     @QtCore.pyqtSlot(name='on_cmdSavePointsFile_clicked')
     def on_cmdSavePointsFile_clicked(self):
@@ -266,7 +206,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
 
-        filename = self.mcboLineLayer.currentText() + '_strip-trial-points'
+        filename = self.mcboLineLayer.currentLayer().name() + '_strip-trial-points'
 
         s = save_as_dialog(self, self.tr("Save As"),
                          self.tr("ESRI Shapefile") + " (*.shp);;",
@@ -282,27 +222,6 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         self.lblSavePointsFile.setStyleSheet('color:black')
         self.lneSavePointsFile.setStyleSheet('color:black')
 
-    @QtCore.pyqtSlot(int)
-    def on_chkSaveLinesFile_stateChanged(self, state):
-        self.lneSaveLinesFile.setEnabled(state)
-        if state :
-            lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
-            if lastFolder is None or not os.path.exists(lastFolder):
-                lastFolder = read_setting(PLUGIN_NAME + "/BASE_OUT_FOLDER")
-
-            if self.lneSavePointsFile.text() == '':
-                filename = os.path.join(lastFolder, self.mcboLineLayer.currentText() + '_strip-trial-lines.shp')
-            else:
-                path, file = os.path.split(self.lneSavePointsFile.text())
-                file, ext = os.path.splitext(file)
-                filename = os.path.join(path, file.replace('-points', '') + '-lines' + ext)
-
-            self.lneSaveLinesFile.setText(filename)
-            self.chkSaveLinesFile.setStyleSheet('color:black')
-            self.lneSaveLinesFile.setStyleSheet('color:black')
-        else:
-            self.lneSaveLinesFile.setText('')
-
     @QtCore.pyqtSlot(name='on_cmdSaveLinesFile_clicked')
     def on_cmdSaveLinesFile_clicked(self):
         self.messageBar.clearWidgets()
@@ -314,7 +233,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         if self.lneSaveLinesFile.text() != '':
             filename = self.lneSaveLinesFile.text()
         elif self.lneSavePointsFile.text() == '':
-            filename = os.path.join(lastFolder, self.mcboLineLayer.currentText() + '_strip-trial-lines')
+            filename = os.path.join(lastFolder, self.mcboLineLayer.currentLayer().name() + '_strip-trial-lines')
         else:
             path, file = os.path.split(self.lneSavePointsFile.text())
             file, ext = os.path.splitext(file)
@@ -330,10 +249,10 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", os.path.dirname(s))
 
-        self.chkSaveLinesFile.setChecked(True)
+        self.lneSaveLinesFile.setEnabled(True)
         self.lneSaveLinesFile.setText(s)
-        self.chkSaveLinesFile.setStyleSheet('color:black')
         self.lneSaveLinesFile.setStyleSheet('color:black')
+        self.lblSaveLinesFile.setStyleSheet('color:black')
 
     def validate(self):
         """Check to see that all required gui elements have been entered and are valid."""
@@ -359,18 +278,15 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             else:
                 self.lblLineOffsetDist.setStyleSheet('color:black')
 
-            if self.outQgsCRS is None:
+            if self.mCRSoutput.crs().authid() == '':
                 self.lblOutCRSTitle.setStyleSheet('color:red')
-                self.lblOutCRS.setStyleSheet('color:red')
                 errorList.append(self.tr("Select output projected coordinate system"))
             else:
-                if self.outQgsCRS.geographicFlag():
+                if self.mCRSoutput.crs().isGeographic():
                     self.lblOutCRSTitle.setStyleSheet('color:red')
-                    self.lblOutCRS.setStyleSheet('color:red')
                     errorList.append(self.tr("Output projected coordinate system (not geographic) required"))
                 else:
                     self.lblOutCRSTitle.setStyleSheet('color:black')
-                    self.lblOutCRS.setStyleSheet('color:black')
 
             if self.lneSavePointsFile.text() == '':
                 self.lblSavePointsFile.setStyleSheet('color:red')
@@ -383,18 +299,16 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
                 self.lblSavePointsFile.setStyleSheet('color:black')
                 self.lneSavePointsFile.setStyleSheet('color:black')
 
-            if self.chkSaveLinesFile.isChecked():
-                if self.lneSaveLinesFile.text() == '':
-                    self.chkSaveLinesFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Save lines shapefile"))
-                elif not os.path.exists(os.path.dirname(self.lneSaveLinesFile.text())):
-                    self.lneSaveLinesFile.setStyleSheet('color:red')
-                    errorList.append(self.tr("Output shapefile folder cannot be found"))
-                else:
-                    self.chkSaveLinesFile.setStyleSheet('color:black')
-                    self.lneSaveLinesFile.setStyleSheet('color:black')
+            if self.lneSaveLinesFile.text() == '':
+                self.lblSaveLinesFile.setStyleSheet('color:red')
+                self.lneSaveLinesFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Save lines shapefile"))
+            elif not os.path.exists(os.path.dirname(self.lneSaveLinesFile.text())):
+                self.lblSaveLinesFile.setStyleSheet('color:red')
+                self.lneSaveLinesFile.setStyleSheet('color:red')
+                errorList.append(self.tr("Output shapefile folder cannot be found"))
             else:
-                self.chkSaveLinesFile.setStyleSheet('color:black')
+                self.lblSaveLinesFile.setStyleSheet('color:black')
                 self.lneSaveLinesFile.setStyleSheet('color:black')
 
             if len(errorList) > 0:
@@ -404,7 +318,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -422,12 +336,12 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
 
             # Change cursor to Wait cursor
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
-                                    level=QgsMessageBar.WARNING,
+                                    level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
             # Add settings to log
@@ -441,14 +355,17 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
 
             if self.chkUseSelected.isChecked():
                 settingsStr += '\n    {:20}\t{} with {} selected features'.format(
-                    'Layer:', self.mcboLineLayer.currentLayer().name(),
-                    len(self.mcboLineLayer.currentLayer().selectedFeatures()))
+                                                    'Layer:', self.mcboLineLayer.currentLayer().name(),
+                                                    self.mcboLineLayer.currentLayer().selectedFeatureCount())
 
-            settingsStr += '\n    {:30}\t{}'.format('Output coordinate system:', self.lblOutCRS.text())
+            settingsStr += '\n    {:30}\t{} - {}'.format('Output coordinate system:',
+                                                         self.mCRSoutput.crs().authid(),
+                                                         self.mCRSoutput.crs().description())
+
             settingsStr += '\n    {:30}\t{}'.format('Output points :', self.lneSavePointsFile.text())
 
-            if self.chkSaveLinesFile.isChecked():
-                settingsStr += '\n    {:30}\t{}\n'.format('Output points :', self.chkSaveLinesFile.text())
+            if self.lneSaveLinesFile.text() == '':
+                settingsStr += '\n    {:30}\t{}\n'.format('Output lines:', self.lneSaveLinesFile.text())
 
             LOGGER.info(settingsStr)
 
@@ -459,21 +376,21 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
 
                 if os.path.exists(line_shapefile):  removeFileFromQGIS(line_shapefile)
 
-                QgsVectorFileWriter.writeAsVectorFormat(lyr_line, line_shapefile, "utf-8", self.outQgsCRS,
-                                                        "ESRI Shapefile", onlySelected=True)
+                QgsVectorFileWriter.writeAsVectorFormat(lyr_line, line_shapefile, "utf-8", self.mCRSoutput.crs(),
+                                                        driverName="ESRI Shapefile", onlySelected=True)
 
                 if self.DISP_TEMP_LAYERS:
                     addVectorFileToQGIS(line_shapefile, layer_name=os.path.splitext(os.path.basename(line_shapefile))[0]
                                         , group_layer_name='DEBUG', atTop=True)
             else:
-                line_shapefile = lyr_line.source()
+                line_shapefile = get_layer_source(lyr_line)
 
             lines_desc = describe.VectorDescribe(line_shapefile)
             gdf_lines = lines_desc.open_geo_dataframe()
-            epsgOut = int(self.outQgsCRS.authid().replace('EPSG:', ''))
+            epsgOut = int(self.mCRSoutput.crs().authid().replace('EPSG:', ''))
 
             out_lines = None
-            if self.chkSaveLinesFile.isChecked():
+            if self.lneSaveLinesFile.text() == '':
                 out_lines = self.lneSaveLinesFile.text()
 
             _ = create_points_along_line(gdf_lines, lines_desc.crs, self.dsbDistBtwnPoints.value(),
@@ -485,7 +402,7 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
                                                  os.path.splitext(os.path.basename(self.lneSavePointsFile.text()))[0])
             vector_apply_unique_value_renderer(out_lyr_points, 'Strip_Name')
 
-            if self.chkSaveLinesFile.isChecked():
+            if self.lneSaveLinesFile.text() == '':
                 out_lyr_lines = addVectorFileToQGIS(self.lneSaveLinesFile.text(), atTop=True,
                                                     layer_name=os.path.splitext(os.path.basename(self.lneSaveLinesFile.text()))[0])
 
@@ -496,17 +413,17 @@ class StripTrialPointsDialog(QtGui.QDialog, FORM_CLASS):
 
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return super(StripTrialPointsDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
 
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
-            self.send_to_messagebar(str(err), level=QgsMessageBar.CRITICAL,
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, core_QGIS=False, showLogPanel=True,
                                     exc_info=sys.exc_info())
 

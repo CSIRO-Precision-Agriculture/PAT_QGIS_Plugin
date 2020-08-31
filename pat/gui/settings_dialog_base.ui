@@ -45,7 +45,14 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QLineEdit" name="lneOutDataDirectory"/>
+      <widget class="QLineEdit" name="lneOutDataDirectory">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item row="0" column="0">
       <widget class="QLabel" name="lblInDataDirectory">
@@ -70,8 +77,12 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="lneVesperExe"/>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="lneInDataDirectory">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item row="2" column="2">
       <widget class="QPushButton" name="cmdVesperExe">
@@ -89,13 +100,10 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="lneInDataDirectory"/>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="lblVesperExe">
-       <property name="text">
-        <string>Location of VESPER exe:</string>
+     <item row="2" column="1">
+      <widget class="QLineEdit" name="lneVesperExe">
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -103,6 +111,16 @@
       <widget class="QLabel" name="lblOutDataDirectory">
        <property name="text">
         <string>Output data directory:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="lblVesperExe">
+       <property name="styleSheet">
+        <string notr="true"/>
+       </property>
+       <property name="text">
+        <string>Location of VESPER exe:</string>
        </property>
       </widget>
      </item>

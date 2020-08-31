@@ -1,150 +1,431 @@
 <!DOCTYPE qgis_style>
-<qgis_style version="1">
+<qgis_style version="2">
   <symbols>
-    <symbol alpha="1" clip_to_extent="1" type="fill" name="Hatching">
-      <layer pass="0" class="SimpleFill" locked="0">
-        <prop k="border_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="color" v="20,86,227,255"/>
-        <prop k="color_border_dd_active" v="1"/>
-        <prop k="color_border_dd_expression" v="@symbol_color"/>
-        <prop k="color_border_dd_field" v=""/>
-        <prop k="color_border_dd_useexpr" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="20,86,227,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0.66"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="style" v="horizontal"/>
-      </layer>
-    </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Plus">
-      <layer pass="0" class="SimpleMarker" locked="0">
-        <prop k="angle" v="45"/>
-        <prop k="color" v="251,154,153,255"/>
-        <prop k="horizontal_anchor_point" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="name" v="cross2"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="0,0,0,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="scale_method" v="area"/>
-        <prop k="size" v="2"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="size_unit" v="MM"/>
-        <prop k="vertical_anchor_point" v="1"/>
-      </layer>
-    </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Small Plus">
-      <layer pass="0" class="SimpleMarker" locked="0">
-        <prop k="angle" v="45"/>
-        <prop k="color" v="251,154,153,255"/>
-        <prop k="horizontal_anchor_point" v="1"/>
-        <prop k="joinstyle" v="bevel"/>
-        <prop k="name" v="cross2"/>
-        <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="offset_unit" v="MM"/>
-        <prop k="outline_color" v="140,140,140,255"/>
-        <prop k="outline_style" v="solid"/>
-        <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="outline_width_unit" v="MM"/>
-        <prop k="scale_method" v="area"/>
-        <prop k="size" v="0.6"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
-        <prop k="size_unit" v="MM"/>
-        <prop k="vertical_anchor_point" v="1"/>
-      </layer>
-    </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Cross">
-      <layer pass="0" class="SimpleMarker" locked="0">
+    <symbol force_rhr="0" clip_to_extent="1" name="Cross" alpha="1" type="marker" tags="PAT">
+      <layer class="SimpleMarker" enabled="1" locked="0" pass="0">
         <prop k="angle" v="0"/>
         <prop k="color" v="251,154,153,255"/>
         <prop k="horizontal_anchor_point" v="1"/>
         <prop k="joinstyle" v="bevel"/>
         <prop k="name" v="cross2"/>
         <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
+        <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
         <prop k="offset_unit" v="MM"/>
         <prop k="outline_color" v="0,0,0,255"/>
         <prop k="outline_style" v="solid"/>
         <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
+        <prop k="outline_width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
         <prop k="outline_width_unit" v="MM"/>
         <prop k="scale_method" v="area"/>
         <prop k="size" v="2"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
+        <prop k="size_map_unit_scale" v="3x:0,0,0,0,0,0"/>
         <prop k="size_unit" v="MM"/>
         <prop k="vertical_anchor_point" v="1"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option name="name" type="QString" value=""/>
+            <Option name="properties"/>
+            <Option name="type" type="QString" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
-    <symbol alpha="1" clip_to_extent="1" type="marker" name="Dot">
-      <layer pass="0" class="SimpleMarker" locked="0">
+    <symbol force_rhr="0" clip_to_extent="1" name="Dot" alpha="1" type="marker" tags="PAT">
+      <layer class="SimpleMarker" enabled="1" locked="0" pass="0">
         <prop k="angle" v="0"/>
         <prop k="color" v="198,90,57,255"/>
         <prop k="horizontal_anchor_point" v="1"/>
         <prop k="joinstyle" v="bevel"/>
         <prop k="name" v="circle"/>
         <prop k="offset" v="0,0"/>
-        <prop k="offset_map_unit_scale" v="0,0,0,0,0,0"/>
+        <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
         <prop k="offset_unit" v="MM"/>
         <prop k="outline_color" v="0,0,0,255"/>
         <prop k="outline_style" v="no"/>
         <prop k="outline_width" v="0"/>
-        <prop k="outline_width_map_unit_scale" v="0,0,0,0,0,0"/>
+        <prop k="outline_width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
         <prop k="outline_width_unit" v="MM"/>
         <prop k="scale_method" v="diameter"/>
         <prop k="size" v="1"/>
-        <prop k="size_map_unit_scale" v="0,0,0,0,0,0"/>
+        <prop k="size_map_unit_scale" v="3x:0,0,0,0,0,0"/>
         <prop k="size_unit" v="MM"/>
         <prop k="vertical_anchor_point" v="1"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option name="name" type="QString" value=""/>
+            <Option name="properties"/>
+            <Option name="type" type="QString" value="collection"/>
+          </Option>
+        </data_defined_properties>
+      </layer>
+    </symbol>
+    <symbol force_rhr="0" clip_to_extent="1" name="Plus" alpha="1" type="marker" tags="PAT">
+      <layer class="SimpleMarker" enabled="1" locked="0" pass="0">
+        <prop k="angle" v="45"/>
+        <prop k="color" v="251,154,153,255"/>
+        <prop k="horizontal_anchor_point" v="1"/>
+        <prop k="joinstyle" v="bevel"/>
+        <prop k="name" v="cross2"/>
+        <prop k="offset" v="0,0"/>
+        <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+        <prop k="offset_unit" v="MM"/>
+        <prop k="outline_color" v="0,0,0,255"/>
+        <prop k="outline_style" v="solid"/>
+        <prop k="outline_width" v="0"/>
+        <prop k="outline_width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+        <prop k="outline_width_unit" v="MM"/>
+        <prop k="scale_method" v="area"/>
+        <prop k="size" v="2"/>
+        <prop k="size_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+        <prop k="size_unit" v="MM"/>
+        <prop k="vertical_anchor_point" v="1"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option name="name" type="QString" value=""/>
+            <Option name="properties"/>
+            <Option name="type" type="QString" value="collection"/>
+          </Option>
+        </data_defined_properties>
+      </layer>
+    </symbol>
+    <symbol force_rhr="0" clip_to_extent="1" name="Small Plus" alpha="1" type="marker" tags="PAT">
+      <layer class="SimpleMarker" enabled="1" locked="0" pass="0">
+        <prop k="angle" v="45"/>
+        <prop k="color" v="251,154,153,255"/>
+        <prop k="horizontal_anchor_point" v="1"/>
+        <prop k="joinstyle" v="bevel"/>
+        <prop k="name" v="cross2"/>
+        <prop k="offset" v="0,0"/>
+        <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+        <prop k="offset_unit" v="MM"/>
+        <prop k="outline_color" v="140,140,140,255"/>
+        <prop k="outline_style" v="solid"/>
+        <prop k="outline_width" v="0"/>
+        <prop k="outline_width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+        <prop k="outline_width_unit" v="MM"/>
+        <prop k="scale_method" v="area"/>
+        <prop k="size" v="0.6"/>
+        <prop k="size_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+        <prop k="size_unit" v="MM"/>
+        <prop k="vertical_anchor_point" v="1"/>
+        <data_defined_properties>
+          <Option type="Map">
+            <Option name="name" type="QString" value=""/>
+            <Option name="properties"/>
+            <Option name="type" type="QString" value="collection"/>
+          </Option>
+        </data_defined_properties>
       </layer>
     </symbol>
   </symbols>
   <colorramps>
-    <colorramp type="gradient" name="Imagery 5 Colours">
+    <colorramp name="Blue Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="225,225,254,255"/>
+      <prop k="preset_color_1" v="195,196,254,255"/>
+      <prop k="preset_color_10" v="0,3,184,255"/>
+      <prop k="preset_color_11" v="0,3,159,255"/>
+      <prop k="preset_color_12" v="0,2,134,255"/>
+      <prop k="preset_color_2" v="165,166,254,255"/>
+      <prop k="preset_color_3" v="135,137,254,255"/>
+      <prop k="preset_color_4" v="105,107,254,255"/>
+      <prop k="preset_color_5" v="75,78,254,255"/>
+      <prop k="preset_color_6" v="40,44,254,255"/>
+      <prop k="preset_color_7" v="0,0,255,255"/>
+      <prop k="preset_color_8" v="0,4,234,255"/>
+      <prop k="preset_color_9" v="0,4,209,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#c3c4fe"/>
+      <prop k="preset_color_name_10" v="#0003b8"/>
+      <prop k="preset_color_name_11" v="#00039f"/>
+      <prop k="preset_color_name_12" v="#000286"/>
+      <prop k="preset_color_name_2" v="#a5a6fe"/>
+      <prop k="preset_color_name_3" v="#8789fe"/>
+      <prop k="preset_color_name_4" v="#696bfe"/>
+      <prop k="preset_color_name_5" v="#4b4efe"/>
+      <prop k="preset_color_name_6" v="#282cfe"/>
+      <prop k="preset_color_name_7" v="#0000ff"/>
+      <prop k="preset_color_name_8" v="#0004ea"/>
+      <prop k="preset_color_name_9" v="#0004d1"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Cyan Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="225,254,254,255"/>
+      <prop k="preset_color_1" v="195,254,254,255"/>
+      <prop k="preset_color_10" v="0,174,174,255"/>
+      <prop k="preset_color_11" v="0,154,154,255"/>
+      <prop k="preset_color_2" v="165,254,254,255"/>
+      <prop k="preset_color_3" v="135,254,254,255"/>
+      <prop k="preset_color_4" v="105,254,254,255"/>
+      <prop k="preset_color_5" v="40,254,254,255"/>
+      <prop k="preset_color_6" v="0,255,255,255"/>
+      <prop k="preset_color_7" v="0,234,234,255"/>
+      <prop k="preset_color_8" v="0,214,214,255"/>
+      <prop k="preset_color_9" v="0,194,194,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#c3fefe"/>
+      <prop k="preset_color_name_10" v="#00aeae"/>
+      <prop k="preset_color_name_11" v="#009a9a"/>
+      <prop k="preset_color_name_2" v="#a5fefe"/>
+      <prop k="preset_color_name_3" v="#f5f8fb"/>
+      <prop k="preset_color_name_4" v="#69fefe"/>
+      <prop k="preset_color_name_5" v="#28fefe"/>
+      <prop k="preset_color_name_6" v="#00ffff"/>
+      <prop k="preset_color_name_7" v="#00eaea"/>
+      <prop k="preset_color_name_8" v="#00d6d6"/>
+      <prop k="preset_color_name_9" v="#00c2c2"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Gray Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="245,245,245,255"/>
+      <prop k="preset_color_1" v="225,225,225,255"/>
+      <prop k="preset_color_10" v="45,45,45,255"/>
+      <prop k="preset_color_11" v="25,25,25,255"/>
+      <prop k="preset_color_12" v="0,0,0,255"/>
+      <prop k="preset_color_2" v="205,205,205,255"/>
+      <prop k="preset_color_3" v="185,185,185,255"/>
+      <prop k="preset_color_4" v="165,165,165,255"/>
+      <prop k="preset_color_5" v="145,145,145,255"/>
+      <prop k="preset_color_6" v="125,125,125,255"/>
+      <prop k="preset_color_7" v="105,105,105,255"/>
+      <prop k="preset_color_8" v="85,85,85,255"/>
+      <prop k="preset_color_9" v="65,65,65,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#e1e1e1"/>
+      <prop k="preset_color_name_10" v="#2d2d2d"/>
+      <prop k="preset_color_name_11" v="#191919"/>
+      <prop k="preset_color_name_12" v="#000000"/>
+      <prop k="preset_color_name_2" v="#cdcdcd"/>
+      <prop k="preset_color_name_3" v="#b9b9b9"/>
+      <prop k="preset_color_name_4" v="#a5a5a5"/>
+      <prop k="preset_color_name_5" v="#919191"/>
+      <prop k="preset_color_name_6" v="#7d7d7d"/>
+      <prop k="preset_color_name_7" v="#696969"/>
+      <prop k="preset_color_name_8" v="#555555"/>
+      <prop k="preset_color_name_9" v="#414141"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Green Bright" type="gradient" tags="PAT,Monochromatic">
+      <prop k="color1" v="204,255,204,255"/>
+      <prop k="color2" v="14,204,14,255"/>
+      <prop k="discrete" v="0"/>
+      <prop k="rampType" v="gradient"/>
+    </colorramp>
+    <colorramp name="Green Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="230,254,230,255"/>
+      <prop k="preset_color_1" v="205,254,205,255"/>
+      <prop k="preset_color_10" v="1,139,0,255"/>
+      <prop k="preset_color_11" v="1,114,0,255"/>
+      <prop k="preset_color_12" v="1,84,0,255"/>
+      <prop k="preset_color_2" v="175,254,175,255"/>
+      <prop k="preset_color_3" v="136,254,135,255"/>
+      <prop k="preset_color_4" v="91,254,90,255"/>
+      <prop k="preset_color_5" v="47,254,45,255"/>
+      <prop k="preset_color_6" v="0,255,0,255"/>
+      <prop k="preset_color_7" v="2,224,0,255"/>
+      <prop k="preset_color_8" v="2,194,0,255"/>
+      <prop k="preset_color_9" v="2,169,0,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#cdfecd"/>
+      <prop k="preset_color_name_10" v="#018b00"/>
+      <prop k="preset_color_name_11" v="#017200"/>
+      <prop k="preset_color_name_12" v="#015400"/>
+      <prop k="preset_color_name_2" v="#affeaf"/>
+      <prop k="preset_color_name_3" v="#88fe87"/>
+      <prop k="preset_color_name_4" v="#5bfe5a"/>
+      <prop k="preset_color_name_5" v="#2ffe2d"/>
+      <prop k="preset_color_name_6" v="#00ff00"/>
+      <prop k="preset_color_name_7" v="#02e000"/>
+      <prop k="preset_color_name_8" v="#02c200"/>
+      <prop k="preset_color_name_9" v="#02a900"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Imagery 5 Colours" type="gradient" tags="PAT">
       <prop k="color1" v="255,0,0,255"/>
       <prop k="color2" v="0,92,230,255"/>
       <prop k="discrete" v="1"/>
+      <prop k="rampType" v="gradient"/>
       <prop k="stops" v="0.2;255,255,0,255:0.4;85,255,0,255:0.6;0,255,197,255:0.8;0,92,230,255"/>
     </colorramp>
-    <colorramp type="gradient" name="Red Mono Ramp">
-      <prop k="color1" v="254,225,225,255"/>
-      <prop k="color2" v="99,0,0,255"/>
+    <colorramp name="Magenta Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="254,225,246,255"/>
+      <prop k="preset_color_1" v="254,195,238,255"/>
+      <prop k="preset_color_10" v="184,0,134,255"/>
+      <prop k="preset_color_11" v="159,0,116,255"/>
+      <prop k="preset_color_12" v="134,0,98,255"/>
+      <prop k="preset_color_2" v="254,165,230,255"/>
+      <prop k="preset_color_3" v="254,135,222,255"/>
+      <prop k="preset_color_4" v="254,105,214,255"/>
+      <prop k="preset_color_5" v="254,75,206,255"/>
+      <prop k="preset_color_6" v="254,40,196,255"/>
+      <prop k="preset_color_7" v="254,0,185,255"/>
+      <prop k="preset_color_8" v="234,0,171,255"/>
+      <prop k="preset_color_9" v="209,0,152,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#fec3ee"/>
+      <prop k="preset_color_name_10" v="#b80086"/>
+      <prop k="preset_color_name_11" v="#9f0074"/>
+      <prop k="preset_color_name_12" v="#860062"/>
+      <prop k="preset_color_name_2" v="#fea5e6"/>
+      <prop k="preset_color_name_3" v="#fe87de"/>
+      <prop k="preset_color_name_4" v="#fe69d6"/>
+      <prop k="preset_color_name_5" v="#fe4bce"/>
+      <prop k="preset_color_name_6" v="#fe28c4"/>
+      <prop k="preset_color_name_7" v="#fe00b9"/>
+      <prop k="preset_color_name_8" v="#ea00ab"/>
+      <prop k="preset_color_name_9" v="#d10098"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Orange Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="254,238,225,255"/>
+      <prop k="preset_color_1" v="254,221,195,255"/>
+      <prop k="preset_color_10" v="184,82,0,255"/>
+      <prop k="preset_color_11" v="159,71,0,255"/>
+      <prop k="preset_color_12" v="134,60,0,255"/>
+      <prop k="preset_color_2" v="254,205,165,255"/>
+      <prop k="preset_color_3" v="254,188,135,255"/>
+      <prop k="preset_color_4" v="254,172,105,255"/>
+      <prop k="preset_color_5" v="254,155,75,255"/>
+      <prop k="preset_color_6" v="254,136,40,255"/>
+      <prop k="preset_color_7" v="254,114,0,255"/>
+      <prop k="preset_color_8" v="234,105,0,255"/>
+      <prop k="preset_color_9" v="209,93,0,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#feddc3"/>
+      <prop k="preset_color_name_10" v="#b85200"/>
+      <prop k="preset_color_name_11" v="#9f4700"/>
+      <prop k="preset_color_name_12" v="#863c00"/>
+      <prop k="preset_color_name_2" v="#fecda5"/>
+      <prop k="preset_color_name_3" v="#febc87"/>
+      <prop k="preset_color_name_4" v="#feac69"/>
+      <prop k="preset_color_name_5" v="#fe9b4b"/>
+      <prop k="preset_color_name_6" v="#fe8828"/>
+      <prop k="preset_color_name_7" v="#fe7200"/>
+      <prop k="preset_color_name_8" v="#ea6900"/>
+      <prop k="preset_color_name_9" v="#a0a0a0"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Pink-Plum U/K Gamma Ratio" type="gradient" tags="PAT">
+      <prop k="color1" v="255,191,233,255"/>
+      <prop k="color2" v="115,0,77,255"/>
       <prop k="discrete" v="0"/>
-      <prop k="stops" v="0.498798;255,0,0,255"/>
+      <prop k="rampType" v="gradient"/>
     </colorramp>
-    <colorramp type="gradient" name="Red Monochromatic">
-      <prop k="color1" v="254,225,225,255"/>
-      <prop k="color2" v="99,0,0,255"/>
-      <prop k="discrete" v="1"/>
-      <prop k="stops" v="0.0833333;255,195,195,255:0.166667;255,165,165,255:0.25;254,135,135,255:0.333333;254,105,105,255:0.416667;254,65,65,255:0.5;255,0,0,255:0.583333;224,0,0,255:0.666667;204,0,0,255:0.75;149,0,0,255:0.833333;124,0,0,255:0.916667;99,0,0,255"/>
+    <colorramp type="gradient" name="Precipitation" tags="PAT">
+      <prop k="color1" v="194,82,60,255"/>
+      <prop k="color2" v="11,44,122,255"/>
+      <prop k="discrete" v="0"/>
+      <prop k="rampType" v="gradient"/>
+      <prop k="stops" v="0.2;237,161,19,255:0.4;255,255,0,255:0.6;0,219,0,255:0.8;32,153,143,255"/>
     </colorramp>
-    <colorramp type="gradient" name="Significance of Difference Bi-Directional">
+    <colorramp name="Purple Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="250,215,254,255"/>
+      <prop k="preset_color_1" v="248,195,254,255"/>
+      <prop k="preset_color_10" v="138,0,149,255"/>
+      <prop k="preset_color_11" v="112,0,124,255"/>
+      <prop k="preset_color_12" v="92,0,99,255"/>
+      <prop k="preset_color_2" v="247,165,254,255"/>
+      <prop k="preset_color_3" v="245,135,254,255"/>
+      <prop k="preset_color_4" v="242,95,254,255"/>
+      <prop k="preset_color_5" v="234,54,249,255"/>
+      <prop k="preset_color_6" v="221,0,239,255"/>
+      <prop k="preset_color_7" v="207,0,224,255"/>
+      <prop k="preset_color_8" v="184,0,204,255"/>
+      <prop k="preset_color_9" v="165,0,179,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#f8c3fe"/>
+      <prop k="preset_color_name_10" v="#8a0095"/>
+      <prop k="preset_color_name_11" v="#70007c"/>
+      <prop k="preset_color_name_12" v="#5c0063"/>
+      <prop k="preset_color_name_2" v="#f7a5fe"/>
+      <prop k="preset_color_name_3" v="#f587fe"/>
+      <prop k="preset_color_name_4" v="#f25ffe"/>
+      <prop k="preset_color_name_5" v="#ea36f9"/>
+      <prop k="preset_color_name_6" v="#dd00ef"/>
+      <prop k="preset_color_name_7" v="#cf00e0"/>
+      <prop k="preset_color_name_8" v="#b800cc"/>
+      <prop k="preset_color_name_9" v="#a500b3"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Red Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="254,225,225,255"/>
+      <prop k="preset_color_1" v="255,195,195,255"/>
+      <prop k="preset_color_10" v="149,0,0,255"/>
+      <prop k="preset_color_11" v="124,0,0,255"/>
+      <prop k="preset_color_12" v="99,0,0,255"/>
+      <prop k="preset_color_2" v="255,165,165,255"/>
+      <prop k="preset_color_3" v="254,135,135,255"/>
+      <prop k="preset_color_4" v="254,105,105,255"/>
+      <prop k="preset_color_5" v="254,65,65,255"/>
+      <prop k="preset_color_6" v="255,0,0,255"/>
+      <prop k="preset_color_7" v="224,0,0,255"/>
+      <prop k="preset_color_8" v="199,0,0,255"/>
+      <prop k="preset_color_9" v="174,0,0,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#ffc3c3"/>
+      <prop k="preset_color_name_10" v="#950000"/>
+      <prop k="preset_color_name_11" v="#7c0000"/>
+      <prop k="preset_color_name_12" v="#630000"/>
+      <prop k="preset_color_name_2" v="#ffa5a5"/>
+      <prop k="preset_color_name_3" v="#fe8787"/>
+      <prop k="preset_color_name_4" v="#fe6969"/>
+      <prop k="preset_color_name_5" v="#fe4141"/>
+      <prop k="preset_color_name_6" v="#ff0000"/>
+      <prop k="preset_color_name_7" v="#e00000"/>
+      <prop k="preset_color_name_8" v="#c70000"/>
+      <prop k="preset_color_name_9" v="#ae0000"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Significance of Difference Bi-Directional" type="gradient" tags="PAT">
       <prop k="color1" v="38,115,0,255"/>
       <prop k="color2" v="168,0,132,255"/>
       <prop k="discrete" v="1"/>
+      <prop k="rampType" v="gradient"/>
       <prop k="stops" v="0.111111;85,255,0,255:0.222222;230,230,0,255:0.333333;230,152,0,255:0.444444;255,0,0,255:0.555556;0,255,255,255:0.666667;0,169,230,255:0.777778;0,77,168,255:0.888889;168,0,132,255"/>
     </colorramp>
-    <colorramp type="gradient" name="Yield 7 Colours">
+    <colorramp name="Yellow Monochromatic" type="preset" tags="PAT,Monochromatic">
+      <prop k="preset_color_0" v="254,250,225,255"/>
+      <prop k="preset_color_1" v="254,245,195,255"/>
+      <prop k="preset_color_10" v="184,156,0,255"/>
+      <prop k="preset_color_11" v="159,135,0,255"/>
+      <prop k="preset_color_12" v="134,113,0,255"/>
+      <prop k="preset_color_2" v="254,240,165,255"/>
+      <prop k="preset_color_3" v="254,236,135,255"/>
+      <prop k="preset_color_4" v="254,231,105,255"/>
+      <prop k="preset_color_5" v="254,226,75,255"/>
+      <prop k="preset_color_6" v="254,221,40,255"/>
+      <prop k="preset_color_7" v="254,215,0,255"/>
+      <prop k="preset_color_8" v="234,198,0,255"/>
+      <prop k="preset_color_9" v="209,177,0,255"/>
+      <prop k="preset_color_name_0" v="#fa4b3c"/>
+      <prop k="preset_color_name_1" v="#fef5c3"/>
+      <prop k="preset_color_name_10" v="#b89c00"/>
+      <prop k="preset_color_name_11" v="#9f8700"/>
+      <prop k="preset_color_name_12" v="#867100"/>
+      <prop k="preset_color_name_2" v="#fef0a5"/>
+      <prop k="preset_color_name_3" v="#feec87"/>
+      <prop k="preset_color_name_4" v="#fee769"/>
+      <prop k="preset_color_name_5" v="#fee24b"/>
+      <prop k="preset_color_name_6" v="#fedd28"/>
+      <prop k="preset_color_name_7" v="#fed700"/>
+      <prop k="preset_color_name_8" v="#eac600"/>
+      <prop k="preset_color_name_9" v="#d1b100"/>
+      <prop k="rampType" v="preset"/>
+    </colorramp>
+    <colorramp name="Yield 7 Colours" type="gradient" tags="PAT">
       <prop k="color1" v="255,0,0,255"/>
       <prop k="color2" v="0,77,168,255"/>
       <prop k="discrete" v="1"/>
+      <prop k="rampType" v="gradient"/>
       <prop k="stops" v="0.142857;255,170,0,255:0.285714;255,255,0,255:0.428571;170,255,0,255:0.571429;76,230,0,255:0.714286;38,115,0,255:0.857143;0,77,168,255"/>
     </colorramp>
-    <colorramp type="gradient" name="Yield 9 Colours">
+    <colorramp name="Yield 9 Colours" type="gradient" tags="PAT">
       <prop k="color1" v="168,0,0,255"/>
       <prop k="color2" v="0,92,230,255"/>
       <prop k="discrete" v="1"/>
+      <prop k="rampType" v="gradient"/>
       <prop k="stops" v="0.11;255,0,0,255:0.22;248,165,0,255:0.33;255,255,0,255:0.44;170,255,0,255:0.55;76,230,0,255:0.66;38,115,0,255:0.77;0,77,168,255:0.88;0,92,230,255"/>
     </colorramp>
   </colorramps>
+  <textformats/>
+  <labelsettings/>
 </qgis_style>

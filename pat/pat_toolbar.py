@@ -19,13 +19,21 @@
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import print_function
+from __future__ import absolute_import
+from future import standard_library
 
+standard_library.install_aliases()
+
+from builtins import next
+from builtins import str
+from builtins import object
 try:
-    import ConfigParser as configparser
+    import configparser as configparser
 except ImportError:
     import configparser
 
-import datetime
+from datetime import timedelta
 import logging
 import os.path
 import shutil
@@ -35,43 +43,43 @@ import traceback
 import webbrowser
 from functools import partial
 from pkg_resources import parse_version
+try:
+    from qgis import processing
+except:
+    # required for qgis 3.4
+    import processing
 
-from PyQt4.Qt import QLabel
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
-from PyQt4.QtGui import QAction, QIcon, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton
-from qgis.core import QgsMapLayerRegistry, QgsMessageLog
-from qgis.gui import QgsMessageBar
-
-from processing.core.Processing import Processing
-from processing.tools import general
-from processing.gui.CommanderWindow import CommanderWindow
+from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
+from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton, QLabel
+from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
-from gui.about_dialog import AboutDialog
-from gui.blockGrid_dialog import BlockGridDialog
-from gui.calcImageIndices_dialog import CalculateImageIndicesDialog
-from gui.cleanTrimPoints_dialog import CleanTrimPointsDialog
-from gui.gridExtract_dialog import GridExtractDialog
-from gui.kMeansCluster_dialog import KMeansClusterDialog
-from gui.persistor_dialog import PersistorDialog
-from gui.pointTrailToPolygon_dialog import PointTrailToPolygonDialog
-from gui.postVesper_dialog import PostVesperDialog
-from gui.preVesper_dialog import PreVesperDialog
-from gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
-from gui.rasterSymbology_dialog import RasterSymbologyDialog
-from gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
-from gui.rescaleNormalise_dialog import RescaleNormaliseDialog
-from gui.stripTrialPoints_dialog import StripTrialPointsDialog
-from gui.settings_dialog import SettingsDialog
-from gui.tTestAnalysis_dialog import tTestAnalysisDialog
+from .gui.about_dialog import AboutDialog
+from .gui.settings_dialog import SettingsDialog
 
-from util.check_dependencies import check_vesper_dependency, check_R_dependency
-from util.custom_logging import stop_logging
-from util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
-from util.settings import read_setting, write_setting
-from util.processing_alg_logging import ProcessingAlgMessages
-from util.qgis_symbology import raster_apply_unique_value_renderer, RASTER_SYMBOLOGY, \
-    raster_apply_classified_renderer
+from .gui.blockGrid_dialog import BlockGridDialog
+from .gui.cleanTrimPoints_wizard import CleanTrimPointsDialog
+from .gui.pointTrailToPolygon_wizard import PointTrailToPolygonDialog
+from .gui.rasterSymbology_dialog import RasterSymbologyDialog
+from .gui.preVesper_dialog import PreVesperDialog
+from .gui.postVesper_dialog import PostVesperDialog
+from .gui.rescaleNormalise_dialog import RescaleNormaliseDialog
+from .gui.randomPixelSelection_dialog import RandomPixelSelectionDialog
+from .gui.gridExtract_dialog import GridExtractDialog
+from .gui.persistor_dialog import PersistorDialog
+from .gui.kMeansCluster_dialog import KMeansClusterDialog
+from .gui.resampleImageToBlock_dialog import ResampleImageToBlockDialog
+from .gui.calcImageIndices_dialog import CalculateImageIndicesDialog
+from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
+from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
+
+from .util.check_dependencies import check_vesper_dependency, check_R_dependency
+from .util.custom_logging import stop_logging
+from .util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
+from .util.settings import read_setting, write_setting
+from .util.processing_alg_logging import ProcessingAlgMessages
+from .util.qgis_symbology import ( RASTER_SYMBOLOGY, raster_apply_classified_renderer)
 
 import pyprecag
 from pyprecag import config
@@ -81,7 +89,7 @@ LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
 
-class pat_toolbar:
+class pat_toolbar(object):
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -146,30 +154,7 @@ class pat_toolbar:
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
-        
-        pat3_mess = read_setting(PLUGIN_NAME + "/SHOW_PAT_3_MESSAGE", bool)
-        if pat3_mess is None or pat3_mess:
-            message =   '''<html><head/><body><p><span style=" font-size:14pt; font-weight:600;"> 
-                        PAT is now available for QGIS 3.</span></p><p><span style=" font-size:10pt;">
-                        Please download and install QGIS and install PAT from the plugin menu. 
-                        </span></p><p><span style=" font-size:10pt;">
-                        For further information please see the </span><a href="http://nbviewer.jupyter.org/github/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin/blob/master/pat/PAT_User_Manual.pdf">
-                        <span style="font-size:10pt; text-decoration: underline; color:#0000ff;">
-                        User Manual</span></a></p></body></html>'''
-                        
-            msgBox = QMessageBox()
-            msgBox.setText(message)
-            msgBox.setStandardButtons(QMessageBox.Ok)
-            msgBox.addButton(QPushButton('Do not show again'), QMessageBox.YesRole)
-            
-            ret = msgBox.exec_()  
-            if ret != QMessageBox.Ok:
-                 write_setting(PLUGIN_NAME + "/SHOW_PAT_3_MESSAGE", False)
 
-        self.iface.messageBar().pushMessage('PAT is now available for QGIS 3. Please upgrade !!', level=QgsMessageBar.INFO, duration=30)
-        LOGGER.info('PAT is now available for QGIS 3. Please upgrade !!')
-
-    
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
 
@@ -434,45 +419,49 @@ class pat_toolbar:
         LOGGER.debug(sys.path)
 
     def unload(self):
+        
         """Removes the plugin menu/toolbar item and icon from QGIS GUI and clean up temp folder"""
-
+        
         if len(self.vesper_queue) > 0:
             replyQuit = QMessageBox.information(self.iface.mainWindow(),
                                                 "Quit QGIS", "Quitting QGIS with {} tasks in the "
                                                 "VESPER queue.\n\t{}".format(len(self.vesper_queue),
                                                 '\n\t'.join([ea['control_file'] for ea in self.vesper_queue])),
                                                 QMessageBox.Ok)
-
+        
         stop_logging('pyprecag')
-
-        layermap = QgsMapLayerRegistry.instance().mapLayers()
-        RemoveLayers = []
-        for name, layer in layermap.iteritems():
-            if TEMPDIR in layer.source():
-                RemoveLayers.append(layer.id())
-
-        if len(RemoveLayers) > 0:
-            QgsMapLayerRegistry.instance().removeMapLayers(RemoveLayers)
-
-        # remove the PrecisionAg Temp Folder.
+        
+#         layermap = QgsProject.instance().mapLayers()
+#         RemoveLayers = []
+#         for name, layer in layermap.items():
+#             if TEMPDIR in layer.source():
+#                 RemoveLayers.append(layer.id())
+#         
+#         if len(RemoveLayers) > 0:
+#             QgsProject.instance().removeMapLayers(RemoveLayers)
+#         
+        """ remove the PrecisionAg Temp Folder."""
         try:
             if not self.DEBUG and os.path.exists(TEMPDIR):
                 shutil.rmtree(TEMPDIR)
-
+        
         except Exception as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             mess = str(traceback.format_exc())
             print(mess)
 
+       
         self.menuPrecAg.clear()
         for action in self.actions:
             self.iface.removePluginMenu(u'{}Menu'.format(PLUGIN_SHORT), action)
             self.iface.removeToolBarIcon(action)
+        
+        # # remove the toolbar
+        #del self.toolbar
+        self.menuPrecAg.deleteLater()
+        self.toolbar.deleteLater()
 
-        # remove the toolbar
-        del self.toolbar
-        del self.menuPrecAg
-        self.clear_modules()
+        #self.clear_modules()
 
     def queueAddTo(self, vesp_dict):
         """ Add a control file to the VESPER queue"""
@@ -481,7 +470,7 @@ class pat_toolbar:
                 , None) is not None:
 
             self.iface.messageBar().pushMessage('Control file is already in the VESPER queue. {}'.format(
-                vesp_dict['control_file']), level=QgsMessageBar.WARNING, duration=15)
+                vesp_dict['control_file']),level=Qgis.Warning, duration=15)
 
             self.queueDisplay()
 
@@ -489,10 +478,13 @@ class pat_toolbar:
             self.vesper_queue.append(vesp_dict)
             message = 'Added control file to VESPER queue. The queue now contains {} tasks'.format(
                 len(self.vesper_queue))
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.INFO, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Info, duration=15)
 
     def queueDisplay(self):
         """display the VESPER queue in the python console"""
+
+        if len(self.vesper_queue) == 0:
+            return
 
         # open the python console
         try:
@@ -541,19 +533,19 @@ class pat_toolbar:
             self.iface.mainWindow().statusBar().setSizeGripEnabled(False)
             self.lblVesperQueue = QLabel()
             self.lblVesperQueue.setText('{} tasks in VESPER queue'.format(len(self.vesper_queue)))
-            self.iface.mainWindow().statusBar().insertPermanentWidget(1, self.lblVesperQueue)
+            self.iface.mainWindow().statusBar().insertPermanentWidget(0, self.lblVesperQueue)
 
             self.btnShowQueue = QToolButton()  # QToolButton() takes up less room
             self.btnShowQueue.setToolButtonStyle(Qt.ToolButtonTextOnly)
             self.btnShowQueue.setText("Show")
             self.btnShowQueue.clicked.connect(self.queueDisplay)
-            self.iface.mainWindow().statusBar().insertPermanentWidget(2, self.btnShowQueue)
+            self.iface.mainWindow().statusBar().insertPermanentWidget(1, self.btnShowQueue)
 
             self.btnClearQueue = QToolButton()  # QPushButton()
             self.btnClearQueue.setToolButtonStyle(Qt.ToolButtonTextOnly)
             self.btnClearQueue.setText("Clear")
             self.btnClearQueue.pressed.connect(self.queueClear)
-            self.iface.mainWindow().statusBar().insertPermanentWidget(3, self.btnClearQueue)
+            self.iface.mainWindow().statusBar().insertPermanentWidget(2, self.btnClearQueue)
             self.vesper_queue_showing = True
 
     def queueStatusBarHide(self):
@@ -621,13 +613,13 @@ class pat_toolbar:
 
             message = "Completed VESPER kriging for {}\t Duration H:M:SS - {dur}".format(
                         os.path.basename(currentTask['control_file']),
-                        dur=datetime.timedelta(seconds=time.time() - self.vesper_run_time))
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.INFO, duration=15)
+                        dur=str(timedelta(seconds=time.time() - self.vesper_run_time)))
+            self.iface.messageBar().pushMessage(message, level=Qgis.Info, duration=15)
             LOGGER.info(message)
 
         else:
             message = "Error occurred with VESPER kriging for {}".format(currentTask['control_file'])
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.CRITICAL, duration=0)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Critical, duration=0)
             LOGGER.error(message)
 
         self.vesper_queue = self.vesper_queue[1:]  # remove the recently finished one which will always be at position 0
@@ -651,7 +643,7 @@ class pat_toolbar:
         if parse_version(pyprecag.__version__) < parse_version('0.2.0'):
             self.iface.messageBar().pushMessage("Persistor is not supported in "
                                                 "pyprecag {}. Upgrade to version 0.3.0+".format(
-                pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
+                pyprecag.__version__), level=Qgis.Warning, duration=15)
             return
 
         dlgPersistor = PersistorDialog(self.iface)
@@ -661,7 +653,7 @@ class pat_toolbar:
 
         if dlgPersistor.exec_():
             message = 'Persistor completed successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             # LOGGER.info(message)
 
         # Close Dialog
@@ -671,50 +663,71 @@ class pat_toolbar:
         QCoreApplication.processEvents()
 
     def run_wholeOfBlockAnalysis(self):
+        """*** Whole of Block is disabled until errors relating to the R Processing provider
+        and the co-kriging R script are resolved. ***
+        """
+
+        QMessageBox.warning (self.iface.mainWindow(),
+                                "Not available",
+                                "Whole-of-block Analysis is not currently available in QGIS 3 & PAT. \n\n"
+                                "Continue using PAT in QGIS 2.18.26 to run Whole-of-block Analysis.",
+                                QMessageBox.Ok)
+
+        return
+
         """Run method for the fit to block grid dialog"""
         # https://gis.stackexchange.com/a/160146
 
         result = check_R_dependency()
         if result is not True:
             self.iface.messageBar().pushMessage("R configuration", result,
-                                                level=QgsMessageBar.WARNING, duration=15)
+                                                level=Qgis.Warning, duration=15)
             return
 
         proc_alg_mess = ProcessingAlgMessages(self.iface)
-        QgsMessageLog.instance().messageReceived.connect(proc_alg_mess.processingCatcher)
+        QgsApplication.messageLog().messageReceived.connect(proc_alg_mess.processingCatcher)
 
-        # Then get the algorithm you're interested in (for instance, Join Attributes):
-        alg = Processing.getAlgorithm("r:wholeofblockanalysis")
+        # Then get the algorithm you're interested in:
+        alg = QgsApplication.processingRegistry().algorithmById("r:wholeofblockanalysis")
         if alg is None:
             self.iface.messageBar().pushMessage("Whole-of-block analysis algorithm could not"
-                                                " be found", level=QgsMessageBar.CRITICAL)
+                                                " be found", level=Qgis.Critical)
             return
-        # Instantiate the commander window and open the algorithm's interface
-        cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
-        if alg is not None:
-            cw.runAlgorithm(alg)
 
-        # if proc_alg_mess.alg_name == '' then cancel was clicked
+        """https://www.qgistutorials.com/sl/docs/3/processing_python_plugin.html
+        https://gis.stackexchange.com/questions/306954/launch-processing-tool-ui-in-pyqgis
+        https://gis.stackexchange.com/questions/312935/get-progression-bar-into-pyqgis-3-standalone-script
+        """
 
-        if proc_alg_mess.error:
-            self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
-                                                level=QgsMessageBar.CRITICAL, duration=0)
-        elif proc_alg_mess.alg_name != '':
-            data_column = proc_alg_mess.parameters['Data_Column']
+        initial_params = {}
+        results = processing.execAlgorithmDialog("r:wholeofblockanalysis", initial_params)
 
-            # load rasters into qgis as grouped layers.
-            for key, val in proc_alg_mess.output_files.items():
-
-                grplyr = os.path.join('Whole-of-block {}'.format(data_column), val['title'])
-
-                for ea_file in val['files']:
-                    removeFileFromQGIS(ea_file)
-                    raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
-                    if key in ['p_val']:
-                        raster_apply_unique_value_renderer(raster_layer)
-
-            self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
-                                                level=QgsMessageBar.INFO, duration=15)
+        # # Instantiate the commander window and open the algorithm's interface
+        # cw = CommanderWindow(self.iface.mainWindow(), self.iface.mapCanvas())
+        # if alg is not None:
+        #     cw.runAlgorithm(alg)
+        #
+        # # if proc_alg_mess.alg_name == '' then cancel was clicked
+        #
+        # if proc_alg_mess.error:
+        #     self.iface.messageBar().pushMessage("Whole-of-block analysis", proc_alg_mess.error_msg,
+        #                                         level=Qgis.Critical, duration=0)
+        # elif proc_alg_mess.alg_name != '':
+        #     data_column = proc_alg_mess.parameters['Data_Column']
+        #
+        #     # load rasters into qgis as grouped layers.
+        #     for key, val in list(proc_alg_mess.output_files.items()):
+        #
+        #         grplyr = os.path.join('Whole-of-block {}'.format(data_column),  val['title'])
+        #
+        #         for ea_file in val['files']:
+        #             removeFileFromQGIS(ea_file)
+        #             raster_layer = addRasterFileToQGIS(ea_file, group_layer_name=grplyr, atTop=False)
+        #             if key in ['p_val']:
+        #                 raster_apply_unique_value_renderer(raster_layer)
+        #
+        #     self.iface.messageBar().pushMessage("Whole-of-block analysis Completed Successfully!",
+        #                                         level=Qgis.Info, duration=15)
 
         del proc_alg_mess
 
@@ -724,7 +737,7 @@ class pat_toolbar:
             self.iface.messageBar().pushMessage(
                 "Create strip trial points tool is not supported in pyprecag {}. "
                 "Upgrade to version 0.2.0+".format(pyprecag.__version__),
-                level=QgsMessageBar.WARNING, duration=15)
+                level=Qgis.Warning, duration=15)
             return
 
         """Run method for the Strip trial points dialog"""
@@ -735,7 +748,7 @@ class pat_toolbar:
 
         if dlgStripTrialPoints.exec_():
             message = 'Strip trial points created successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             # LOGGER.info(message)
 
         # Close Dialog
@@ -748,7 +761,7 @@ class pat_toolbar:
         if parse_version(pyprecag.__version__) < parse_version('0.3.0'):
             self.iface.messageBar().pushMessage("Create t-test analysis tool is not supported in "
                                                 "pyprecag {}. Upgrade to version 0.3.0+".format(
-                pyprecag.__version__), level=QgsMessageBar.WARNING, duration=15)
+                pyprecag.__version__), level=Qgis.Warning, duration=15)
             return
 
         """Run method for the Strip trial points dialog"""
@@ -761,9 +774,9 @@ class pat_toolbar:
             output_folder = dlg_tTestAnalysis.lneOutputFolder.text()
             import webbrowser
             try:
-                from urllib import pathname2url  # Python 2.x
+                from urllib.request import pathname2url         # Python 2.x
             except:
-                from urllib.request import pathname2url  # Python 3.x
+                from urllib.request import pathname2url # Python 3.x
 
             def open_folder():
                 url = 'file:{}'.format(pathname2url(os.path.abspath(output_folder)))
@@ -775,7 +788,7 @@ class pat_toolbar:
             # variation of QGIS-master\python\plugins\db_manager\db_tree.py
             # msgLabel = QLabel(self.tr('{0} <a href="{1}">{1}</a>'.format(message, output_folder)), self.iface.messageBar())
             # msgLabel.linkActivated.connect(open_folder)
-            # self.iface.messageBar().pushWidget(msgLabel,level=QgsMessageBar.SUCCESS, duration=15)
+            # self.iface.messageBar().pushWidget(msgLabel,level=Qgis.Success, duration=15)
 
             # so use a button instead
             widget = self.iface.messageBar().createMessage('', message)
@@ -783,7 +796,7 @@ class pat_toolbar:
             button.setText('Open Folder')
             button.pressed.connect(open_folder)
             widget.layout().addWidget(button)
-            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushWidget(widget, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -801,7 +814,7 @@ class pat_toolbar:
 
         if dlgKMeansCluster.exec_():
             message = 'Zones with k-means clusters completed successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             # LOGGER.info(message)
 
         # Close Dialog
@@ -819,7 +832,7 @@ class pat_toolbar:
 
         if dlgCalcImgIndices.exec_():
             message = 'Image indices calculated successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -837,7 +850,7 @@ class pat_toolbar:
 
         if dlgResample2Block.exec_():
             message = 'Resample to block grid completed Successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -858,7 +871,7 @@ class pat_toolbar:
 
             import webbrowser
             try:
-                from urllib import pathname2url  # Python 2.x
+                from urllib.request import pathname2url  # Python 2.x
             except:
                 from urllib.request import pathname2url  # Python 3.x
 
@@ -867,13 +880,13 @@ class pat_toolbar:
                 webbrowser.open(url)
 
             message = 'Raster statistics for points extracted successfully !'
-            # add a button to open the file outside qgis
+            #add a button to open the file outside qgis
             widget = self.iface.messageBar().createMessage('', message)
             button = QPushButton(widget)
             button.setText('Open File')
             button.pressed.connect(open_folder)
             widget.layout().addWidget(button)
-            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushWidget(widget, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -891,7 +904,7 @@ class pat_toolbar:
 
         if dlgGenRandomPixel.exec_():
             message = 'Random pixel selection completed successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -909,7 +922,7 @@ class pat_toolbar:
 
         if dlgRescaleNorm.exec_():
             message = 'Rescale/Normalise completed successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -973,7 +986,7 @@ class pat_toolbar:
             output_folder = os.path.dirname(dlgCleanTrimPoints.lneSaveCSVFile.text())
             import webbrowser
             try:
-                from urllib import pathname2url  # Python 2.x
+                from urllib.request import pathname2url  # Python 2.x
             except:
                 from urllib.request import pathname2url  # Python 3.x
 
@@ -989,7 +1002,7 @@ class pat_toolbar:
             button.pressed.connect(open_folder)
             widget.layout().addWidget(button)
 
-            self.iface.messageBar().pushWidget(widget, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushWidget(widget, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -1007,7 +1020,7 @@ class pat_toolbar:
 
         if dlgBlockGrid.exec_():
             message = 'Block grid completed successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog
@@ -1025,7 +1038,7 @@ class pat_toolbar:
 
         if dlgPointTrailToPolygon.exec_():
             message = 'On-the-go point trail to polygon completed successfully !'
-            self.iface.messageBar().pushMessage(message, level=QgsMessageBar.SUCCESS, duration=15)
+            self.iface.messageBar().pushMessage(message, level=Qgis.Success, duration=15)
             LOGGER.info(message)
 
         # Close Dialog

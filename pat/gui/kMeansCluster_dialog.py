@@ -19,6 +19,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+from builtins import str
+from builtins import range
 import datetime
 import logging
 import os
@@ -38,21 +40,22 @@ from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, ad
 from util.qgis_symbology import raster_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
-from PyQt4 import QtGui, uic, QtCore
-from PyQt4.QtGui import QTableWidgetItem, QPushButton
+from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QPushButton, QDialog, QApplication
 
-from qgis.core import QgsMapLayerRegistry, QgsMapLayer, QgsMessageLog, QgsUnitTypes
+from qgis.core import QgsProject, QgsMapLayer, QgsMessageLog, QgsUnitTypes, QgsApplication, Qgis, QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
+
+from pat.util.qgis_common import build_layer_table, get_pixel_size
 from pat.util.qgis_symbology import RASTER_SYMBOLOGY
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'kMeansCluster_dialog_base.ui'))
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'kMeansCluster_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()  # Handle logging, no logging has been configured
 
 
-class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
+class KMeansClusterDialog(QDialog, FORM_CLASS):
     # The key used for saving settings for this dialog
     toolKey = 'KMeansClusterDialog'
 
@@ -65,18 +68,20 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
         self.iface = iface
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
         self.DEBUG = config.get_debug_mode()
+        self.layers_df = None
+        self.pixel_size = ['0', '', '']
 
         # Catch and redirect python errors directed at the log messages python error tab.
-        QgsMessageLog.instance().messageReceived.connect(errorCatcher)
+        QgsApplication.messageLog().messageReceived.connect(errorCatcher)
 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
         # Setup for validation messagebar on gui-----------------------------
         self.messageBar = QgsMessageBar(self)  # leave this message bar for bailouts
-        self.validationLayout = QtGui.QFormLayout(self)  # new layout to gui
+        self.validationLayout = QtWidgets.QFormLayout(self)  # new layout to gui
 
-        if isinstance(self.layout(), QtGui.QFormLayout):
+        if isinstance(self.layout(), QtWidgets.QFormLayout):
             # create a validation layout so multiple messages can be added and cleaned up.
             self.layout().insertRow(0, self.validationLayout)
             self.layout().insertRow(0, self.messageBar)
@@ -84,17 +89,18 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
 
         # GUI Runtime Customisation -----------------------------------------------
+        self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboRasterLayer.setExcludedProviders(['wms'])
+        # self.setMapLayers()
+
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_kMeansCluster.svg'))
 
         self.tabList.setColumnCount(2)
         self.tabList.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))
         self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("0 Raster(s)"))
 
-        self.tabList.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
+        self.tabList.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.tabList.hideColumn(0)  # don't need to display the unique layer ID
-        self.pixel_size = 0
-        self.pixel_size_message = ''
-        self.setMapLayers()
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -102,7 +108,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             AllBars (bool): Remove All bars including those which haven't timed-out. Defaults to True
         """
         layout = self.validationLayout
-        for i in reversed(range(layout.count())):
+        for i in reversed(list(range(layout.count()))):
             # when it timed out the row becomes empty....
             if layout.itemAt(i).isEmpty():
                 # .removeItem doesn't always work. so takeAt(pop) it instead
@@ -113,7 +119,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
                 if item.widget() is not None:
                     item.widget().deleteLater()
 
-    def send_to_messagebar(self, message, title='', level=QgsMessageBar.INFO, duration=5, exc_info=None,
+    def send_to_messagebar(self, message, title='', level=Qgis.Info, duration=5, exc_info=None,
                            core_QGIS=False, addToLog=False, showLogPanel=False):
 
         """ Add a message to the forms message bar.
@@ -121,7 +127,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
         Args:
             message (str): Message to display
             title (str): Title of message. Will appear in bold. Defaults to ''
-            level (QgsMessageBarLevel): The level of message to log. Defaults to QgsMessageBar.INFO
+            level (QgsMessageBarLevel): The level of message to log. Defaults to Qgis.Info
             duration (int): Number of seconds to display message for. 0 is no timeout. Defaults to 5
             core_QGIS (bool): Add to QGIS interface rather than the dialog
             addToLog (bool): Also add message to Log. Defaults to False
@@ -167,59 +173,40 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
                 LOGGER.info(message)
 
     def setMapLayers(self):
-        """ Run through all loaded layers to find ones which should be excluded. In this case exclude geographics."""
+        """ Run through all loaded layers to find ones which should be excluded. """
+        if self.mcboRasterLayer.count() == 0:
+            return
 
-        exlayer_list = []
-        check_crs=[]
-        for layer in self.iface.legendInterface().layers():
-            if layer.providerType() != 'gdal':
-                exlayer_list.append(layer)
-                continue
-                
-            # Only Load Raster layers with valid internal coordinate system or matching pixel size
-            if layer.type() != QgsMapLayer.RasterLayer:
-                continue
+        if self.tabList.rowCount() == 0:
+            # reset to show all pixel sizes.
+            self.mcboRasterLayer.setExceptedLayerList([])
+            self.pixel_size = ['0','m','']
+        else:
+            if self.layers_df is None:
+                self.layers_df = build_layer_table()
 
-            if rasterio.open(layer.source()).crs is None:
-                check_crs.append(layer.name())
-                exlayer_list.append(layer)
-                continue
+            self.mcboRasterLayer.setExceptedLayerList([])
+            used_layers = [self.tabList.item(row, 0).text() for row in range(0, self.tabList.rowCount())]
+            df_used = self.layers_df[self.layers_df['layer_id'].isin(used_layers)]
 
-            if self.pixel_size == 0: continue
+            df_sub = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
 
-            if layer.crs().geographicFlag():
-                ft = 'f'
-            else:
-                ft = 'g'
+            # Find layers that don't overlap, have a different pixel size or have already been added (via list of layer id's).
+            df_sub = df_sub[((df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size[0])) |
+                            (~df_sub.intersects(df_used.unary_union))]
 
-            lyrPixelSize = format(layer.rasterUnitsPerPixelX(), ft)
+            if len(df_sub['layer'].tolist()) > 0:
+                self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
 
-            if float(self.pixel_size) > 0 and lyrPixelSize != self.pixel_size:
-                exlayer_list.append(layer)
-                continue
-
-            # if layer is already in the table list the exclude it from the pick list to avoid duplicates.
-            for row in range(0, self.tabList.rowCount()):
-                if layer.id() == self.tabList.item(row, 0).text():
-                    exlayer_list.append(layer)
-                    continue
-
-        self.mcboRasterLayer.setExceptedLayerList(exlayer_list)
-
-        if len(check_crs) > 0 and self.pixel_size == 0:
-            self.send_to_messagebar('{} raster(s) are missing coordinate systems. Click view for details.'.format(len(check_crs)),
-                                    level=QgsMessageBar.WARNING, duration=15, showLogPanel = True)
-
-
-            LOGGER.warn('WARNING: {} raster(s) are missing internal coordinate systems.\n\t{}\n '\
-                        'Please use Assign Projection tool from the Raster -> Projection menu if these layers '\
-                        'are required for clustering\n'.format(len(check_crs), '\n\t'.join(check_crs)))
-
-        # only continue if a pixel size has been set ie a layer has been added to the list
-        if self.pixel_size == 0: return
-
+            # withdrawn coordinate system check as correctly definied in QGIS 2 as GDA94 / MGA zone 54
+            # get interpreted in QGIS 3 as CRS: BOUNDCRS[SOURCECRS[PROJCRS["GDA94 / MGA zone 54",BASEGEOGCRS["GDA94",DATUM["Geocentric Datum of Australia 1994",ELLIPSOID["GRS 1980"
+        
         self.tabList.horizontalHeader().setStyleSheet('color:black')
-        self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabList.rowCount())))
+        if self.tabList.rowCount()==0:
+            self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabList.rowCount())))
+        else:
+            self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem(
+                "{} Raster(s) with {}{} pixels".format(self.tabList.rowCount(), *self.pixel_size[:2])))
 
         if self.mcboRasterLayer.currentIndex() > 0:
             self.mcboRasterLayer.setCurrentIndex(self.mcboRasterLayer.currentIndex() - 1)
@@ -233,42 +220,18 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             self.tabList.horizontalHeader().setStyleSheet('color:red')
             self.lblRasterLayer.setStyleSheet('color:red')
             self.send_to_messagebar('No raster layers to process. Please add a RASTER layer into QGIS',
-                                    level=QgsMessageBar.WARNING, duration=5)
+                                    level=Qgis.Warning, duration=5)
             return
 
         rowPosition = self.tabList.rowCount()
         self.tabList.insertRow(rowPosition)
 
         ## Save the id of the layer to a column used to get a layer object later on.
-        ## adapted from https://gis.stackexchange.com/questions/165415/activating-layer-by-its-name-in-pyqgis
-        rio_crs = rasterio.open(self.mcboRasterLayer.currentLayer().source()).crs
-
-        self.tabList.setItem(rowPosition, 0, QtGui.QTableWidgetItem(self.mcboRasterLayer.currentLayer().id()))
-        self.tabList.setItem(rowPosition, 1, QtGui.QTableWidgetItem(self.mcboRasterLayer.currentLayer().name()))
+        self.tabList.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().id()))
+        self.tabList.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().name()))
 
         if rowPosition == 0:
-            # get the pixel units from the coordinate systems as a string  ie degrees, metres etc.
-            # for QGIS 3  see the following functions
-            # .toAbbreviatedString()      https://www.qgis.org/api/classQgsUnitTypes.html#a7d09b9df11b6dcc2fe29928f5de296a4
-            # and /or DistanceValue       https://www.qgis.org/api/structQgsUnitTypes_1_1DistanceValue.html
-
-            pixel_units = QgsUnitTypes.encodeUnit(self.mcboRasterLayer.currentLayer().crs().mapUnits())
-
-            # Adjust for Aust/UK spelling
-            pixel_units = pixel_units.replace('meters', 'metres')
-
-            if self.mcboRasterLayer.currentLayer().crs().geographicFlag():
-                ft = 'f'  # this will convert 1.99348e-05 to 0.000020
-            else:
-                ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
-
-            # keep a copy of the old message.
-            if self.pixel_size_message == '':
-                self.pixel_size_message = self.lblPixelFilter.text()
-
-            self.pixel_size = format(self.mcboRasterLayer.currentLayer().rasterUnitsPerPixelX(), ft)
-            self.lblPixelFilter.setText(
-                'Only allow processing of rasters with a pixel size of {} {}'.format(self.pixel_size, pixel_units))
+            self.pixel_size = get_pixel_size(self.mcboRasterLayer.currentLayer())
 
         # remove layer from pick list.
         self.setMapLayers()
@@ -284,18 +247,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cmdDel_clicked')
     def on_cmdDel_clicked(self):
         self.tabList.removeRow(self.tabList.currentRow())
-
-        if self.tabList.rowCount() == 0:
-            # reset to show all pixel sizes.
-            self.mcboRasterLayer.setExceptedLayerList([])
-            self.pixel_size = 0
-            self.lblPixelFilter.setText(self.pixel_size_message)
-
         self.setMapLayers()
-        self.cmdAdd.setEnabled(len(self.mcboRasterLayer) > 0)
-        self.cmdDel.setEnabled(self.tabList.rowCount() > 0)
-        self.cmdDown.setEnabled(self.tabList.rowCount() > 1)
-        self.cmdUp.setEnabled(self.tabList.rowCount() > 1)
 
     @QtCore.pyqtSlot(name='on_cmdDown_clicked')
     def on_cmdDown_clicked(self):
@@ -326,7 +278,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
         # get first layer in the list
-        str_pixel_size = numeric_pixelsize_to_string(float(self.pixel_size))
+        str_pixel_size = numeric_pixelsize_to_string(float(self.pixel_size[0]))
         filename = 'k-means_{}clusters_{}rasters_{}'.format(self.spnClusters.value(), self.tabList.rowCount(),  str_pixel_size)
 
         # replace more than one instance of underscore with a single one.
@@ -396,7 +348,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
             if len(errorList) > 0:
                 for i, ea in enumerate(errorList):
-                    self.send_to_messagebar(unicode(ea), level=QgsMessageBar.WARNING, duration=(i + 1) * 5)
+                    self.send_to_messagebar(str(ea), level=Qgis.Warning, duration=(i + 1) * 5)
                 return False
 
         return True
@@ -413,15 +365,15 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
             self.cleanMessageBars(True)
 
             # Change cursor to Wait cursor
-            QtGui.qApp.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
-                                    level=QgsMessageBar.WARNING,
+                                    level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
 
-            registry = QgsMapLayerRegistry.instance()
+            registry = QgsProject.instance()
             rasterSource = [registry.mapLayer(self.tabList.item(row, 0).text()).source() for row in
                             range(0, self.tabList.rowCount())]
 
@@ -453,7 +405,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
 
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
 
             return super(KMeansClusterDialog, self).accept(*args, **kwargs)
 
@@ -468,7 +420,7 @@ class KMeansClusterDialog(QtGui.QDialog, FORM_CLASS):
                 err_mess = 'Output File in Use - IOError {} '.format(err.strerror)
                 exc_info = None
 
-            self.send_to_messagebar(err_mess, level=QgsMessageBar.CRITICAL, duration=0, addToLog=True,
+            self.send_to_messagebar(err_mess, level=Qgis.Critical, duration=0, addToLog=True,
                                     showLogPanel=True, exc_info=exc_info)
-            QtGui.qApp.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
             return False  # leave dialog open

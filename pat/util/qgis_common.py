@@ -19,43 +19,78 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+import six
+from future import standard_library
+standard_library.install_aliases()
 import logging
 import os
 import re
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 import pandas as pd
 import geopandas as gpd
 from shapely import wkt
+import rasterio
+import numpy as np
 
-from PyQt4.QtCore import QVariant
-from PyQt4.QtGui import QFileDialog, QDockWidget, QMessageBox
+from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import (QgsMapLayer, QgsVectorLayer, QgsMapLayerRegistry, QgsRasterLayer,
-                       QgsFeature, QgsField, QgsProject, QgsUnitTypes)
+from qgis.core import (QgsProject, QgsProviderRegistry, QgsMapLayer, QgsVectorLayer, QgsRasterLayer,
+                       QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,
+                       QgsFeature, QgsField)
 
 from pat import LOGGER_NAME
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
+from pyprecag import crs
+
+dataTypes = {0:'Unk',1:'Byte',2:'UInt16',3:'Int16',4:'UInt32',5:'Int32',
+            6:'Float32', 7:'Float64' , 8:'CInt16', 9:'CInt32' , 10:'CFloat32',
+            11:'CFloat64'}
+
+layerTypes= {0:'VectorLayer',  1:'RasterLayer',2:'PluginLayer',3:'MeshLayer',4:"VectorTileLayer"}     
+
+
+def get_UTM_Coordinate_System(x, y, epsg):
+    """ Determine a utm coordinate system either from coordinates"""
+    if epsg == '':
+        return QgsCoordinateReferenceSystem()
+    
+    if isinstance(epsg, six.string_types):
+        epsg = int(epsg.upper().replace('EPSG:', ''))
+
+    utm_crs = crs.getProjectedCRSForXY(x, y, epsg)
+
+    if utm_crs is not None:
+        out_crs = QgsCoordinateReferenceSystem().fromEpsgId(utm_crs.epsg_number)
+
+    if out_crs is not None:
+        return out_crs
+    else:
+        # self.send_to_messagebar(
+        #     'Auto detect coordinate system Failed. Check coordinate system of input raster layer',
+        #     level=Qgis.Critical, duration=5)
+        return
+
 
 def check_for_overlap(rect1, rect2, crs1='', crs2=''):
     """ Check for overlap between two rectangles.
-    Rectangles should be provided as wkt strings.
-    'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
+        Input rect format is a shapely polygon object
+          'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
 
     if crs1 != '':
-        gdf1 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect1)]}, crs=crs1)
+        gdf1 = gpd.GeoDataFrame({'geometry': [rect1]}, crs=crs1)
     else:
-        gdf1 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect1)]})
+        gdf1 = gpd.GeoDataFrame({'geometry': [rect1]})
 
     if crs2 != '':
-        gdf2 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect2)]}, crs=crs2)
+        gdf2 = gpd.GeoDataFrame({'geometry': [rect2]}, crs=crs2)
     else:
-        gdf2 = gpd.GeoDataFrame({'geometry': [wkt.loads(rect2)]})
+        gdf2 = gpd.GeoDataFrame({'geometry': [rect2]})
 
     return gdf1.intersects(gdf2)[0]
 
@@ -65,64 +100,162 @@ def get_pixel_size(layer):
     """
 
     if layer is None or layer.type() != QgsMapLayer.RasterLayer:
-        return None, None
+        return None, None, None
 
-    if layer.crs().geographicFlag():
+    if layer.crs().isGeographic():
         ft = 'f'  # this will convert 1.99348e-05 to 0.000020
     else:
         ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
 
-    pixel_units = QgsUnitTypes.encodeUnit(layer.crs().mapUnits())
+    pixel_units = QgsUnitTypes.toAbbreviatedString(layer.crs().mapUnits())
+    
     # Adjust for Aust/UK spelling
-    pixel_units = pixel_units.replace('meters', 'metres')
+    #pixel_units = pixel_units.replace('meters', 'metres')
     pixel_size = format(layer.rasterUnitsPerPixelX(), ft)
 
-    return pixel_size, pixel_units
+    #Convert to float or int
+    #pixel_size = int(float(pixel_size)) if int(float(pixel_size)) == float(pixel_size) else float(pixel_size)
+
+    return pixel_size, pixel_units, ft
 
 
-def build_layer_table():
+def build_layer_table(layer_list=None,only_raster_boundingbox=True):
     """Build a table of layer properties.
-    Can be used inconjuction with selecting layers to exclude from mapcomboboxes
-    """
-    df_layers = pd.DataFrame()
-    layermap = QgsMapLayerRegistry.instance().mapLayers()
-    new_rows = []
-    for name, layer in layermap.iteritems():
+    Can be used in conjunction with selecting layers to exclude from mapcomboboxes
 
+    Layer_list: default  None
+                if None then it will build the table from all layers in the QGIS project
+                otherwise it will use the list.
+    
+    only_raster_boundingbox: default False 
+                    create a bounding box from the raster data 
+                   ie removing nodata from polygon. 
+                   This will slow it down if large numbers of rasters are present.
+    """
+
+    dest_crs = QgsProject.instance().crs()
+
+    gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source','format',
+                                           'epsg', 'crs_name', 'is_projected', 'extent', 'provider','geometry'],
+                                           geometry='geometry', crs=dest_crs.authid())  # pd.DataFrame()
+
+
+    if layer_list is None or len(layer_list) == 0:
+        layermap = QgsProject.instance().mapLayers().values()
+
+    else:
+        layermap = layer_list
+
+    new_rows = []
+
+    for layer in layermap:
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
             continue
 
-        row_dict = {'layer_name': layer.name(),
-                   'layer_id': layer.id(),
-                   'layer_type': layer.type(),
-                   'source': layer.source(),
-                   'epsg': layer.crs().authid(),
-                   'crs_name': layer.crs().description(),
-                   'is_projected': not layer.crs().geographicFlag(),
-                   'extent': layer.extent().asWktPolygon(),
-                   'provider': layer.providerType()}
+        if layer.providerType() not in ['ogr','gdal','delimitedtext']:
+            continue
+        
+        if layer.type() == QgsMapLayer.VectorLayer:
+            format = layer.dataProvider().storageType()
+        else:
+            format=None
+            
+        if layer.crs().isValid() and layer.crs().authid() == '':
+            # Try and convert older style coordinates systems
+            # were correctly definied in QGIS 2 as GDA94 / MGA zone 54 
+            # but get interpreted in QGIS 3 as  Unknown CRS: BOUNDCRS[SOURCECRS[PROJCRS["GDA94 / MGA zone 54",.....
+            
+            layer_crs = QgsCoordinateReferenceSystem()
+            if not layer_crs.createFromProj(layer.crs().toWkt()):
+                #print('Could not match a coordinate system for {}'.format(layer.id()))
+                layer_crs = layer.crs()
+                
+                # could apply to the layer, but what if it's wrong....
+                #layer.setCrs(layer_crs)
+            
+        else: 
+            layer_crs = layer.crs()
+        
+        # project the bounding box extents to be the same as the qgis project.
+        if layer_crs.authid() != dest_crs.authid():
+            transform = QgsCoordinateTransform(layer_crs, dest_crs, QgsProject.instance())
+            prj_ext  = transform.transformBoundingBox(layer.extent())
+        else:
+            prj_ext  = layer.extent()
+
+        row_dict = {'layer': layer,
+                    'layer_name': layer.name(),
+                    'layer_id': layer.id(),
+                    'layer_type': layerTypes[ layer.type()],
+                    'format': format,
+                    'source': get_layer_source(layer),
+                    'epsg': layer_crs.authid(),
+                    'crs_name': layer_crs.description(),
+                    'is_projected': not layer_crs.isGeographic(),
+                    'provider': layer.providerType(),
+                    'geometry': wkt.loads(prj_ext.asWktPolygon())}
+
+            # 'extent': prj_ext.asWktPolygon(),
 
         if layer.type() == QgsMapLayer.RasterLayer:
             pixel_size = get_pixel_size(layer)
-            row_dict.update({'layer_type_desc': 'RasterLayer',
-                            'bandcount': layer.bandCount(),
-                            'pixel_size': pixel_size[0],
-                            'pixel_text': '{} {}'.format(*pixel_size),
-                            })
+            if not only_raster_boundingbox:
+                with rasterio.open(get_layer_source(layer)) as src:
+                    msk = src.dataset_mask()  # 0 = nodata 255=valid
+                    rast_shapes = rasterio.features.shapes(np.ma.masked_equal(np.where(msk > 0, 1, 0), 0),
+                                                           transform=src.transform)
+                try:
+                    results = ({'properties': {'raster_val': v}, 'geometry': s} for i, (s, v) in enumerate(rast_shapes))
+    
+                    geoms = list(results)
+                    gpd_rPoly = gpd.GeoDataFrame.from_features(geoms, crs=layer.crs().authid())
+                    dest_crs.authid().replace('epgs:', '')
+                    gpd_rPoly.to_crs(dest_crs.authid().replace('epgs:', ''), inplace=True)
+                    row_dict.update({'geometry': gpd_rPoly.unary_union})
+    
+                    del gpd_rPoly, results, msk,rast_shapes
+                except:
+                    pass
+
+            row_dict.update({'bandcount': layer.bandCount(),
+                        'datatype':dataTypes[layer.dataProvider().dataType(1)],
+                        'pixel_size': pixel_size[0],
+                        'pixel_text': '{} {}'.format(*pixel_size),
+                        })
+
         new_rows.append(row_dict)
 
+#    gdf_layers = gpd.GeoDataFrame(new_rows, geometry='extent')
+
     if len(new_rows) == 0:
-        return df_layers
+        return gdf_layers
+
     # for pandas 0.23.4 add sort=False to prevent row and column orders to change.
     try:
-        df_layers = df_layers.append(new_rows, ignore_index=True, sort=False)
+        gdf_layers = gdf_layers.append(new_rows, ignore_index=True, sort=False)
     except:
-        df_layers = df_layers.append(new_rows, ignore_index=True)
-    return df_layers
+        gdf_layers = gdf_layers.append(new_rows, ignore_index=True)
+
+    #df_layers.set_geometry('geometry')
+    return gdf_layers
+
+
+def get_layer_source(layer):
+    """
+    layer.source() sometimes returns  'C:/data/Temp/My_points_wgs84.shp|layername=My_points_wgs84' 
+    so this will break this down and return only the path.
+    """
+    
+    result = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.dataProvider().dataSourceUri())
+    
+    if len(result) == 0 or result['path'] == '':
+        return layer.source()
+    else:
+        return result['path'] 
 
 
 def save_as_dialog(dialog, caption, file_filter, default_name=''):
-    s, f = QFileDialog.getSaveFileNameAndFilter(
+    s, f = QFileDialog.getSaveFileName(
         dialog,
         caption,
         default_name,
@@ -158,7 +291,9 @@ def file_in_use(filename, display_msgbox=True):
 
     try:
         # Try and open the file. If in use creates IOError: [Errno 13] Permission denied error
-        open(filename, "a")
+        with open(filename, "a") as f:
+            pass
+        
     except IOError:
         reply = QMessageBox.question(None, 'File in Use',
                                      '{} is currently in use.\nPlease close the file or use a'
@@ -168,8 +303,8 @@ def file_in_use(filename, display_msgbox=True):
 
     # also check to see if it's loaded into QGIS
     found_lyrs = []
-    layermap = QgsMapLayerRegistry.instance().mapLayers()
-    for name, layer in layermap.iteritems():
+    layermap = QgsProject.instance().mapLayers()
+    for name, layer in layermap.items():
         if layer.providerType() == 'delimitedtext':
 
             url = urlparse(layer.source())
@@ -177,7 +312,7 @@ def file_in_use(filename, display_msgbox=True):
             if os.path.normpath(url.path.strip('/')).upper() == filename.upper():
                 found_lyrs += [layer.name()]
         else:
-            if os.path.normpath(layer.source()) == os.path.normpath(filename):
+            if os.path.normpath(get_layer_source(layer)) == os.path.normpath(filename):
                 found_lyrs += [layer.name()]
 
     if display_msgbox and len(found_lyrs) > 0:
@@ -256,7 +391,7 @@ def addLayerToQGIS(layer, group_layer_name="", atTop=True):
 
     """
 
-    QgsMapLayerRegistry.instance().addMapLayer(layer, addToLegend=False)
+    QgsProject.instance().addMapLayer(layer, addToLegend=False)
     root = QgsProject.instance().layerTreeRoot()
 
     # create group layers first:
@@ -297,13 +432,13 @@ def removeFileFromQGIS(filename):
     remove_layers = []
 
     # Loop through layers in reverse so the count/indexing of layers persists if one is removed.
-    layermap = QgsMapLayerRegistry.instance().mapLayers()
-    for name, layer in layermap.iteritems():
-        if layer.source() == filename:
+    layermap = QgsProject.instance().mapLayers()
+    for name, layer in layermap.items():
+        if get_layer_source(layer) == filename:
             remove_layers.append(layer.id())
 
     if len(remove_layers) > 0:
-        QgsMapLayerRegistry.instance().removeMapLayers(remove_layers)
+        QgsProject.instance().removeMapLayers(remove_layers)
 
 
 def getGeometryTypeAsString(intGeomType):
@@ -368,7 +503,7 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
     b_calc_ufi = False
     attr = []
 
-    if layer.fieldNameIndex("FID") == -1 and bAddUFI:
+    if layer.fields().lookupField("FID") == -1 and bAddUFI:
         b_calc_ufi = True
         attr = [QgsField('FID', QVariant.Int)]
 
@@ -383,8 +518,7 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
         attr.append(eaFld)
 
     if len(invalid_fields) > 0:
-        LOGGER.warning(
-            '{} fieldnames are not ESRI Compatible. Renaming...'.format(len(invalid_fields)))
+        LOGGER.warning('{} fieldnames are not ESRI Compatible. Renaming...'.format(len(invalid_fields)))
 
         for i, ea in enumerate(invalid_fields):
             LOGGER.warning(ea)
@@ -398,7 +532,7 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
     # start editing and copy all features and attributes
     mem_layer.startEditing()
     sel_feat_ids = []
-    if bOnlySelectedFeat and len(layer.selectedFeatures()) > 0:
+    if bOnlySelectedFeat and layer.selectedFeatureCount() > 0:
         # Get a list of selected features.....
         sel_feat_ids = [f.id() for f in layer.selectedFeatures()]
 
