@@ -75,8 +75,9 @@ def check_pat_symbols():
 
     xml_date = datetime.fromtimestamp(os.path.getmtime(pat_xml)).replace(microsecond=0)
 
-    if loaded_date is None or xml_date > loaded_date:
-        styles = QgsStyle().defaultStyle()
+    styles = QgsStyle().defaultStyle()
+
+    if 'PAT' not in styles.tags() or ( loaded_date is None or xml_date > loaded_date ):
         if styles.isXmlStyleFile(pat_xml):
             if styles.importXml(pat_xml):
                 LOGGER.info('Loaded PAT Symbology')
