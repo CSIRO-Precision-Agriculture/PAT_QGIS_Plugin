@@ -879,6 +879,11 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
             self.iface.messageBar().popWidget()
             self.iface.mainWindow().statusBar().clearMessage()
 
+            if result is not None:
+                self.fraMain.setDisabled(False)
+                self.send_to_messagebar(result, level=Qgis.Warning, duration=0, addToLog=False)
+                return False  # leave dialog open
+
             return super(PointTrailToPolygonDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
