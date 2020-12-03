@@ -1,4 +1,5 @@
-@echo off 
+@echo off
+
 ECHO $pip_func Python 3 extras to support PAT.
 ECHO for $QGIS_VERSION   $QGIS_PATH
 
@@ -48,7 +49,18 @@ GOTO :END
     ) ELSE (
         ECHO No OSGEO installation required
     )
-    
+    if "$pip_func" == "install" (
+        REM Fix for QGIS see : https://trac.osgeo.org/osgeo4w/ticket/649#ticket
+        IF NOT EXIST "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs" (
+            ECHO %OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs
+            mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs"
+        )
+        IF NOT EXIST "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs" (
+            ECHO %OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs
+            mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs"
+        )
+    )
+
     cd %~dp0 
     ECHO. & Echo The current directory is %CD%
     

@@ -124,11 +124,14 @@ def classFactory(iface):
     #     sys.exit(message)
 
     gdal_ver = check_gdal_dependency()
+    
+    check_py = check_python_dependencies(PLUGIN_DIR, iface)
+    if len(check_py) > 0:
+        sys.exit(check_py)
+    
     check_pat_symbols()
     # check_R_dependency()
-    result = check_python_dependencies(PLUGIN_DIR, iface)
-    if len(result) > 0:
-        iface.messageBar().pushMessage("ERROR Failed Dependency Check", result, level= Qgis.Critical, duration=0)
-    from .pat_toolbar import pat_toolbar
 
+        #iface.messageBar().pushMessage("ERROR Failed Dependency Check", result, level= Qgis.Critical, duration=0)
+    from .pat_toolbar import pat_toolbar
     return pat_toolbar(iface)

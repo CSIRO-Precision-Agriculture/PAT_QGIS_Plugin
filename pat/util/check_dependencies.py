@@ -75,8 +75,9 @@ def check_pat_symbols():
 
     xml_date = datetime.fromtimestamp(os.path.getmtime(pat_xml)).replace(microsecond=0)
 
-    if loaded_date is None or xml_date > loaded_date:
-        styles = QgsStyle().defaultStyle()
+    styles = QgsStyle().defaultStyle()
+
+    if 'PAT' not in styles.tags() or ( loaded_date is None or xml_date > loaded_date ):
         if styles.isXmlStyleFile(pat_xml):
             if styles.importXml(pat_xml):
                 LOGGER.info('Loaded PAT Symbology')
@@ -305,7 +306,7 @@ def check_python_dependencies(plugin_path, iface):
     try:
         # comes from metadata.txt
         from qgis.utils import pluginMetadata
-        meta_version = '{} {} '.format(pluginMetadata('pat', 'version') , pluginMetadata('pat', 'update_date'))
+        meta_version = '{} {} '.format(pluginMetadata('pat', 'version'), pluginMetadata('pat', 'update_date'))
 
         # # get the list of wheels matching the gdal version
         # if not os.environ.get('GDAL_VERSION', None):
@@ -334,7 +335,7 @@ def check_python_dependencies(plugin_path, iface):
         osgeo_packs = []
 
         # Check for the listed modules.
-        for argCheck in ['geopandas', 'rasterio']:
+        for argCheck in ['fiona','geopandas', 'rasterio']:
             packCheck[argCheck] = check_package(argCheck)
             if packCheck[argCheck]['Action'] == 'Install':
                 osgeo_packs += [argCheck]
@@ -345,6 +346,21 @@ def check_python_dependencies(plugin_path, iface):
             if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
                 packCheck['pyprecag']['Action'] = 'Upgrade'
 
+        if packCheck['fiona']['Action'] == 'Install':
+            message = ''
+
+            if 'ltr' in os.path.basename(QgsApplication.prefixPath()).lower() and Qgis.QGIS_VERSION_INT < 31011:
+                message = 'PAT is no longer supported by QGIS LTR {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
+              
+            elif Qgis.QGIS_VERSION_INT < 31600:
+                message = 'PAT is no longer supported by QGIS {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
+
+            if message != '':
+                iface.messageBar().pushMessage(message, level=Qgis.Critical, duration=30)
+                LOGGER.info(message)
+                QMessageBox.critical(None, 'QGIS Upgrade required', message)
+                return(message)
+        
         # Install via a tar wheel file prior to publishing via pip to test pyprecag bug fixes
         # otherwise just use a standard pip install.
         local_wheel = glob.glob1(os.path.join(plugin_path, 'install_files'), "pyprecag*")

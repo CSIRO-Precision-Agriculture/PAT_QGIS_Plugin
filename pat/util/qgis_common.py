@@ -320,7 +320,7 @@ def file_in_use(filename, display_msgbox=True):
                   '<b>{}</b></dd><br/>Please remove the file from QGIS or use a ' \
                   'different name'.format(os.path.basename(filename), '<dd><b>'.join(found_lyrs))
 
-        reply = QMessageBox.question(None, 'File in Use', message)
+        reply = QMessageBox.question(None, 'File in Use', message, QMessageBox.Ok)
 
     return len(found_lyrs) > 0
 
