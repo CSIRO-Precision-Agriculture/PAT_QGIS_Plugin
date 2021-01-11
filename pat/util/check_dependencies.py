@@ -349,8 +349,9 @@ def check_python_dependencies(plugin_path, iface):
         if packCheck['fiona']['Action'] == 'Install':
             message = ''
 
-            if 'ltr' in os.path.basename(QgsApplication.prefixPath()).lower() and Qgis.QGIS_VERSION_INT < 31011:
-                message = 'PAT is no longer supported by QGIS LTR {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
+            if 'ltr' in os.path.basename(QgsApplication.prefixPath()).lower():
+                if Qgis.QGIS_VERSION_INT < 31011:
+                    message = 'PAT is no longer supported by QGIS LTR {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
               
             elif Qgis.QGIS_VERSION_INT < 31600:
                 message = 'PAT is no longer supported by QGIS {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
