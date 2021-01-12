@@ -247,7 +247,10 @@ def get_layer_source(layer):
     """
     
     result = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.dataProvider().dataSourceUri())
-    
+
+    if not 'path' in result.keys():
+        return ''
+
     if len(result) == 0 or result['path'] == '':
         return layer.source()
     else:
