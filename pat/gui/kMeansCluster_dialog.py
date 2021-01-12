@@ -36,8 +36,9 @@ from pyprecag import raster_ops, config, processing, describe
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS
-from util.qgis_symbology import raster_apply_unique_value_renderer
+from util.qgis_common import (save_as_dialog, file_in_use, removeFileFromQGIS, addRasterFileToQGIS, addVectorFileToQGIS,
+                               build_layer_table, get_pixel_size)
+from util.qgis_symbology import raster_apply_unique_value_renderer, RASTER_SYMBOLOGY
 from util.settings import read_setting, write_setting
 
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
@@ -45,10 +46,6 @@ from qgis.PyQt.QtWidgets import QTableWidgetItem, QPushButton, QDialog, QApplica
 
 from qgis.core import QgsProject, QgsMapLayer, QgsMessageLog, QgsUnitTypes, QgsApplication, Qgis, QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
-
-from pat.util.qgis_common import build_layer_table, get_pixel_size
-from pat.util.qgis_symbology import RASTER_SYMBOLOGY
-
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'kMeansCluster_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -394,6 +391,8 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
 
             LOGGER.info(settingsStr)
             _ = processing.kmeans_clustering(rasterSource, self.lneSaveFile.text(), self.spnClusters.value())
+            csv_file = self.lneSaveFile.text().replace('.tif', '_statistics.csv')
+            vect_layer = addVectorFileToQGIS(csv_file, os.path.basename(csv_file), atTop=True)
 
             raster_sym = RASTER_SYMBOLOGY['Zones']
             raster_layer = addRasterFileToQGIS(self.lneSaveFile.text(), atTop=False)
