@@ -30,7 +30,7 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # End of mandatory metadata
 
 # Recommended items:
-update_date=2021-01-13T09:26:50.444965
+update_date=2021-01-13T09:30:00.333616
 # Tags are comma separated with spaces allowed
 tags=raster, vector, kriging, agriculture, precision agriculture, csiro
 # category=PAT Menu and Toolbar
@@ -45,7 +45,7 @@ Software Collection. https://doi.org/10.25919/5d23f9fb58722
 # Uncomment the following line and add your changelog:
 changelog=
   1.0.3: Fix Missing DLL error. Now installs gdal300.dll (#54)
-         Fix for raster services
+         Fix for raster services (#55)
          Load k-means cluster statistics into qgis
   1.0.2: Fix installing dependencies bug. Now only compatible with Qgis 3.16+ and QGIS LTR 3.10.11+
   1.0.1: Python 2to3 & QGIS 2to3
