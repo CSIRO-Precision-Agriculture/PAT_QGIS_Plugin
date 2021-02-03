@@ -83,10 +83,10 @@ def check_for_overlap(rect1, rect2, crs1='', crs2=''):
           'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
     import shapely.wkt
     if isinstance(rect1,str):
-        rect1=wkt.loads(rect1)
+        rect1 = wkt.loads(rect1)
     
     if isinstance(rect2,str):
-        rect2=wkt.loads(rect2)
+        rect2 = wkt.loads(rect2)
     
     if crs1 != '':
         gdf1 = gpd.GeoDataFrame({'geometry': [rect1]}, crs=crs1)
