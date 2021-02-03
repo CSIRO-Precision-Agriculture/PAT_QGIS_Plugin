@@ -765,17 +765,21 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             epsg = 0
             if self.mCRSinput.crs() is not None and self.chkVesper2Raster.isChecked():
                 epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
-
+            
+            message = 'Successfully created files for Vesper kriging. ' \
+                      'The control file is {}'.format(ctrl_file)
+            self.send_to_messagebar(message, level=Qgis.Success, duration=0,
+                                    addToLog=True, core_QGIS=True)
+            LOGGER.info('Successfully created files for Vesper kriging')
+            
             if self.gbRunVesper.isChecked():
                 # Add to vesper queue
-                self.vesp_dict = {'control_file': ctrl_file, 'epsg': epsg}
+                self.vesp_dict = {'control_file': ctrl_file, 
+                                  'epsg': epsg,
+                                  'block_size':int(self.dsbBlockKrigSize.value())}
 
-            else:
-                message = 'Successfully created files for Vesper kriging. ' \
-                          'The control file is {}'.format(ctrl_file)
-                self.send_to_messagebar(message, level=Qgis.Success, duration=0,
-                                        addToLog=True, core_QGIS=True)
-                LOGGER.info('Successfully created files for Vesper kriging')
+
+          
 
             QApplication.restoreOverrideCursor()
             return super(PreVesperDialog, self).accept(*args, **kwargs)

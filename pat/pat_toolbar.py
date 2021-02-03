@@ -513,16 +513,21 @@ class pat_toolbar(object):
         ctrl_width = len(max([os.path.basename(ea['control_file']) for ea in self.vesper_queue], key=len))
         epsg_width = len(max([str(ea['epsg']) for ea in self.vesper_queue], key=len))
 
-        header = '{:3}\t{:<{cw}}\t{:5}\t{:>{ew}} {}'.format(
-            '#', 'Control File', 'Import', 'EPSG', 'Folder', cw=ctrl_width + 10, ew=epsg_width + 10)
+        header = '{:3}\t{:<{cw}}\t{}\t{:5}\t{:>{ew}} {}'.format('#', 'Control File', 'Block Size',
+                                                            'Import', 'EPSG', 'Folder',
+                                                             cw=ctrl_width + 10, ew=epsg_width + 10)
 
         print('\n' + '-' * len(header))
         print(header)
         print('-' * len(header))
         for i, ea in enumerate(self.vesper_queue):
-            print('{:3}\t{:<{cw}}\t{:5}\t{:>{ew}}\t{}'.format(
-                i + 1, os.path.basename(ea['control_file']), str(bool(ea['epsg'] > 0)), ea['epsg'],
-                os.path.dirname(ea['control_file']), cw=ctrl_width + 10, ew=epsg_width + 10))
+            print('{:3}\t{:<{cw}}\t{}\t{:5}\t{:>{ew}}\t{}'.format(
+                i + 1, os.path.basename(ea['control_file']), 
+                ea['block_size'],
+                str(bool(ea['epsg'] > 0)),
+                ea['epsg'],
+                os.path.dirname(ea['control_file']), 
+                cw=ctrl_width + 10, ew=epsg_width + 10))
 
         print('\n')
 
@@ -603,6 +608,13 @@ class pat_toolbar(object):
             self.processVesper = None
 
             if currentTask['epsg'] > 0:
+                
+                LOGGER.info('\n{st}\nVESPER Import'.format(st='*' * 50))
+                settingsStr = 'Parameters:---------------------------------------'
+                settingsStr += '\n    {:30}\t{}'.format('Vesper Control File:',currentTask['control_file'])
+                settingsStr += '\n    {:30}\t{}'.format('Coordinate System:',  currentTask['epsg'])
+                LOGGER.info(settingsStr)
+                
                 try:
                     out_PredTif, out_SETif, out_CITxt = vesper_text_to_raster(currentTask['control_file'],
                                                                               currentTask['epsg'])
@@ -956,6 +968,7 @@ class pat_toolbar(object):
         if dlgPreVesper.exec_():
             if dlgPreVesper.gbRunVesper.isChecked():
                 self.queueAddTo(dlgPreVesper.vesp_dict)
+                LOGGER.info('Added To queue')
                 self.processRunVesper()
                 if len(self.vesper_queue) > 0:
                     self.lblVesperQueue.setText('{} tasks in VESPER queue'.format(len(self.vesper_queue)))
