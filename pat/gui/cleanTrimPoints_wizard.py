@@ -307,9 +307,11 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
             self.chkUseSelected_ClipPoly.setChecked(False)
             self.chkUseSelected_ClipPoly.setText('No features selected')
             self.mcboClipPolyLayer.setLayer(None)
+            self.chkDropFields.setChecked(False)
         else:
             self.dsbStdCount.setValue(3.00)
             self.dsbThinDist.setValue(1.00)
+            self.chkDropFields.setChecked(True)
 
         self.chkRemoveZero.setChecked(not state)
         self.chkIterate.setChecked(not state)
@@ -814,6 +816,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
             settingsStr += '\n    {:35}\t{}'.format('Only Change Coordinate System:', self.chkReproject.isChecked())
         else:
             settingsStr += '\n    {:40}\t{}'.format('Process Field:', self.processField() if self.processField() != '' else 'None')
+            settingsStr += '\n    {:30}\t{}'.format('   Drop all other fields', self.chkDropFields.isChecked())
             settingsStr += '\n    {:40}\t{}m'.format('Thinning Distance:', self.dsbThinDist.value())
             settingsStr += '\n    {:40}\t{}'.format('Remove Zeros:', self.chkRemoveZero.isChecked())
             settingsStr += '\n    {:40}\t{}'.format("Standard Devs to Use:", str(self.dsbStdCount.value()))
@@ -1001,6 +1004,14 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 gdfPtsCrs = ptsDesc.crs
                 gdfPoints = ptsDesc.open_geo_dataframe()
 
+            if self.chkDropFields.isChecked():
+                drop_cols = [col for col in gdfPoints.columns
+                             if col not in ['FID', 'geometry', self.cboXField.currentText(),
+                                            self.cboYField.currentText(), self.processField()]]
+                LOGGER.info('Dropping Cols: {} '.format(drop_cols))
+                LOGGER.info('Dropping Cols: {} '.format(drop_cols))
+                gdfPoints.drop(drop_cols, axis=1, inplace=True)
+
             if in_crs.authid() != self.mCRSoutput.crs().authid():
 
                 gdfPoints = gdfPoints.to_crs(epsg=out_epsg)
@@ -1008,7 +1019,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 gdfPtsCrs.getFromEPSG(out_epsg)
 
                 # check for geographic xy cols
-                xy_fields = predictCoordinateColumnNames(gdfPoints.columns.tolist())
+                xy_fields = predictCoordinateColumnNames(gdfPoints.select_dtypes(include=['floating']).columns.tolist())
                 if any(xy_fields):
                     gdfPoints.drop(xy_fields, axis=1, inplace=True)
 
