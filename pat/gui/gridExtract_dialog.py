@@ -36,8 +36,11 @@ from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import raster_ops, config, processing, describe
 
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import save_as_dialog, file_in_use, addLayerToQGIS
-from util.settings import read_setting, write_setting
+
+from util.qgis_common import (removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS, get_layer_source,
+                              build_layer_table, get_pixel_size, save_as_dialog, file_in_use, addLayerToQGIS)
+
+ from util.settings import read_setting, write_setting
 
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
 from qgis.PyQt.QtWidgets import QTableWidgetItem, QPushButton, QDialog, QApplication
@@ -45,9 +48,8 @@ from qgis.core import (QgsProject, QgsMapLayer, QgsMessageLog, QgsVectorFileWrit
                         QgsMapLayerProxyModel, QgsVectorLayer)
 from qgis.gui import QgsMessageBar
 
-from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS, get_layer_source
 
-from pat.util.qgis_common import build_layer_table, get_pixel_size
+
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gridextract_dialog_base.ui'))
@@ -471,9 +473,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             if len(selectedStats)>0:
                 settingsStr += '\n    {:20}\t{}'.format('Statistics: ', ', '.join(selectedStats))
 
-            settingsStr += '\n    {:40}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())
-            settingsStr += '\n    {:20}\t{}\n'.format('Keep Coords', self.chkKeepCoords.isChecked())
-
+            settingsStr += '\n    {:40}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())           
 
             LOGGER.info(settingsStr)
 
@@ -522,11 +522,11 @@ class GridExtractDialog(QDialog, FORM_CLASS):
                 sizeList = [1]
             sizeList.append(int(self.btgrpSize.checkedButton().text()[0]))
 
-            gdfPoints, points_crs = processing.extract_pixel_statistics_for_points(gdfPoints, ptsDesc.crs, rasterSource,
+            gdfPoints, points_crs = processing.extract_pixel_statistics_for_points(gdfPoints, ptsDesc.crs, list(zip(rasterSource,rasterLyrNames)),
                                                                function_list=statsFunctions, size_list=sizeList,
                                                                output_csvfile=self.lneSaveCSVFile.text())
 
-            if self.chkKeepCoords.isChecked():
+            if self.chkLoadPoints.isChecked():
                 # could save to shapefile, but this will truncate all the fieldnames so keep with the csv option.
                 gdfPoints.drop(['geometry'], axis=1).to_csv(self.lneSaveCSVFile.text(), index=False)
                 LOGGER.info('{:<30} {:>10,}   {:<15}'.format('Save to Shapefile', len(gdfPoints),

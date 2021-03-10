@@ -71,9 +71,9 @@
          </widget>
         </item>
         <item row="1" column="0" colspan="4">
-         <widget class="QCheckBox" name="chkKeepCoords">
+         <widget class="QCheckBox" name="chkLoadPoints">
           <property name="text">
-           <string>Keep Coordinates in Output file</string>
+           <string>Load as points layer</string>
           </property>
          </widget>
         </item>
@@ -770,11 +770,11 @@ p, li { white-space: pre-wrap; }
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="btgrpSize"/>
   <buttongroup name="chkgrpStatistics">
    <property name="exclusive">
     <bool>false</bool>
    </property>
   </buttongroup>
+  <buttongroup name="btgrpSize"/>
  </buttongroups>
 </ui>
