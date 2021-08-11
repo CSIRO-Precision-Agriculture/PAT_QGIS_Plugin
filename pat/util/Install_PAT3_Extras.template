@@ -35,9 +35,11 @@ GOTO :END
     ECHO. Running "%OSGEO4W_ROOT%\bin\o4w_env.bat"
     CALL "%OSGEO4W_ROOT%\bin\o4w_env.bat"
 
-    ECHO. Running "%OSGEO4W_ROOT%\bin\py3_env.bat"
-    REM py3_env includes setting PYTHONHOME & PYTHONPATH & PATH
-    CALL "%OSGEO4W_ROOT%\bin\py3_env.bat"
+    if exist "%OSGEO4W_ROOT%\bin\py3_env.bat" (
+        ECHO. Running "%OSGEO4W_ROOT%\bin\py3_env.bat"
+        REM py3_env includes setting PYTHONHOME & PYTHONPATH & PATH
+        CALL "%OSGEO4W_ROOT%\bin\py3_env.bat"
+    )
 
     SET OSGEO4W_ROOT=$QGIS_PATH
 
@@ -52,17 +54,17 @@ GOTO :END
     ) ELSE (
         ECHO No OSGEO installation required
     )
-    if "$pip_func" == "install" (
-        REM Fix for QGIS see : https://trac.osgeo.org/osgeo4w/ticket/649#ticket
-        IF NOT EXIST "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs" (
-            ECHO %OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs
-            mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs"
-        )
-        IF NOT EXIST "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs" (
-            ECHO %OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs
-            mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs"
-        )
-    )
+    REM if "$pip_func" == "install" (
+    REM    REM Fix for QGIS see : https://trac.osgeo.org/osgeo4w/ticket/649#ticket
+    REM    IF NOT EXIST "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs" (
+    REM        ECHO %OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs
+    REM        mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\rasterio\.libs"
+    REM    )
+    REM    IF NOT EXIST "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs" (
+    REM        ECHO %OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs
+    REM        mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs"
+    REM    )
+    REM )
 
     cd %~dp0 
     ECHO. & Echo The current directory is %CD%
