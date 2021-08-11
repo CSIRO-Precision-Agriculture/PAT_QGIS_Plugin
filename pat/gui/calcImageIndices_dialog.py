@@ -194,12 +194,20 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
             self.lneNoDataVal.setText('0')
 
         # add a band list to the drop down box
-        bandCount = self.mcboRasterLayer.currentLayer().bandCount()
-        band_list = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
+        bandCount = rast_layer.bandCount()
+
+        # create a dictionary of combobox index (starts from 0) and  band names NOTE: band numbers start from 1 
+        self.band_dict = {'':0, **{rast_layer.bandName(i):i for i in range(1,bandCount)}}
+        band_list = list(self.band_dict.keys())
+
+        #band_list = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
+        
+        #Qgis 3 has a QgsRasterBandsComboBox - which doesn't support empty's/blanks yet.
         for obj in [self.cboBandRed, self.cboBandGreen, self.cboBandIR, self.cboBandRedEdge, self.cboBandNonVine]:
             obj.setMaxCount(bandCount + 1)
             obj.clear()
-            obj.addItems([u''] + sorted(band_list))
+            obj.addItems(band_list)
+            #obj.addItems([u''] + band_list)
 
         # clear the coordinate system
         self.mCRSoutput.setCrs(QgsCoordinateReferenceSystem())
@@ -223,9 +231,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     def update_bandlist(self):
         """update the band list to the drop down box"""
         if self.mcboRasterLayer.currentLayer() is None: return
-
-        # list of all bands for image
-        band_list = list(range(1, self.mcboRasterLayer.currentLayer().bandCount() + 1))
+        rast_layer = self.mcboRasterLayer.currentLayer()
 
         for obj in [self.cboBandRed, self.cboBandGreen, self.cboBandIR, self.cboBandRedEdge, self.cboBandNonVine]:
             ''' Hide items from combo which have already been allocated to a band. 
@@ -233,10 +239,10 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
             a change event which turns into an endless loop
             source https://stackoverflow.com/a/49778675/9567306 '''
 
-            for i in band_list:
-                idx = obj.findText('Band {: >2}'.format(i))
+            for name,number in self.band_dict.items():
+                idx = obj.findText(name)
 
-                if i in self.band_mapping.allocated_bands() and 'Band {: >2}'.format(i) != obj.currentText():
+                if number in self.band_mapping.allocated_bands() and 'Band {: >2}'.format(number) != obj.currentText():
                     obj.view().setRowHidden(idx, True)
                 else:
                     obj.view().setRowHidden(idx, False)
@@ -279,7 +285,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     def on_cboBandRed_currentIndexChanged(self, index):
         band_num = 0
         if self.cboBandRed.currentText() != '':
-            band_num = int(self.cboBandRed.currentText().replace('Band ', ''))
+            band_num = self.band_dict[self.cboBandRed.currentText()]
 
         if self.band_mapping['red'] != band_num:
             self.band_mapping['red'] = band_num
@@ -288,7 +294,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     def on_cboBandGreen_currentIndexChanged(self, index):
         band_num = 0
         if self.cboBandGreen.currentText() != '':
-            band_num = int(self.cboBandGreen.currentText().replace('Band ', ''))
+            band_num = self.band_dict[self.cboBandGreen.currentText()]
 
         if self.band_mapping['green'] != band_num:
             self.band_mapping['green'] = band_num
@@ -297,7 +303,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     def on_cboBandIR_currentIndexChanged(self, index):
         band_num = 0
         if self.cboBandIR.currentText() != '':
-            band_num = int(self.cboBandIR.currentText().replace('Band ', ''))
+            band_num = self.band_dict[self.cboBandIR.currentText()]
 
         if self.band_mapping['infrared'] != band_num:
             self.band_mapping['infrared'] = band_num
@@ -306,7 +312,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     def on_cboBandRedEdge_currentIndexChanged(self, index):
         band_num = 0
         if self.cboBandRedEdge.currentText() != '':
-            band_num = int(self.cboBandRedEdge.currentText().replace('Band ', ''))
+            band_num = self.band_dict[self.on_cboBandRedEdge_currentIndexChanged.currentText()]
 
         if self.band_mapping['rededge'] != band_num:
             self.band_mapping['rededge'] = band_num
@@ -315,7 +321,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
     def on_cboBandNonVine_currentIndexChanged(self, index):
         band_num = 0
         if self.cboBandNonVine.currentText() != '':
-            band_num = int(self.cboBandNonVine.currentText().replace('Band ', ''))
+            band_num = self.band_dict[self.cboBandNonVine.currentText()]
 
         self.band_mapping['mask'] = band_num
         self.update_bandlist()
@@ -464,7 +470,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
             settingsStr = 'Parameters:---------------------------------------'
 
             settingsStr += '\n    {:20}\t{}'.format('Image layer:', self.mcboRasterLayer.currentLayer().name())
-            settingsStr += '\n    {:20}\t{}'.format('Image nodata value:', self.lblNoDataVal.text())
+            settingsStr += '\n    {:20}\t{}'.format('Image nodata value:',  self.lneNoDataVal.text())
 
             if self.mcboPolygonLayer.currentLayer() is not None:
                 if self.chkUseSelected.isChecked():
@@ -482,7 +488,8 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
 
             for k, v in self.band_mapping.items():
                 if v > 0:
-                    settingsStr += '\n    {:20}\t{}'.format('{} Band:'.format(k.title()), v)
+                    band_name = next((name for name, idx in self.band_dict.items() if idx == v), None)
+                    settingsStr += '\n    {:20}\t{}'.format('{} Band:'.format(k.title()), band_name)
 
             settingsStr += '\n    {:20}\t{}'.format('Calculate Indices: ', ', '.join(selectedIndices))
             settingsStr += '\n    {:30}\t{} - {}'.format('Output Coordinate System:',
