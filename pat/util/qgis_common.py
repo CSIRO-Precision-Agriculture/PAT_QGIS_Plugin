@@ -334,7 +334,7 @@ def file_in_use(filename, display_msgbox=True):
     return len(found_lyrs) > 0
 
 
-def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True):
+def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True, visible=True):
     """ Load a file as a vector layer into qgis
 
     Args:
@@ -355,11 +355,11 @@ def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     vector_layer = QgsVectorLayer(filename, layer_name, "ogr")
 
     addLayerToQGIS(vector_layer, group_layer_name=group_layer_name, atTop=atTop)
-
+    QgsProject.instance().layerTreeRoot().findLayer(vector_layer.id()).setItemVisibilityChecked(visible)
     return vector_layer
 
 
-def addRasterFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True):
+def addRasterFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True, visible=True):
     """ Load a file as a vector layer into qgis
 
     Args:
@@ -381,7 +381,7 @@ def addRasterFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     raster_layer = QgsRasterLayer(filename, layer_name)
 
     addLayerToQGIS(raster_layer, group_layer_name=group_layer_name, atTop=atTop)
-
+    QgsProject.instance().layerTreeRoot().findLayer(raster_layer.id()).setItemVisibilityChecked(visible)
     return raster_layer
 
 
