@@ -436,7 +436,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
         if lastFolder is None or not os.path.exists(lastFolder):
             lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
 
-        if self.lneSaveCSVFile.text() == '':
+        if self.lneSavePointsFile.text() == '':
             if self.optLayer.isChecked():
                 lyrTarget = self.mcboTargetLayer.currentLayer()
                 filename = lyrTarget.name() + '_points.shp'
@@ -673,10 +673,10 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                         self.lneSavePointsFile.setStyleSheet('color:red')
                         errorList.append(self.tr("Output shapefile folder cannot be found"))
                     elif os.path.exists(self.lneSavePointsFile.text()) and file_in_use(self.lneSavePointsFile.text(), False):
-                        self.lneSaveCSVFile.setStyleSheet('color:red')
+                        self.lneSavePointsFile.setStyleSheet('color:red')
                         self.lblSaveCSVFile.setStyleSheet('color:red')
                         errorList.append(self.tr("Output file {} is open in QGIS or another application".format(
-                            os.path.basename(self.lneSaveCSVFile.text()))))
+                            os.path.basename(self.lneSavePointsFile.text()))))
                     else:
                         self.lblSavePointsFile.setStyleSheet('color:black')
                         self.lneSavePointsFile.setStyleSheet('color:black')
@@ -743,8 +743,8 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
             settingsStr += '\n    {:30}\t{}'.format('Output Polygon Shapefile:', self.lneSavePolyFile.text())
 
-            if self.lneSavePointsFile.text() == '':
-                settingsStr += '\n    {:30}\t{}'.format('Saved Points Shapefile:', self.lneSavePointsFile.text())
+            if self.lneSavePointsFile.text() != '':
+                settingsStr += '\n    {:30}\t{}'.format('Output Points Shapefile:', self.lneSavePointsFile.text())
 
             settingsStr += '\n    {:30}\t{} - {}\n\n'.format('Output Projected Coordinate System:',
                                                               self.mCRSoutput.crs().authid(),
@@ -863,6 +863,10 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                             addVectorFileToQGIS(filePoints,
                                                 layer_name=os.path.splitext(os.path.basename(filePoints))[0],
                                                 atTop=True)
+            if self.lneSavePointsFile.text() != '':
+                removeFileFromQGIS(self.lneSavePointsFile.text())
+                describe.save_geopandas_tofile(gdfPoints, self.lneSavePointsFile.text())
+
             stepTime = time.time()
             result = processing.create_polygon_from_point_trail(gdfPoints, gdfPtsCrs,
                                                                 out_filename=self.lneSavePolyFile.text(),
