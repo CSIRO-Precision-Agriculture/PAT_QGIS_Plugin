@@ -81,7 +81,13 @@ def check_for_overlap(rect1, rect2, crs1='', crs2=''):
     """ Check for overlap between two rectangles.
         Input rect format is a shapely polygon object
           'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
-
+    import shapely.wkt
+    if isinstance(rect1,str):
+        rect1=wkt.loads(rect1)
+    
+    if isinstance(rect2,str):
+        rect2=wkt.loads(rect2)
+    
     if crs1 != '':
         gdf1 = gpd.GeoDataFrame({'geometry': [rect1]}, crs=crs1)
     else:
@@ -247,7 +253,10 @@ def get_layer_source(layer):
     """
     
     result = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.dataProvider().dataSourceUri())
-    
+
+    if not 'path' in result.keys():
+        return ''
+
     if len(result) == 0 or result['path'] == '':
         return layer.source()
     else:

@@ -239,10 +239,9 @@ def check_package(package):
     """
 
     try:
-        pack_dict = pack_dict = {'Action': 'None',
-                                 'Version': get_distribution(package).version}
+        pack_dict = {'Action': 'None', 'Version': get_distribution(package).version}
     except DistributionNotFound:
-        pack_dict = pack_dict = {'Action': 'Install', 'Version': ''}
+        pack_dict = {'Action': 'Install', 'Version': ''}
 
     return pack_dict
 
@@ -333,7 +332,12 @@ def check_python_dependencies(plugin_path, iface):
         packCheck = {}
         pip_packs = []
         osgeo_packs = []
-
+        
+        #packCheck['gdal300dll']={'Action': '', 'Version': ''}
+        if not os.path.exists(os.path.join(osgeo_path,'bin','gdal300.dll')):
+            packCheck['gdal300dll']={'Action': 'Install', 'Version': ''}
+            osgeo_packs += ['gdal300dll']
+        
         # Check for the listed modules.
         for argCheck in ['fiona','geopandas', 'rasterio']:
             packCheck[argCheck] = check_package(argCheck)
@@ -349,8 +353,9 @@ def check_python_dependencies(plugin_path, iface):
         if packCheck['fiona']['Action'] == 'Install':
             message = ''
 
-            if 'ltr' in os.path.basename(QgsApplication.prefixPath()).lower() and Qgis.QGIS_VERSION_INT < 31011:
-                message = 'PAT is no longer supported by QGIS LTR {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
+            if 'ltr' in os.path.basename(QgsApplication.prefixPath()).lower():
+                if Qgis.QGIS_VERSION_INT < 31011:
+                    message = 'PAT is no longer supported by QGIS LTR {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
               
             elif Qgis.QGIS_VERSION_INT < 31600:
                 message = 'PAT is no longer supported by QGIS {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
@@ -372,13 +377,15 @@ def check_python_dependencies(plugin_path, iface):
 
         failDependencyCheck = [key for key, val in packCheck.items() if val['Action'] in ['Install', 'Upgrade']]
 
+        osgeo_packs = ['-P ' + p if 'gdal' in p else '-P python3-' + p for p in osgeo_packs]
+        
         # create a dictionary to use with the template file.
         d = {'dependency_log': os.path.join(plugin_path, 'install_files',
                                             'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))),
              'QGIS_PATH': osgeo_path,
              'QGIS_VERSION':Qgis.QGIS_VERSION,
              'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
-             'osgeo_packs': '' if len(osgeo_packs) == 0 else '-P python3-' + ' -P python3-'.join(osgeo_packs),
+             'osgeo_packs': '' if len(osgeo_packs) == 0 else ' '.join(osgeo_packs),
              'pip_func': 'install',
              'pip_packs': '' if len(pip_packs) == 0 else ' '.join(pip_packs),
              'py_version': struct.calcsize("P") * 8}  # this will return 64 or 32
