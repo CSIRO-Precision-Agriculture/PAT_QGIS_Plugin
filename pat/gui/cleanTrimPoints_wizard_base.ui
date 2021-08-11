@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>651</width>
-    <height>325</height>
+    <height>382</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -93,7 +93,7 @@
       <number>0</number>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="pgeSource">
       <layout class="QFormLayout" name="formLayout_7">
@@ -201,13 +201,13 @@
              <height>0</height>
             </size>
            </property>
-           <property name="allowEmptyLayer" stdset="0">
+           <property name="allowEmptyLayer">
             <bool>true</bool>
            </property>
-           <property name="showCrs" stdset="0">
+           <property name="showCrs">
             <bool>true</bool>
            </property>
-           <property name="excludedProviders" stdset="0">
+           <property name="excludedProviders">
             <stringlist/>
            </property>
           </widget>
@@ -493,10 +493,10 @@
            <property name="flat">
             <bool>true</bool>
            </property>
-           <property name="collapsed" stdset="0">
+           <property name="collapsed">
             <bool>false</bool>
            </property>
-           <property name="saveCollapsedState" stdset="0">
+           <property name="saveCollapsedState">
             <bool>false</bool>
            </property>
            <layout class="QGridLayout" name="gridLayout_8">
@@ -553,7 +553,7 @@
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QgsProjectionSelectionWidget" name="qgsCRScsv" native="true"/>
+               <widget class="QgsProjectionSelectionWidget" name="qgsCRScsv"/>
               </item>
              </layout>
             </item>
@@ -725,13 +725,13 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <property name="allowEmptyLayer" stdset="0">
+              <property name="allowEmptyLayer">
                <bool>true</bool>
               </property>
-              <property name="showCrs" stdset="0">
+              <property name="showCrs">
                <bool>true</bool>
               </property>
-              <property name="excludedProviders" stdset="0">
+              <property name="excludedProviders">
                <stringlist/>
               </property>
              </widget>
@@ -953,7 +953,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1" colspan="3">
+               <item row="1" column="1" colspan="2">
                 <widget class="QComboBox" name="cboProcessField">
                  <property name="enabled">
                   <bool>true</bool>
@@ -987,6 +987,19 @@
                  </property>
                  <property name="modelColumn">
                   <number>0</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="3">
+                <widget class="QCheckBox" name="chkDropFields">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Drop Other Columns</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
                  </property>
                 </widget>
                </item>
@@ -1161,7 +1174,7 @@ shapefile: (optional)</string>
           </widget>
          </item>
          <item row="3" column="2" colspan="5">
-          <widget class="QgsProjectionSelectionWidget" name="mCRSoutput" native="true"/>
+          <widget class="QgsProjectionSelectionWidget" name="mCRSoutput"/>
          </item>
          <item row="5" column="0" colspan="8">
           <widget class="QLabel" name="lblSummary">
