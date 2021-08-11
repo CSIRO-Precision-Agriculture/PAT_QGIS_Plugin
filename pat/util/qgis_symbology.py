@@ -31,9 +31,9 @@ from qgis.PyQt.QtGui import QColor
 import matplotlib as mpl
 import matplotlib.colors as colors
 from numpy import ma
-from qgis.core import QgsSimpleFillSymbolLayer, QgsSymbol, QgsStyle, QgsRendererCategory, QgsCategorizedSymbolRenderer, \
-    QgsRaster, QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer, QgsRasterShader, \
-    QgsColorRampShader, QgsContrastEnhancement, QgsRasterBandStats, QgsRandomColorRamp, QgsPalettedRasterRenderer
+from qgis.core import (QgsSimpleFillSymbolLayer, QgsSymbol, QgsStyle, QgsRendererCategory, QgsCategorizedSymbolRenderer,
+    QgsRaster, QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer, QgsRasterShader,
+    QgsColorRampShader, QgsContrastEnhancement, QgsRasterBandStats, QgsRandomColorRamp, QgsPalettedRasterRenderer)
 
 from scipy import stats
 

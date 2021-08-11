@@ -776,7 +776,6 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                                   'epsg': epsg,
                                   'block_size':int(self.dsbBlockKrigSize.value())}
          
-
             QApplication.restoreOverrideCursor()
             return super(PreVesperDialog, self).accept(*args, **kwargs)
 
