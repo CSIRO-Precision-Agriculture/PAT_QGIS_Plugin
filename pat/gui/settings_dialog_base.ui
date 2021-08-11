@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>694</width>
-    <height>330</height>
+    <height>393</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -25,10 +25,24 @@
   <property name="autoFillBackground">
    <bool>false</bool>
   </property>
-  <layout class="QGridLayout" name="gridLayout_4">
-   <item row="0" column="0">
-    <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="2">
+  <layout class="QFormLayout" name="formLayout">
+   <item row="0" column="0" colspan="2">
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="lblInDataDirectory">
+       <property name="text">
+        <string>Input data directory:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1" colspan="3">
+      <widget class="QLineEdit" name="lneInDataDirectory">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
       <widget class="QPushButton" name="cmdInBrowse">
        <property name="enabled">
         <bool>true</bool>
@@ -44,24 +58,14 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="lneOutDataDirectory">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="lblInDataDirectory">
+     <item row="1" column="0">
+      <widget class="QLabel" name="lblOutDataDirectory">
        <property name="text">
-        <string>Input data directory:</string>
+        <string>Output data directory:</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="1" column="4">
       <widget class="QPushButton" name="cmdOutBrowse">
        <property name="enabled">
         <bool>true</bool>
@@ -77,14 +81,49 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="lneInDataDirectory">
-       <property name="readOnly">
+     <item row="2" column="0" colspan="3">
+      <widget class="QCheckBox" name="chkSaveLogToProjectFolder">
+       <property name="text">
+        <string>Save Log to Project Folder</string>
+       </property>
+       <property name="checked">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="2" column="3">
+      <widget class="QPushButton" name="cmdOpenFolder">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Open Folder</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <widget class="QPushButton" name="cmdViewLog">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>View Log</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="4">
       <widget class="QPushButton" name="cmdVesperExe">
        <property name="enabled">
         <bool>true</bool>
@@ -100,22 +139,24 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="lneVesperExe">
+     <item row="1" column="1" colspan="3">
+      <widget class="QLineEdit" name="lneOutDataDirectory">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="readOnly">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="lblOutDataDirectory">
-       <property name="text">
-        <string>Output data directory:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <widget class="QLabel" name="lblVesperExe">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="styleSheet">
         <string notr="true"/>
        </property>
@@ -124,9 +165,16 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="1" colspan="3">
+      <widget class="QLineEdit" name="lneVesperExe">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
-   <item row="1" column="0">
+   <item row="1" column="0" colspan="2">
     <layout class="QGridLayout" name="gridLayout_3">
      <item row="0" column="1">
       <widget class="QCheckBox" name="chkDisplayTempLayers">
@@ -172,7 +220,7 @@
      </item>
     </layout>
    </item>
-   <item row="2" column="0">
+   <item row="2" column="0" colspan="2">
     <widget class="QTextBrowser" name="pteVersions">
      <property name="acceptRichText">
       <bool>true</bool>

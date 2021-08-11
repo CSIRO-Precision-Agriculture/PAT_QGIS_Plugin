@@ -75,7 +75,7 @@ from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
 from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
 
 from .util.check_dependencies import check_vesper_dependency, check_R_dependency
-from .util.custom_logging import stop_logging
+from .util.custom_logging import stop_logging, set_log_file
 from .util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from .util.settings import read_setting, write_setting
 from .util.processing_alg_logging import ProcessingAlgMessages
@@ -152,9 +152,21 @@ class pat_toolbar(object):
         self.vesper_queue_showing = False
         self.processVesper = None
         self.vesper_exe = check_vesper_dependency(iface)
-
+        
+        # change log on project save
+        QgsProject.instance().projectSaved.connect(self.change_log)
+        
+        # change log on project open
+        QgsProject.instance().readProject.connect(self.change_log)
+ 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
+
+
+    def change_log(self):
+           
+        log_file = set_log_file()        
+
 
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -431,6 +443,7 @@ class pat_toolbar(object):
                                                 QMessageBox.Ok)
         
         stop_logging('pyprecag')
+        # QgsProject.instance().projectSaved.disconnect(self.change_log)
         
 #         layermap = QgsProject.instance().mapLayers()
 #         RemoveLayers = []
@@ -470,7 +483,7 @@ class pat_toolbar(object):
                 , None) is not None:
 
             self.iface.messageBar().pushMessage('Control file is already in the VESPER queue. {}'.format(
-                vesp_dict['control_file']),level=Qgis.Warning, duration=15)
+                vesp_dict['control_file']), level=Qgis.Warning, duration=15)
 
             self.queueDisplay()
 
@@ -1092,7 +1105,7 @@ class pat_toolbar(object):
 
     def run_settings(self):
         """Run method for the about dialog"""
-        dlgSettings = SettingsDialog()
+        dlgSettings = SettingsDialog(self.iface)
         if dlgSettings.exec_():
             self.vesper_exe = dlgSettings.vesper_exe
             self.DEBUG = config.get_debug_mode()

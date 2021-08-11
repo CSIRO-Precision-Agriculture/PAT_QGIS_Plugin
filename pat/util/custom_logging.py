@@ -33,10 +33,11 @@ from pat import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget
 from qgis.PyQt.Qt import QCoreApplication
 from qgis.gui import QgsMessageBar
-from qgis.core import QgsMessageLog
+from qgis.core import QgsMessageLog, QgsProject, Qgis
 from qgis.utils import iface
 
-from util.settings import read_setting
+from util.settings import read_setting, write_setting
+from util.check_dependencies import get_plugin_state
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -124,6 +125,33 @@ def add_logging_handler_once(logger, handler):
     return True
 
 
+def set_log_file():
+    
+    old_file = read_setting(PLUGIN_NAME + '/LOG_FILE')
+
+    if not read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) or \
+        QgsProject.instance().absolutePath()=='':
+        folder = TEMPDIR
+        log_file = os.path.normpath(os.path.join(TEMPDIR, 'PAT.log'))
+    else:
+        folder = os.path.normpath(os.path.join(QgsProject.instance().absolutePath()))    
+        log_file = os.path.normpath(os.path.join(folder, 'PAT.log'))
+        
+    if folder != os.path.dirname(old_file) :
+        # this only get triggered when the setting gets changed or project gets saved
+        write_setting(PLUGIN_NAME + '/LOG_FILE', log_file)
+    
+        # Stop and start logging to setup the new log level
+        stop_logging(LOGGER_NAME)
+        setup_logger(LOGGER_NAME, log_file)
+        
+        iface.messageBar().pushMessage("Log File", log_file, level=Qgis.Info,duration=15)
+        
+        if not os.path.exists(log_file):
+            LOGGER.info(get_plugin_state('basic'))
+            
+    return log_file
+
 def setup_logger(logger_name, log_file=None):
     """
     Run once when the module is loaded and enable logging.
@@ -144,8 +172,10 @@ def setup_logger(logger_name, log_file=None):
 
     if not os.path.exists(TEMPDIR):
         os.mkdir(TEMPDIR)
-
-    if read_setting(PLUGIN_NAME + "/" + 'DEBUG', bool):
+    
+    debug =read_setting(PLUGIN_NAME + "/" + 'DEBUG', bool) 
+    
+    if debug:
         default_handler_level = logging.DEBUG
     else:
         default_handler_level = logging.INFO
@@ -159,7 +189,10 @@ def setup_logger(logger_name, log_file=None):
     add_logging_handler_once(logger, logging.NullHandler())
 
     # create formatter that will be added to the handlers
-    formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
+    if debug:
+        formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
+    else:
+        formatter = logging.Formatter("%(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
 
     # create syslog handler which logs even debug messages
     log_path = os.path.join(TEMPDIR, 'PAT.log')
