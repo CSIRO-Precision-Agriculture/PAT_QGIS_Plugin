@@ -31,22 +31,23 @@ import time
 import traceback
 
 import numpy as np
+
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import raster_ops, config, processing, describe
 
 from util.custom_logging import errorCatcher, openLogPanel
-from util.qgis_common import save_as_dialog, file_in_use
+
+from util.qgis_common import (removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS, get_layer_source,
+                              build_layer_table, get_pixel_size, save_as_dialog, file_in_use, addLayerToQGIS)
+
 from util.settings import read_setting, write_setting
 
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
 from qgis.PyQt.QtWidgets import QTableWidgetItem, QPushButton, QDialog, QApplication
-from qgis.core import QgsProject, QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsUnitTypes, QgsApplication, Qgis, \
-    QgsMapLayerProxyModel
+from qgis.core import (QgsProject, QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsUnitTypes, QgsApplication, Qgis, 
+                        QgsMapLayerProxyModel, QgsVectorLayer)
 from qgis.gui import QgsMessageBar
 
-from util.qgis_common import removeFileFromQGIS, copyLayerToMemory, addVectorFileToQGIS, get_layer_source
-
-from pat.util.qgis_common import build_layer_table, get_pixel_size
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'gridextract_dialog_base.ui'))
@@ -467,8 +468,10 @@ class GridExtractDialog(QDialog, FORM_CLASS):
             settingsStr += '\n    {:20}\t{}'.format('Use Current Pixel Value: ', self.chkCurrentVal.isChecked())
             settingsStr += '\n    {:20}\t{}'.format('Neighbourhood Size: ',
                                                     self.btgrpSize.checkedButton().text().replace('\n', ''))
-            settingsStr += '\n    {:20}\t{}'.format('Statistics: ', ', '.join(selectedStats))
-            settingsStr += '\n    {:20}\t{}\n'.format('Output CSV File:', self.lneSaveCSVFile.text())
+            if len(selectedStats)>0:
+                settingsStr += '\n    {:20}\t{}'.format('Statistics: ', ', '.join(selectedStats))
+
+            settingsStr += '\n    {:40}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())           
 
             LOGGER.info(settingsStr)
 
@@ -517,9 +520,22 @@ class GridExtractDialog(QDialog, FORM_CLASS):
                 sizeList = [1]
             sizeList.append(int(self.btgrpSize.checkedButton().text()[0]))
 
-            _ = processing.extract_pixel_statistics_for_points(gdfPoints, ptsDesc.crs, rasterSource,
+            gdfPoints, points_crs = processing.extract_pixel_statistics_for_points(gdfPoints, ptsDesc.crs, list(zip(rasterSource,rasterLyrNames)),
                                                                function_list=statsFunctions, size_list=sizeList,
                                                                output_csvfile=self.lneSaveCSVFile.text())
+
+            if self.chkLoadPoints.isChecked():
+                # could save to shapefile, but this will truncate all the fieldnames so keep with the csv option.
+                gdfPoints.drop(['geometry'], axis=1).to_csv(self.lneSaveCSVFile.text(), index=False)
+                LOGGER.info('{:<30} {:>10,}   {:<15}'.format('Save to Shapefile', len(gdfPoints),
+                                                             os.path.basename(self.lneSaveCSVFile.text())))
+                
+                coord_cols = describe.predictCoordinateColumnNames(gdfPoints.columns.tolist())           
+                uri = r'file:///{f}?type=csv&maxFields=10000&detectTypes=yes&xField={x}&yField={y}&crs=EPSG:{epsg}&spatialIndex=no&subsetIndex=no&watchFile=no'.format(
+                    f=self.lneSaveCSVFile.text(),x=coord_cols[0],y=coord_cols[1] ,epsg=int(gdfPoints.crs.to_authority()[1]))
+                
+                layer = QgsVectorLayer(uri, os.path.basename(self.lneSaveCSVFile.text()), 'delimitedtext')
+                addLayerToQGIS(layer)
 
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
