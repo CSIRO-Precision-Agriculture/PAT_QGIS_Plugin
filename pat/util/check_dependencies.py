@@ -339,6 +339,14 @@ def check_python_dependencies(plugin_path, iface):
         packCheck = {}
         pip_packs = []
         osgeo_packs = []
+        OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/v2'
+
+        if 'LTR' in qgis_version :
+            if Qgis.QGIS_VERSION_INT < 31609:
+                OSGeo4W_site ='http://download.osgeo.org/osgeo4w/'
+        else:
+            if Qgis.QGIS_VERSION_INT < 32000:
+                OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
 
         # if Qgis.QGIS_VERSION_INT < 31800:
         #     packCheck['gdal300dll']={'Action': '', 'Version': ''}
@@ -393,6 +401,7 @@ def check_python_dependencies(plugin_path, iface):
              'QGIS_PATH': osgeo_path,
              'QGIS_VERSION': qgis_version,
              'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
+             'site': OSGeo4W_site,
              'osgeo_packs': '' if len(osgeo_packs) == 0 else ' '.join(osgeo_packs),
              'pip_func': 'install',
              'pip_packs': '' if len(pip_packs) == 0 else ' '.join(pip_packs),
@@ -466,6 +475,7 @@ def check_python_dependencies(plugin_path, iface):
             create_file_from_template(temp_file, d, install_file)
 
             d.update({'osgeo_message': 'Uninstalling {}'.format(', '.join(osgeo_packs)),
+                      'site': OSGeo4W_site,
                       'osgeo_packs': '-o -x python3-' + ' -x python3-'.join(osgeo_packs),
                       'pip_func': 'uninstall'})
 

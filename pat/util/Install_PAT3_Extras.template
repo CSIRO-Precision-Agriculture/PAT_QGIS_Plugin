@@ -50,7 +50,7 @@ GOTO :END
         REM      -q --quiet-mode ,  -b --disable-buggy-antivirus  ,  -A --advanced install,
         REM      -k --autoaccept,   -n --no-shortcuts, -s --site,  -P --packages  ,  -x --remove-packages
 
-        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/ $osgeo_packs
+        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\osgeo4w-setup.exe" -q -b -A -k -n -s $site $osgeo_packs
     ) ELSE (
         ECHO No OSGEO installation required
     )
