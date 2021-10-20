@@ -197,7 +197,7 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
         bandCount = rast_layer.bandCount()
 
         # create a dictionary of combobox index (starts from 0) and  band names NOTE: band numbers start from 1 
-        self.band_dict = {'':0, **{rast_layer.bandName(i):i for i in range(1,bandCount)}}
+        self.band_dict = {'':0, **{rast_layer.bandName(i):i for i in range(1,bandCount + 1)}}
         band_list = list(self.band_dict.keys())
 
         #band_list = ['Band {: >2}'.format(i) for i in range(1, bandCount + 1)]
