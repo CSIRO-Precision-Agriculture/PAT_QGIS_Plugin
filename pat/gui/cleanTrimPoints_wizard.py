@@ -1018,9 +1018,12 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 gdfPtsCrs.getFromEPSG(out_epsg)
 
                 # check for geographic xy cols
-                xy_fields = predictCoordinateColumnNames(gdfPoints.select_dtypes(include=['floating']).columns.tolist())
-                if any(xy_fields):
-                    gdfPoints.drop(xy_fields, axis=1, inplace=True)
+                try:
+                    xy_fields = predictCoordinateColumnNames(gdfPoints.select_dtypes(include=['floating']).columns.tolist())
+                    if len(xy_fields) == 2:
+                        gdfPoints.drop(xy_fields, axis=1, inplace=True)
+                except:
+                    pass
 
                 # Add x,y coordinates to match coordinate system
                 gdfPoints['Easting'] = gdfPoints.geometry.apply(lambda p: p.x)
