@@ -152,6 +152,18 @@ def set_log_file():
             
     return log_file
 
+
+class Formatter(logging.Formatter):
+    """https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3"""
+    def format(self, record):
+        if record.levelno == logging.INFO:
+            self._style._fmt = "%(message)s"
+        elif record.levelno == logging.DEBUG:
+            self._style._fmt = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s", "%Y-%m-%d %H:%M:%S")
+        else:
+            self._style._fmt = "%(levelname)s: %(message)s"
+        return super().format(record)
+
 def setup_logger(logger_name, log_file=None):
     """
     Run once when the module is loaded and enable logging.
@@ -189,10 +201,10 @@ def setup_logger(logger_name, log_file=None):
     add_logging_handler_once(logger, logging.NullHandler())
 
     # create formatter that will be added to the handlers
-    if debug:
-        formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
-    else:
-        formatter = logging.Formatter("%(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
+    # if debug:
+    #     formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
+    # else:
+    #     formatter = logging.Formatter("%(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
 
     # create syslog handler which logs even debug messages
     log_path = os.path.join(TEMPDIR, 'PAT.log')
@@ -202,7 +214,7 @@ def setup_logger(logger_name, log_file=None):
     else:
         file_handler = logging.FileHandler(log_file, delay=True)
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(Formatter())
     add_logging_handler_once(logger, file_handler)
 
     # create console handler with a higher log level
@@ -213,7 +225,7 @@ def setup_logger(logger_name, log_file=None):
 
     # create a QGIS handler
     qgis_handler = QgsLogHandler(default_handler_level)
-    qgis_handler.setFormatter(formatter)
+    qgis_handler.setFormatter(Formatter())
     add_logging_handler_once(logger, qgis_handler)
 
 
