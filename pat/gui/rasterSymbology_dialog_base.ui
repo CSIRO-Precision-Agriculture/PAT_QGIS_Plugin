@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>521</width>
-    <height>99</height>
+    <height>112</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -135,7 +135,7 @@
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::Apply|QDialogButtonBox::Cancel</set>
      </property>
     </widget>
    </item>
@@ -155,9 +155,9 @@
  <connections>
   <connection>
    <sender>button_box</sender>
-   <signal>accepted()</signal>
+   <signal>rejected()</signal>
    <receiver>dlgRasterSymbology</receiver>
-   <slot>accept()</slot>
+   <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>20</x>
@@ -171,17 +171,17 @@
   </connection>
   <connection>
    <sender>button_box</sender>
-   <signal>rejected()</signal>
+   <signal>clicked(QAbstractButton*)</signal>
    <receiver>dlgRasterSymbology</receiver>
-   <slot>reject()</slot>
+   <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>20</x>
-     <y>20</y>
+     <x>260</x>
+     <y>87</y>
     </hint>
     <hint type="destinationlabel">
-     <x>20</x>
-     <y>20</y>
+     <x>260</x>
+     <y>55</y>
     </hint>
    </hints>
   </connection>
