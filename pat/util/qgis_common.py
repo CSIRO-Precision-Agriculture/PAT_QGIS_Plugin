@@ -257,11 +257,15 @@ def get_layer_source(layer):
     if not 'path' in result.keys():
         return ''
 
+    layer_path = ''
     if len(result) == 0 or result['path'] == '':
-        return layer.source()
+        layer_path = layer.source()
     else:
-        return result['path'] 
+        layer_path = result['path'] 
+        
+    layer_path = os.path.normpath(layer_path)
 
+    return layer_path 
 
 def save_as_dialog(dialog, caption, file_filter, default_name=''):
     s, f = QFileDialog.getSaveFileName(
