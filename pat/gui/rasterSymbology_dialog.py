@@ -207,21 +207,29 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
     def accept(self, *args, **kwargs):
         if not self.validate():
             return False
+        try:
+            rast_sym = rs.RASTER_SYMBOLOGY[self.cboType.currentText()]
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            if rast_sym['type'] == 'unique':
+                rs.raster_apply_unique_value_renderer(self.mcboTargetLayer.currentLayer(), 1,
+                                                      color_ramp=rast_sym['colour_ramp'],
+                                                      invert=rast_sym['invert'])
+            else:
 
-        rast_sym = rs.RASTER_SYMBOLOGY[self.cboType.currentText()]
+                rs.raster_apply_classified_renderer(self.mcboTargetLayer.currentLayer(),
+                                                    rend_type=rast_sym['type'],
+                                                    num_classes=rast_sym['num_classes'],
+                                                    color_ramp=rast_sym['colour_ramp'])
 
-        #QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        if rast_sym['type'] == 'unique':
-            rs.raster_apply_unique_value_renderer(self.mcboTargetLayer.currentLayer(), 1,
-                                                  color_ramp=rast_sym['colour_ramp'],
-                                                  invert=rast_sym['invert'])
-        else:
+            QApplication.restoreOverrideCursor()
+            self.iface.mainWindow().statusBar().clearMessage()
+            return False # leave dialog open
 
-            rs.raster_apply_classified_renderer(self.mcboTargetLayer.currentLayer(),
-                                                rend_type=rast_sym['type'],
-                                                num_classes=rast_sym['num_classes'],
-                                                color_ramp=rast_sym['colour_ramp'])
+        except Exception as err:
+            QApplication.restoreOverrideCursor()
+            self.cleanMessageBars(True)
+            self.iface.mainWindow().statusBar().clearMessage()
 
-        #QApplication.restoreOverrideCursor()
-        #self.iface.mainWindow().statusBar().clearMessage()
-        return False #super(RasterSymbologyDialog, self).accept(*args, **kwargs)
+            self.send_to_messagebar(str(err), level=Qgis.Critical,
+                                    duration=0, addToLog=True, exc_info=sys.exc_info())
+            return False  # leave dialog open
