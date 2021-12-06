@@ -617,10 +617,10 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
             readArgs['dtype'] = self.source_file['field_types']
 
         if self.source_file['dialect'].delimiter == ',':
-            df = pd.read_csv(self.source_file['file'], **readArgs)
+            df = pd.read_csv(self.source_file['file'], low_memory=False, **readArgs)
         else:
             readArgs['sep'] = self.source_file['dialect'].delimiter
-            df = pd.read_table(self.source_file['file'], **readArgs)
+            df = pd.read_table(self.source_file['file'], low_memory=False, **readArgs)
 
         if len(self.source_file['field_types']) == 0:
             self.source_file['field_types'] = df.dtypes.to_dict()
@@ -629,7 +629,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         model = PandasModel(df)
         self.tvwSample.setModel(model)
         
-        self.tabList.verticalHeader().setDefaultSectionSize(20)
+        self.tvwSample.verticalHeader().setDefaultSectionSize(20)
         # #https://centaurialpha.github.io/resize-qheaderview-to-contents-and-interactive
         self.tvwSample.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
