@@ -20,22 +20,16 @@
  ***************************************************************************/
 """
 
-from builtins import zip
-from builtins import str
-from builtins import range
 import random
+from builtins import range
+from builtins import str
+from builtins import zip
 from collections import OrderedDict
-import numpy as np
-import rasterio
-from qgis.PyQt.QtGui import QColor
-import matplotlib as mpl
-import matplotlib.colors as colors
-from numpy import ma
-from qgis.core import (QgsSimpleFillSymbolLayer, QgsSymbol, QgsStyle, QgsRendererCategory, QgsCategorizedSymbolRenderer,
-    QgsRaster, QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer, QgsRasterShader,
-    QgsColorRampShader, QgsContrastEnhancement, QgsRasterBandStats, QgsRandomColorRamp, QgsPalettedRasterRenderer)
 
-from scipy import stats
+from qgis.PyQt.QtGui import QColor
+from qgis.core import (QgsCategorizedSymbolRenderer, QgsColorRampShader, QgsPalettedRasterRenderer, QgsRandomColorRamp,
+                       QgsRasterBandStats, QgsRendererCategory, QgsSimpleFillSymbolLayer,
+                       QgsSingleBandPseudoColorRenderer, QgsStyle, QgsSymbol)
 
 RASTER_SYMBOLOGY = OrderedDict([('Yield', {'type': "Equal Interval",
                                            'num_classes':7,
@@ -64,8 +58,6 @@ def random_colour():
     """
     color = "#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
     return QColor(color).getRgb()
-
-
 
 
 def color_distance(c1,c2):
