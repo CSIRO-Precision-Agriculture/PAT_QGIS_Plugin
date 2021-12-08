@@ -821,12 +821,11 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
             settingsStr += '\n    {:40}\t{}'.format("Standard Devs to Use:", str(self.dsbStdCount.value()))
             settingsStr += '\n    {:40}\t{}'.format("Trim Iteratively:", self.chkIterate.isChecked())
 
-        if self.lneSaveCSVFile.text() != '':
-            settingsStr += '\n    {:40}\t{} - {}'.format('Output Projected Coordinate System:',
-                                                         self.mCRSoutput.crs().authid(),
-                                                         self.mCRSoutput.crs().description())
+        settingsStr += '\n    {:40}\t{} - {}'.format('Output Projected Coordinate System:',
+                                                     self.mCRSoutput.crs().authid(),
+                                                     self.mCRSoutput.crs().description())
 
-            settingsStr += '\n    {:40}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())
+        settingsStr += '\n    {:40}\t{}'.format('Saved CSV File:', self.lneSaveCSVFile.text())
 
         if self.lneSavePointsFile.text() != '':
             points_clean_shp = self.lneSavePointsFile.text()
