@@ -767,7 +767,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
             
             message = 'Successfully created files for Vesper kriging. The control file is {}'.format(ctrl_file)
-            self.send_to_messagebar(message, level=Qgis.Success, duration=0, addToLog=True, core_QGIS=True)
+            self.send_to_messagebar(message, level=Qgis.Success, duration=5, addToLog=True, core_QGIS=True)
             LOGGER.info('Successfully created files for Vesper kriging')
             
             if self.gbRunVesper.isChecked():
