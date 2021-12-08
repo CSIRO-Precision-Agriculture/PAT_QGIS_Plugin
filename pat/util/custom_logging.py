@@ -134,9 +134,13 @@ def set_log_file():
         folder = TEMPDIR
         log_file = os.path.normpath(os.path.join(TEMPDIR, 'PAT.log'))
     else:
-        folder = os.path.normpath(os.path.join(QgsProject.instance().absolutePath()))    
-        log_file = os.path.normpath(os.path.join(folder, 'PAT.log'))
+        folder = os.path.normpath(os.path.join(QgsProject.instance().absolutePath()))
         
+        if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME',bool):
+            log_file = os.path.splitext(QgsProject.instance().fileName())[0] + '_PAT.log'
+        else:
+            log_file = os.path.normpath(os.path.join(folder, 'PAT.log'))
+
     if folder != os.path.dirname(old_file) :
         # this only get triggered when the setting gets changed or project gets saved
         write_setting(PLUGIN_NAME + '/LOG_FILE', log_file)

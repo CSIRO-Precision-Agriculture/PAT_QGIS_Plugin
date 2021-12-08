@@ -28,33 +28,13 @@
   <layout class="QFormLayout" name="formLayout">
    <item row="0" column="0" colspan="2">
     <layout class="QGridLayout" name="gridLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="lblInDataDirectory">
-       <property name="text">
-        <string>Input data directory:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1" colspan="3">
-      <widget class="QLineEdit" name="lneInDataDirectory">
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="4">
-      <widget class="QPushButton" name="cmdInBrowse">
+     <item row="1" column="1" colspan="4">
+      <widget class="QLineEdit" name="lneOutDataDirectory">
        <property name="enabled">
         <bool>true</bool>
        </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Browse...</string>
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -65,33 +45,14 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="4">
-      <widget class="QPushButton" name="cmdOutBrowse">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="text">
-        <string>Browse...</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0" colspan="3">
-      <widget class="QCheckBox" name="chkSaveLogToProjectFolder">
-       <property name="text">
-        <string>Save Log to Project Folder</string>
-       </property>
-       <property name="checked">
+     <item row="0" column="1" colspan="4">
+      <widget class="QLineEdit" name="lneInDataDirectory">
+       <property name="readOnly">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="2" column="3">
+     <item row="2" column="4">
       <widget class="QPushButton" name="cmdOpenFolder">
        <property name="enabled">
         <bool>true</bool>
@@ -107,7 +68,14 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="4">
+     <item row="3" column="1" colspan="4">
+      <widget class="QLineEdit" name="lneVesperExe">
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="5">
       <widget class="QPushButton" name="cmdViewLog">
        <property name="enabled">
         <bool>true</bool>
@@ -123,28 +91,12 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="4">
-      <widget class="QPushButton" name="cmdVesperExe">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
+     <item row="2" column="0" colspan="3">
+      <widget class="QCheckBox" name="chkSaveLogToProjectFolder">
        <property name="text">
-        <string>Browse...</string>
+        <string>Save Log to Project Folder</string>
        </property>
-      </widget>
-     </item>
-     <item row="1" column="1" colspan="3">
-      <widget class="QLineEdit" name="lneOutDataDirectory">
-       <property name="enabled">
-        <bool>true</bool>
-       </property>
-       <property name="readOnly">
+       <property name="checked">
         <bool>true</bool>
        </property>
       </widget>
@@ -165,10 +117,68 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="1" colspan="3">
-      <widget class="QLineEdit" name="lneVesperExe">
-       <property name="readOnly">
+     <item row="3" column="5">
+      <widget class="QPushButton" name="cmdVesperExe">
+       <property name="enabled">
         <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Browse...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="5">
+      <widget class="QPushButton" name="cmdInBrowse">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Browse...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="5">
+      <widget class="QPushButton" name="cmdOutBrowse">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Browse...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="lblInDataDirectory">
+       <property name="text">
+        <string>Input data directory:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QCheckBox" name="chkUseProjectName">
+       <property name="text">
+        <string>Save using project filename</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
        </property>
       </widget>
      </item>

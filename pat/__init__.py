@@ -83,6 +83,9 @@ def classFactory(iface):
     if read_setting(PLUGIN_NAME + "/DEBUG") is None:
         write_setting(PLUGIN_NAME + "/DEBUG", False)
 
+    if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME', bool) is None:
+        write_setting(PLUGIN_NAME + '/USE_PROJECT_NAME', False)
+
     if read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) is None:
         write_setting(PLUGIN_NAME + '/PROJECT_LOG',False)
         write_setting(PLUGIN_NAME + '/LOG_FILE',os.path.normpath(os.path.join(TEMPDIR,'PAT.log')))
