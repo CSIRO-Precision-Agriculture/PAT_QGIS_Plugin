@@ -27,6 +27,7 @@ from builtins import zip
 from collections import OrderedDict
 
 from qgis.PyQt.QtGui import QColor
+
 from qgis.core import (QgsCategorizedSymbolRenderer, QgsColorRampShader, QgsPalettedRasterRenderer, QgsRandomColorRamp,
                        QgsRasterBandStats, QgsRendererCategory, QgsSimpleFillSymbolLayer,
                        QgsSingleBandPseudoColorRenderer, QgsStyle, QgsSymbol)
@@ -135,6 +136,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
         renderer.createShader(ramp, QgsColorRampShader.Discrete, QgsColorRampShader.EqualInterval,
                               num_classes)
 
+    renderer.shader().rasterShaderFunction().setLabelPrecision(n_decimals)
 
     # Round values off to the nearest decimal place and construct the label
     # get the newly created values and classes
@@ -143,7 +145,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
     # iterate the values rounding and creating a range label.
     new_lst = []
     for i, (value, color) in enumerate(color_shader.legendSymbologyItems(), start=1):
-        value = float('{:.3g}'.format(float(value)))
+        value = float('{:.{dp}}g}'.format(float(value), dp=n_decimals))
         if i == 1:
             label = "<= {}".format(value)
         elif i == len(color_shader.legendSymbologyItems()):
@@ -159,7 +161,6 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
 
     raster_layer.setRenderer(renderer)
     raster_layer.triggerRepaint()
-
 
 def raster_apply_unique_value_renderer(raster_layer, band_num=1, n_decimals=0,
                                        color_ramp='', invert=False):
