@@ -200,7 +200,7 @@ class PostVesperDialog(QDialog, FORM_CLASS):
 
     def on_mCRSinput_crsChanged(self):
         self.vesper_qgscrs = self.mCRSinput.crs()
-        self.vesper_qgscrs.validate()
+        self.vesper_qgscrs.validate
 
 
     def validate(self):

@@ -127,7 +127,7 @@ def add_logging_handler_once(logger, handler):
 
 def set_log_file():
     
-    old_file = read_setting(PLUGIN_NAME + '/LOG_FILE')
+    old_file = os.path.normpath(read_setting(PLUGIN_NAME + '/LOG_FILE'))
 
     if not read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) or \
         QgsProject.instance().absolutePath()=='':
@@ -141,7 +141,8 @@ def set_log_file():
         else:
             log_file = os.path.normpath(os.path.join(folder, 'PAT.log'))
 
-    if folder != os.path.dirname(old_file) :
+    #if folder != os.path.dirname(old_file) :
+    if os.path.normpath(log_file) != os.path.normpath(old_file):
         # this only get triggered when the setting gets changed or project gets saved
         write_setting(PLUGIN_NAME + '/LOG_FILE', log_file)
     

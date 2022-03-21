@@ -751,6 +751,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                            'maxpts': len(self.dfCSV),
                            'jcomvar': 0,
                            })
+                
             epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
             bat_file, ctrl_file = prepare_for_vesper_krige(self.dfCSV,
                                                            self.cboKrigColumn.currentText(),
