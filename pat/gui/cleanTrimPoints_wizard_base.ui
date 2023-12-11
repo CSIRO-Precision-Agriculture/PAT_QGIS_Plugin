@@ -93,7 +93,7 @@
       <number>0</number>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="pgeSource">
       <layout class="QFormLayout" name="formLayout_7">
@@ -553,7 +553,7 @@
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QgsProjectionSelectionWidget" name="qgsCRScsv"/>
+               <widget class="QgsProjectionSelectionWidget" name="mCRScsv"/>
               </item>
              </layout>
             </item>
@@ -1206,6 +1206,9 @@ shapefile: (optional)</string>
     <layout class="QGridLayout" name="gridLayout_5">
      <item row="0" column="0">
       <widget class="QPushButton" name="cmdBack">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="text">
         <string>&lt; Back</string>
        </property>

@@ -30,7 +30,7 @@ import traceback
 from collections import OrderedDict
 
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
-from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog
+from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog, QDialogButtonBox
 
 from qgis.core import QgsMessageLog, QgsStyle, QgsMapLayer, QgsApplication, QgsMapLayerProxyModel, Qgis
 from qgis.gui import QgsMessageBar
@@ -61,6 +61,9 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
         # Set up the user interface from Designer.
         self.setupUi(self)
 
+        # Add apply action
+        self.button_box.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
+
         # The qgis interface
         self.iface = iface
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
@@ -89,6 +92,9 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
         # self.setMapLayers()
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_rasterSymbology.svg'))
         self.cboType.addItems(list(rs.RASTER_SYMBOLOGY))
+        
+        rlayer = next(lyr for lyr in self.iface.layerTreeView().selectedLayers() if lyr.type() == QgsMapLayer.RasterLayer)
+        self.mcboTargetLayer.setLayer(rlayer)
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.

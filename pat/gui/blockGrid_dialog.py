@@ -31,26 +31,24 @@ import traceback
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 
 from qgis.core import Qgis, QgsApplication
-
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
-from qgis.PyQt.QtGui import QColor
+
 from qgis.PyQt.QtWidgets import QPushButton, QDialog, QApplication
-from qgis.core import QgsMapLayer, QgsVectorFileWriter, QgsMessageLog, \
-    QgsRasterShader, QgsColorRampShader, QgsSingleBandPseudoColorRenderer, QgsMapLayerProxyModel
-from qgis.gui import QgsMessageBar, QgsProjectionSelectionWidget
+from qgis.core import QgsMapLayer, QgsVectorFileWriter,  QgsMapLayerProxyModel
+from qgis.gui import QgsMessageBar, QgisInterface
 
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import (removeFileFromQGIS, addVectorFileToQGIS, addRasterFileToQGIS,
-                                save_as_dialog, get_UTM_Coordinate_System,get_layer_source)
+                                save_as_dialog, get_UTM_Coordinate_System, get_layer_source)
 from util.qgis_symbology import RASTER_SYMBOLOGY, raster_apply_unique_value_renderer
 from util.settings import read_setting, write_setting
 
 from pyprecag import config, processing
 from pyprecag.convert import numeric_pixelsize_to_string
 
+from pat.util.qgis_common import save_layer_to_shapefile
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'blockGrid_dialog_base.ui'))
+FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'blockGrid_dialog_base.ui'))
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # Handle logging, no logging has been configured
@@ -63,9 +61,9 @@ class BlockGridDialog(QDialog, FORM_CLASS):
     # The key used for saving settings for this dialog
     toolKey = 'BlockGridDialog'
 
-    def __init__(self, iface, parent=None):
+    def __init__(self, iface: QgisInterface, parent=None):
 
-        super(BlockGridDialog, self).__init__(parent)
+        super().__init__(parent)
 
         # Set up the user interface from Designer.
         self.setupUi(self)
@@ -312,8 +310,8 @@ class BlockGridDialog(QDialog, FORM_CLASS):
 
         try:
             QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-
-            self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
+            if self.iface.mainWindow() :
+                self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             # Add settings to log.
@@ -346,12 +344,8 @@ class BlockGridDialog(QDialog, FORM_CLASS):
             if self.chkUseSelected.isChecked():
                 polyFile = os.path.join(TEMPDIR, '{}_selection.shp'.format(lyrTarget.name()))
                 removeFileFromQGIS(polyFile)
-                writer = QgsVectorFileWriter.writeAsVectorFormat(lyrTarget,
-                                                                 polyFile,
-                                                                 "utf-8",
-                                                                 lyrTarget.crs(),
-                                                                 driverName="ESRI Shapefile",
-                                                                 onlySelected=True)
+
+                layer = save_layer_to_shapefile(lyrTarget, polyFile,onlySelected=True)
 
                 LOGGER.info('{:<30} {:<15} {}'.format('Save layer/selection to file', polyFile, ''))
                 if self.DISP_TEMP_LAYERS:
@@ -379,13 +373,15 @@ class BlockGridDialog(QDialog, FORM_CLASS):
 
             #QApplication.restoreOverrideCursor()
             QApplication.restoreOverrideCursor()
-            self.iface.mainWindow().statusBar().clearMessage()
+            if self.iface.mainWindow():
+                self.iface.mainWindow().statusBar().clearMessage()
 
             return super(BlockGridDialog, self).accept(*args, **kwargs)
 
         except Exception as err:
             QApplication.restoreOverrideCursor()
-            self.iface.mainWindow().statusBar().clearMessage()
+            if self.iface.mainWindow():
+                self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.send_to_messagebar(str(err), level=Qgis.Critical, duration=0, addToLog=True,
                                     showLogPanel=True, exc_info=sys.exc_info())

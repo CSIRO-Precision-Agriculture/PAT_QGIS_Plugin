@@ -401,12 +401,13 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
                                                invert=raster_sym['invert'])
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
-
+            self.lneSaveFile.setText('')
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
             QApplication.restoreOverrideCursor()
 
-            return super(KMeansClusterDialog, self).accept(*args, **kwargs)
+            #return super(KMeansClusterDialog, self).accept(*args, **kwargs)
+            return False # leave dialog open
 
         except Exception as err:
             self.iface.mainWindow().statusBar().clearMessage()

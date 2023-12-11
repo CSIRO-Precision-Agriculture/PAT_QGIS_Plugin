@@ -38,6 +38,7 @@ import logging
 from datetime import date, datetime
 import requests
 from pkg_resources import parse_version, get_distribution, DistributionNotFound
+from packaging.version import Version, parse as parse_version
 
 from qgis.PyQt.QtWidgets import QMessageBox
 import qgis
@@ -305,8 +306,12 @@ def check_python_dependencies(plugin_path, iface):
     try:
         # comes from metadata.txt
         from qgis.utils import pluginMetadata
-        meta_version = '{} {} '.format(pluginMetadata('pat', 'version'), pluginMetadata('pat', 'update_date'))
+        meta_version= {'version':pluginMetadata('pat', 'version'), 'date':pluginMetadata('pat', 'release_date')}
+        settings_version = read_setting(PLUGIN_NAME + "/PAT_VERSION")
 
+        if settings_version is not None:
+            settings_version = settings_version.strip()
+            settings_version= {'version':settings_version.split(' ')[0], 'date':settings_version.split(' ')[1]}
         # # get the list of wheels matching the gdal version
         # if not os.environ.get('GDAL_VERSION', None):
         #     gdal_ver = osgeo.gdal.__version__
@@ -444,18 +449,17 @@ def check_python_dependencies(plugin_path, iface):
             return(message)
         else:
 
-            settings_version = read_setting(PLUGIN_NAME + "/PAT_VERSION")
 
             if settings_version is None:
                 LOGGER.info('Successfully installed and setup PAT {}'.format(meta_version))
             else:
-                if parse_version(meta_version) > parse_version(settings_version):
+                if parse_version(meta_version['version']) > parse_version(settings_version['version']):
                     LOGGER.info('Successfully upgraded and setup PAT from {} to {})'.format(settings_version, meta_version))
 
-                elif parse_version(meta_version) < parse_version(settings_version):
+                elif parse_version(meta_version['version']) < parse_version(settings_version['version']):
                     LOGGER.info('Successfully downgraded and setup PAT from {} to {})'.format(settings_version, meta_version))
 
-            write_setting(PLUGIN_NAME + '/PAT_VERSION', meta_version)
+            write_setting(PLUGIN_NAME + '/PAT_VERSION', f'{meta_version["version"]} {meta_version["date"]}')
 
             if os.path.exists(shortcutPath):
                 os.remove(shortcutPath)
@@ -569,7 +573,7 @@ def get_plugin_state(level='full'):
         plug_state += '\nPAT Version :\n'
     
     plug_state += '    {:20}\t{} {}\n'.format('PAT :', pluginMetadata('pat', 'version'),
-                                                    pluginMetadata('pat', 'update_date'))
+                                                    pluginMetadata('pat', 'release_date'))
     
     plug_state += '    {:20}\t{}\n'.format('Log File :', read_setting(PLUGIN_NAME + '/LOG_FILE'))
 

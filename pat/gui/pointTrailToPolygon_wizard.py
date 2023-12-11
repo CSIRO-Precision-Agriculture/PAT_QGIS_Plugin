@@ -64,6 +64,8 @@ from util.custom_logging import errorCatcher, openLogPanel
 
 from util.qgis_symbology import vector_apply_unique_value_renderer
 
+from pat.util.qgis_common import vectorlayer_to_geodataframe
+
 
 class PandasModel(QtCore.QAbstractTableModel):
     """
@@ -156,7 +158,9 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                 self.default_vals[obj.objectName()] = obj.value()
 
         self.stackedWidget.setCurrentIndex(0)
+        self.update_prev_next_buttons()
         self.stackedWidget.currentChanged.connect(self.update_prev_next_buttons)
+        
         self.button_box.button(QDialogButtonBox.Ok).setVisible(False)
 
         self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.PointLayer)
@@ -281,7 +285,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cmdBack_clicked')
     def on_cmdBack_clicked(self):
         self.button_box.button(QDialogButtonBox.Ok).setVisible(False)
-        self.cmdNext.setVisible(True)
+        #self.cmdNext.setVisible(True)
 
         idx = self.stackedWidget.currentIndex()
         widget_page = self.stackedWidget.currentWidget().objectName()
@@ -296,7 +300,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
     @QtCore.pyqtSlot(name='on_cmdNext_clicked')
     def on_cmdNext_clicked(self):
         self.button_box.button(QDialogButtonBox.Ok).setVisible(False)
-        self.cmdNext.setVisible(True)
+#        self.cmdBack.setVisible(True)
 
         if self.validate():
             idx = self.stackedWidget.currentIndex()
@@ -308,7 +312,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     self.loadTablePreview()
 
                     # set default coordinate system
-                    self.qgsCRScsv.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(4326))
+                    self.mCRScsv.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(4326))
                     self.stackedWidget.setCurrentIndex(idx + 1)
                     
                 else:
@@ -319,7 +323,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     
             if self.stackedWidget.currentIndex() == self.stackedWidget.count()-1:
                 self.button_box.button(QDialogButtonBox.Ok).setVisible(True)
-                self.cmdNext.setVisible(False)
+                #self.cmdNext.setVisible(False)
                 self.getOutputCRS()
 
                 crs_units = QgsUnitTypes.toString(self.mCRSoutput.crs().mapUnits())
@@ -468,7 +472,10 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
     def update_prev_next_buttons(self):
         i = self.stackedWidget.currentIndex()
-        self.cmdBack.setEnabled(i > 0)
+        self.cmdBack.setVisible(i > 0)
+        self.cmdNext.setVisible(i < self.stackedWidget.count()-1)
+
+        self.button_box.button(QDialogButtonBox.Ok).setVisible(i == self.stackedWidget.count()-1)
 
     def resetFormToDefaults(self):
         for name, obj in inspect.getmembers(self):
@@ -576,7 +583,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
             x = float(df[self.cboXField.currentText()].min())
             y = float(df[self.cboYField.currentText()].min())
 
-            out_crs = get_UTM_Coordinate_System(x,y, self.qgsCRScsv.crs().authid())
+            out_crs = get_UTM_Coordinate_System(x,y, self.mCRScsv.crs().authid())
 
 
         if out_crs:
@@ -630,7 +637,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     else:
                         self.lblYField.setStyleSheet('color:black')
 
-                    if self.qgsCRScsv.crs().isValid():
+                    if self.mCRScsv.crs().isValid():
                         self.lblInCRSTitle.setStyleSheet('color:black')
                     else:
                         self.lblInCRSTitle.setStyleSheet('color:red')
@@ -711,7 +718,9 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
             # Change cursor to Wait cursor
             QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
-            self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
+            if self.iface.mainWindow():
+                self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
+
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
                                     level=Qgis.Warning,
                                     duration=0, addToLog=False, core_QGIS=False, showLogPanel=True)
@@ -725,8 +734,8 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                 settingsStr += '\n    {:30}\t{}'.format('File:', self.lneInCSVFile.text())
                 settingsStr += '\n    {:30}\t{}, {}'.format('Geometry Fields:', self.cboXField.currentText(),
                                                             self.cboYField.currentText())
-                settingsStr += '\n    {:30}\t{} - {}'.format('CSV Coordinate System:', self.qgsCRScsv.crs().authid(),
-                                                              self.qgsCRScsv.crs().description())
+                settingsStr += '\n    {:30}\t{} - {}'.format('CSV Coordinate System:', self.mCRScsv.crs().authid(),
+                                                              self.mCRScsv.crs().description())
             else:
                 if self.chkUseSelected.isChecked():
                     settingsStr += '\n    {:30}\t{} with {} selected features'.format('Layer:',
@@ -754,17 +763,16 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
             stepTime = time.time()
 
             if self.optFile.isChecked():
-                in_epsg = int(self.qgsCRScsv.crs().authid().replace('EPSG:',''))
-                in_crs = self.qgsCRScsv.crs()
+                in_epsg = int(self.mCRScsv.crs().authid().replace('EPSG:',''))
+                in_crs = self.mCRScsv.crs()
             else:
                 in_epsg =self.mcboTargetLayer.currentLayer().crs().authid().replace('EPSG:','')
                 in_crs = self.mcboTargetLayer.currentLayer().crs()
 
             out_epsg = int(self.mCRSoutput.crs().authid().replace('EPSG:',''))
 
-            filePoly = None
-
             gdfPoints = None
+            filePoly = None
             filePoints = None
 
             if self.optFile.isChecked():
@@ -772,7 +780,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     filePoints = os.path.join(TEMPDIR, os.path.splitext(os.path.basename(self.lneSavePolyFile.text()))[0] + '_table2pts.shp')
 
                 if os.path.splitext(self.lneInCSVFile.text())[-1] == '.csv':
-                    gdfPoints, gdfPtsCrs = convert.convert_csv_to_points(self.lneInCSVFile.text() , out_shapefilename=filePoints,
+                    gdfPoints, _ = convert.convert_csv_to_points(self.lneInCSVFile.text() , out_shapefilename=filePoints,
                                                                          coord_columns=[self.cboXField.currentText(),
                                                                                         self.cboYField.currentText()],
                                                                          coord_columns_epsg=in_epsg)
@@ -782,7 +790,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     pdfxls = xls_file.parse(self.sheet(), skiprows=self.linesToIgnore() - 1)
                     del xls_file
 
-                    gdfPoints, gdfPtsCrs = convert.add_point_geometry_to_dataframe(pdfxls,
+                    gdfPoints, _ = convert.add_point_geometry_to_dataframe(pdfxls,
                                                                                    coord_columns=[
                                                                                        self.cboXField.currentText(),
                                                                                        self.cboYField.currentText()],
@@ -802,48 +810,12 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
             else:
                 layerPts = self.mcboTargetLayer.currentLayer()
-
-                if layerPts.providerType() == 'delimitedtext' or \
-                        os.path.splitext(get_layer_source(layerPts))[-1] == '.vrt' or \
-                        self.chkUseSelected.isChecked() or self.optFile.isChecked():
-
-                    filePoints = os.path.join(TEMPDIR, "{}_points.shp".format(layerPts.name()))
-
-                    if self.chkUseSelected.isChecked():
-                        filePoints = os.path.join(TEMPDIR, "{}_selected_points.shp".format(layerPts.name()))
-
-                    if os.path.exists(filePoints):
-                        removeFileFromQGIS(filePoints)
-
-                    ptsLayer = copyLayerToMemory(layerPts, layerPts.name() + "_memory", bAddUFI=True,
-                                                 bOnlySelectedFeat=self.chkUseSelected.isChecked())
-
-                    _writer = QgsVectorFileWriter.writeAsVectorFormat(ptsLayer, filePoints, "utf-8",
-                                                                      self.mCRSoutput.crs(), driverName="ESRI Shapefile")
-
-                    LOGGER.info('{:<30} {d:<15} {}'.format('Save layer/selection to file',filePoints,
-                                                          d=str(timedelta(seconds=time.time() - stepTime) )))
-                    stepTime = time.time()
-
-                    del ptsLayer
-
-                    if self.DISP_TEMP_LAYERS:
-                        addVectorFileToQGIS(filePoints, layer_name=os.path.splitext(os.path.basename(filePoints))[0],
-                                            group_layer_name='DEBUG', atTop=True)
-
-                else:
-                    filePoints = get_layer_source(layerPts)
-
-            if gdfPoints is None:
-                ptsDesc = describe.VectorDescribe(filePoints)
-                gdfPtsCrs = ptsDesc.crs
-                gdfPoints = ptsDesc.open_geo_dataframe()
+                gdfPoints = vectorlayer_to_geodataframe(layerPts,
+                                                        bOnlySelectedFeatures=self.chkUseSelected.isChecked())
 
             if in_crs.authid() != self.mCRSoutput.crs().authid():
 
                 gdfPoints = gdfPoints.to_crs(epsg=out_epsg)
-                gdfPtsCrs = pyprecag_crs.crs()
-                gdfPtsCrs.getFromEPSG(out_epsg)
 
                 LOGGER.info('{:<30} {d:<15} {} to {}'.format('Reproject points', in_crs.authid(),
                                                              self.mCRSoutput.crs().authid(),
@@ -868,7 +840,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                 describe.save_geopandas_tofile(gdfPoints, self.lneSavePointsFile.text())
 
             stepTime = time.time()
-            result = processing.create_polygon_from_point_trail(gdfPoints, gdfPtsCrs,
+            result = processing.create_polygon_from_point_trail(gdfPoints, None,
                                                                 out_filename=self.lneSavePolyFile.text(),
                                                                 thin_dist_m=self.dsbThinDist.value(),
                                                                 aggregate_dist_m=self.dsbAggregateDist.value(),
@@ -881,10 +853,11 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
             self.stackedWidget.setDisabled(False)
             QApplication.restoreOverrideCursor()
             self.iface.messageBar().popWidget()
-            self.iface.mainWindow().statusBar().clearMessage()
+            if self.iface.mainWindow():
+                self.iface.mainWindow().statusBar().clearMessage()
 
-            if result is not None:
-                self.fraMain.setDisabled(False)
+            if isinstance(result ,str):
+                #self.fraMain.setDisabled(False)
                 self.send_to_messagebar(result, level=Qgis.Warning, duration=0, addToLog=False)
                 return False  # leave dialog open
 
@@ -892,7 +865,8 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
 
         except Exception as err:
             QApplication.restoreOverrideCursor()
-            self.iface.mainWindow().statusBar().clearMessage()
+            if self.iface.mainWindow():
+                self.iface.mainWindow().statusBar().clearMessage()
             self.cleanMessageBars(True)
             self.stackedWidget.setDisabled(False)
 

@@ -21,6 +21,8 @@
 """
 import six
 from future import standard_library
+from qgis._core import QgsVectorFileWriter
+
 standard_library.install_aliases()
 import logging
 import os
@@ -39,7 +41,7 @@ from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 from qgis.utils import iface
 from qgis.core import (QgsProject, QgsProviderRegistry, QgsMapLayer, QgsVectorLayer, QgsRasterLayer,
                        QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,
-                       QgsFeature, QgsField)
+                       QgsFeature, QgsField, NULL)
 
 from pat import LOGGER_NAME
 
@@ -48,18 +50,18 @@ LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
 from pyprecag import crs
 
-dataTypes = {0:'Unk',1:'Byte',2:'UInt16',3:'Int16',4:'UInt32',5:'Int32',
-            6:'Float32', 7:'Float64' , 8:'CInt16', 9:'CInt32' , 10:'CFloat32',
-            11:'CFloat64'}
+dataTypes = {0: 'Unk', 1: 'Byte', 2: 'UInt16', 3: 'Int16', 4: 'UInt32', 5: 'Int32',
+             6: 'Float32', 7: 'Float64', 8: 'CInt16', 9: 'CInt32', 10: 'CFloat32',
+             11: 'CFloat64'}
 
-layerTypes= {0:'VectorLayer',  1:'RasterLayer',2:'PluginLayer',3:'MeshLayer',4:"VectorTileLayer"}     
+layerTypes = {0: 'VectorLayer', 1: 'RasterLayer', 2: 'PluginLayer', 3: 'MeshLayer', 4: "VectorTileLayer"}
 
 
 def get_UTM_Coordinate_System(x, y, epsg):
     """ Determine a utm coordinate system either from coordinates"""
     if epsg == '':
         return QgsCoordinateReferenceSystem()
-    
+
     if isinstance(epsg, six.string_types):
         epsg = int(epsg.upper().replace('EPSG:', ''))
 
@@ -82,12 +84,12 @@ def check_for_overlap(rect1, rect2, crs1='', crs2=''):
         Input rect format is a shapely polygon object
           'POLYGON((288050 6212792, 288875 6212792, 288875 6212902, 288050, 288050))'"""
     import shapely.wkt
-    if isinstance(rect1,str):
+    if isinstance(rect1, str):
         rect1 = wkt.loads(rect1)
-    
-    if isinstance(rect2,str):
+
+    if isinstance(rect2, str):
         rect2 = wkt.loads(rect2)
-    
+
     if crs1 != '':
         gdf1 = gpd.GeoDataFrame({'geometry': [rect1]}, crs=crs1)
     else:
@@ -114,18 +116,18 @@ def get_pixel_size(layer):
         ft = 'g'  # this will convert 2.0 to 2 or 0.5, '0.5'
 
     pixel_units = QgsUnitTypes.toAbbreviatedString(layer.crs().mapUnits())
-    
+
     # Adjust for Aust/UK spelling
-    #pixel_units = pixel_units.replace('meters', 'metres')
+    # pixel_units = pixel_units.replace('meters', 'metres')
     pixel_size = format(layer.rasterUnitsPerPixelX(), ft)
 
-    #Convert to float or int
-    #pixel_size = int(float(pixel_size)) if int(float(pixel_size)) == float(pixel_size) else float(pixel_size)
+    # Convert to float or int
+    # pixel_size = int(float(pixel_size)) if int(float(pixel_size)) == float(pixel_size) else float(pixel_size)
 
     return pixel_size, pixel_units, ft
 
 
-def build_layer_table(layer_list=None,only_raster_boundingbox=True):
+def build_layer_table(layer_list=None, only_raster_boundingbox=True):
     """Build a table of layer properties.
     Can be used in conjunction with selecting layers to exclude from mapcomboboxes
 
@@ -141,11 +143,6 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
 
     dest_crs = QgsProject.instance().crs()
 
-    gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source','format',
-                                           'epsg', 'crs_name', 'is_projected', 'extent', 'provider','geometry'],
-                                           geometry='geometry', crs=dest_crs.authid())  # pd.DataFrame()
-
-
     if layer_list is None or len(layer_list) == 0:
         layermap = QgsProject.instance().mapLayers().values()
 
@@ -158,41 +155,41 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
         if layer.type() not in [QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer]:
             continue
 
-        if layer.providerType() not in ['ogr','gdal','delimitedtext']:
+        if layer.providerType() not in ['ogr', 'gdal', 'delimitedtext']:
             continue
-        
+
         if layer.type() == QgsMapLayer.VectorLayer:
             format = layer.dataProvider().storageType()
         else:
-            format=None
-            
+            format = None
+
         if layer.crs().isValid() and layer.crs().authid() == '':
             # Try and convert older style coordinates systems
             # were correctly definied in QGIS 2 as GDA94 / MGA zone 54 
             # but get interpreted in QGIS 3 as  Unknown CRS: BOUNDCRS[SOURCECRS[PROJCRS["GDA94 / MGA zone 54",.....
-            
+
             layer_crs = QgsCoordinateReferenceSystem()
             if not layer_crs.createFromProj(layer.crs().toWkt()):
-                #print('Could not match a coordinate system for {}'.format(layer.id()))
+                # print('Could not match a coordinate system for {}'.format(layer.id()))
                 layer_crs = layer.crs()
-                
+
                 # could apply to the layer, but what if it's wrong....
-                #layer.setCrs(layer_crs)
-            
-        else: 
+                # layer.setCrs(layer_crs)
+
+        else:
             layer_crs = layer.crs()
-        
+
         # project the bounding box extents to be the same as the qgis project.
         if layer_crs.authid() != dest_crs.authid():
             transform = QgsCoordinateTransform(layer_crs, dest_crs, QgsProject.instance())
-            prj_ext  = transform.transformBoundingBox(layer.extent())
+            prj_ext = transform.transformBoundingBox(layer.extent())
         else:
-            prj_ext  = layer.extent()
+            prj_ext = layer.extent()
 
         row_dict = {'layer': layer,
                     'layer_name': layer.name(),
                     'layer_id': layer.id(),
-                    'layer_type': layerTypes[ layer.type()],
+                    'layer_type': layerTypes[layer.type()],
                     'format': format,
                     'source': get_layer_source(layer),
                     'epsg': layer_crs.authid(),
@@ -201,7 +198,7 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
                     'provider': layer.providerType(),
                     'geometry': wkt.loads(prj_ext.asWktPolygon())}
 
-            # 'extent': prj_ext.asWktPolygon(),
+        # 'extent': prj_ext.asWktPolygon(),
 
         if layer.type() == QgsMapLayer.RasterLayer:
             pixel_size = get_pixel_size(layer)
@@ -212,37 +209,33 @@ def build_layer_table(layer_list=None,only_raster_boundingbox=True):
                                                            transform=src.transform)
                 try:
                     results = ({'properties': {'raster_val': v}, 'geometry': s} for i, (s, v) in enumerate(rast_shapes))
-    
+
                     geoms = list(results)
                     gpd_rPoly = gpd.GeoDataFrame.from_features(geoms, crs=layer.crs().authid())
                     dest_crs.authid().replace('epgs:', '')
                     gpd_rPoly.to_crs(dest_crs.authid().replace('epgs:', ''), inplace=True)
                     row_dict.update({'geometry': gpd_rPoly.unary_union})
-    
-                    del gpd_rPoly, results, msk,rast_shapes
+
+                    del gpd_rPoly, results, msk, rast_shapes
                 except:
                     pass
 
             row_dict.update({'bandcount': layer.bandCount(),
-                        'datatype':dataTypes[layer.dataProvider().dataType(1)],
-                        'pixel_size': pixel_size[0],
-                        'pixel_text': '{} {}'.format(*pixel_size),
-                        })
+                             'datatype': dataTypes[layer.dataProvider().dataType(1)],
+                             'pixel_size': pixel_size[0],
+                             'pixel_text': '{} {}'.format(*pixel_size),
+                             })
 
         new_rows.append(row_dict)
 
-#    gdf_layers = gpd.GeoDataFrame(new_rows, geometry='extent')
-
     if len(new_rows) == 0:
-        return gdf_layers
+        # create an empty geodataframe
+        gdf_layers = gpd.GeoDataFrame(columns=['layer', 'layer_name', 'layer_id', 'layer_type', 'source','format',
+                                           'epsg', 'crs_name', 'is_projected', 'extent', 'provider','geometry'],
+                                           geometry='geometry', crs=dest_crs.authid())
+    else:
+        gdf_layers = gpd.GeoDataFrame(new_rows, crs=dest_crs.authid())
 
-    # for pandas 0.23.4 add sort=False to prevent row and column orders to change.
-    try:
-        gdf_layers = gdf_layers.append(new_rows, ignore_index=True, sort=False)
-    except:
-        gdf_layers = gdf_layers.append(new_rows, ignore_index=True)
-
-    #df_layers.set_geometry('geometry')
     return gdf_layers
 
 
@@ -251,7 +244,7 @@ def get_layer_source(layer):
     layer.source() sometimes returns  'C:/data/Temp/My_points_wgs84.shp|layername=My_points_wgs84' 
     so this will break this down and return only the path.
     """
-    
+
     result = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.dataProvider().dataSourceUri())
 
     if not 'path' in result.keys():
@@ -261,11 +254,12 @@ def get_layer_source(layer):
     if len(result) == 0 or result['path'] == '':
         layer_path = layer.source()
     else:
-        layer_path = result['path'] 
-        
+        layer_path = result['path']
+
     layer_path = os.path.normpath(layer_path)
 
-    return layer_path 
+    return layer_path
+
 
 def save_as_dialog(dialog, caption, file_filter, default_name=''):
     s, f = QFileDialog.getSaveFileName(
@@ -306,7 +300,7 @@ def file_in_use(filename, display_msgbox=True):
         # Try and open the file. If in use creates IOError: [Errno 13] Permission denied error
         with open(filename, "a") as f:
             pass
-        
+
     except IOError:
         reply = QMessageBox.question(None, 'File in Use',
                                      '{} is currently in use.\nPlease close the file or use a'
@@ -469,23 +463,41 @@ def getGeometryTypeAsString(intGeomType):
 
     """
     geom_type_str = {0: 'Unknown', 1: 'Point', 2: 'LineString', 3: 'Polygon', 4: 'MultiPoint',
-                   5: 'MultiLineString', 6: 'MultiPolygon', 7: 'GeometryCollection',
-                   8: 'CircularString', 9: 'CompoundCurve', 10: 'CurvePolygon', 11: 'MultiCurve',
-                   12: 'MultiSurface', 100: 'NoGeometry', 1001: 'PointZ', 1002: 'LineStringZ',
-                   1003: 'PolygonZ', 1004: 'MultiPointZ', 1005: 'MultiLineStringZ',
-                   1006: 'MultiPolygonZ', 1007: 'GeometryCollectionZ', 1008: 'CircularStringZ',
-                   1009: 'CompoundCurveZ', 1010: 'CurvePolygonZ', 1011: 'MultiCurveZ',
-                   1012: 'MultiSurfaceZ', 2001: 'PointM', 2002: 'LineStringM', 2003: 'PolygonM',
-                   2004: 'MultiPointM', 2005: 'MultiLineStringM', 2006: 'MultiPolygonM',
-                   2007: 'GeometryCollectionM', 2008: 'CircularStringM', 2009: 'CompoundCurveM',
-                   2010: 'CurvePolygonM', 2011: 'MultiCurveM', 2012: 'MultiSurfaceM',
-                   3001: 'PointZM', 3002: 'LineStringZM', 3003: 'PolygonZM', 3004: 'MultiPointZM',
-                   3005: 'MultiLineStringZM', 3006: 'MultiPolygonZM', 3007: 'GeometryCollectionZM',
-                   3008: 'CircularStringZM', 3009: 'CompoundCurveZM', 3010: 'CurvePolygonZM',
-                   3011: 'MultiCurveZM', 3012: 'MultiSurfaceZM'}
+                     5: 'MultiLineString', 6: 'MultiPolygon', 7: 'GeometryCollection',
+                     8: 'CircularString', 9: 'CompoundCurve', 10: 'CurvePolygon', 11: 'MultiCurve',
+                     12: 'MultiSurface', 100: 'NoGeometry', 1001: 'PointZ', 1002: 'LineStringZ',
+                     1003: 'PolygonZ', 1004: 'MultiPointZ', 1005: 'MultiLineStringZ',
+                     1006: 'MultiPolygonZ', 1007: 'GeometryCollectionZ', 1008: 'CircularStringZ',
+                     1009: 'CompoundCurveZ', 1010: 'CurvePolygonZ', 1011: 'MultiCurveZ',
+                     1012: 'MultiSurfaceZ', 2001: 'PointM', 2002: 'LineStringM', 2003: 'PolygonM',
+                     2004: 'MultiPointM', 2005: 'MultiLineStringM', 2006: 'MultiPolygonM',
+                     2007: 'GeometryCollectionM', 2008: 'CircularStringM', 2009: 'CompoundCurveM',
+                     2010: 'CurvePolygonM', 2011: 'MultiCurveM', 2012: 'MultiSurfaceM',
+                     3001: 'PointZM', 3002: 'LineStringZM', 3003: 'PolygonZM', 3004: 'MultiPointZM',
+                     3005: 'MultiLineStringZM', 3006: 'MultiPolygonZM', 3007: 'GeometryCollectionZM',
+                     3008: 'CircularStringZM', 3009: 'CompoundCurveZM', 3010: 'CurvePolygonZM',
+                     3011: 'MultiCurveZM', 3012: 'MultiSurfaceZM'}
     # , 0x80000001: 'Point25D', : 'LineString25D', : 'Polygon25D', : 'MultiPoint25D',
     # : 'MultiLineString25D', : 'MultiPolygon25D'}
     return geom_type_str[intGeomType]
+
+
+def open_close_python_console():
+    """ Open and close the python console
+    This is a workaround for getting gui message bar to appear
+    """
+    try:
+        b_python_console_open = False
+        python_console_panel = iface.mainWindow().findChild(QDockWidget, 'PythonConsole')
+        b_python_console_open = python_console_panel.isVisible()
+        if not python_console_panel.isVisible():
+            iface.actionShowPythonDialog().trigger()
+    except:
+        # the above will bail if sitting on RecentProjects empty view.
+        iface.actionShowPythonDialog().trigger()
+
+    if not b_python_console_open:
+        iface.actionShowPythonDialog().trigger()
 
 
 def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
@@ -504,8 +516,8 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
 
     # Create an in memory layer and add UFI
     mem_layer = QgsVectorLayer("{}?crs={}&index=yes".format(getGeometryTypeAsString(layer.wkbType()),
-                                                           layer.crs().authid()), layer_name,
-                              "memory")
+                                                            layer.crs().authid()), layer_name,
+                               "memory")
     if not mem_layer.isValid():
         raise Exception('Could not create memory Layer called {}'
                         ' from layer {}'.format(layer_name, layer.name()))
@@ -579,19 +591,51 @@ def copyLayerToMemory(layer, layer_name, bOnlySelectedFeat=False, bAddUFI=True):
     return mem_layer
 
 
-def open_close_python_console():
-    """ Open and close the python console
-    This is a workaround for getting gui message bar to appear
+def vectorlayer_to_geodataframe(layer: QgsVectorLayer, bOnlySelectedFeatures=False):
+    """Convert a vector layer to geodataframe while maintaining nulls and dtypes
     """
-    try:
-        b_python_console_open = False
-        python_console_panel = iface.mainWindow().findChild(QDockWidget, 'PythonConsole')
-        b_python_console_open = python_console_panel.isVisible()
-        if not python_console_panel.isVisible():
-            iface.actionShowPythonDialog().trigger()
-    except:
-        # the above will bail if sitting on RecentProjects empty view.
-        iface.actionShowPythonDialog().trigger()
+    if not isinstance(layer, QgsVectorLayer):
+        raise TypeError('layer must be a QgsVectorLayer')
 
-    if not b_python_console_open:
-        iface.actionShowPythonDialog().trigger()
+    if bOnlySelectedFeatures and layer.selectedFeatureCount() > 0:
+        gdf = gpd.GeoDataFrame.from_features(layer.getSelectedFeatures(), crs=layer.crs().authid())
+    else:
+        gdf = gpd.GeoDataFrame.from_features(layer.getFeatures(), crs=layer.crs().authid())
+
+    # convert qgis.core.NULL to pandas NA np.nan
+    for col in gdf.select_dtypes(include='object'):
+        if len(gdf.loc[gdf[col] == NULL]):
+            gdf.loc[gdf[col] == NULL, col] = np.nan
+
+            # reset dtype to something suitable
+            gdf[col] = gdf[col].infer_objects()
+
+    return gdf
+
+
+def save_layer_to_shapefile(layer: QgsVectorLayer, out_filename, onlySelected=False, target_crs=None):
+    # https://gis.stackexchange.com/a/465050
+    if not isinstance(layer, QgsVectorLayer):
+        raise TypeError('layer must be a QgsVectorLayer')
+    if target_crs is not None and not isinstance(target_crs, QgsCoordinateReferenceSystem):
+        raise TypeError('target_crs must be a QgsCoordinateTransform')
+
+    # prepare transform
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = 'ESRI Shapefile'
+    options.onlySelectedFeatures = onlySelected
+    options.fileEncoding = 'utf-8'
+
+    if target_crs is not None:
+        tr = QgsCoordinateTransform(layer.crs(), target_crs, QgsProject.instance())
+        options.ct = tr
+
+    write_result, error_message, new_file, layer_name = QgsVectorFileWriter.writeAsVectorFormatV3(
+        layer,
+        out_filename,
+        QgsProject.instance().transformContext(),
+        options)
+
+    new_layer = QgsVectorLayer(new_file, layer_name, "ogr")
+
+    return new_layer

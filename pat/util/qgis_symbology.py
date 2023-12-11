@@ -137,6 +137,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
                               num_classes)
 
     renderer.shader().rasterShaderFunction().setLabelPrecision(n_decimals)
+    renderer.shader().rasterShaderFunction().classifyColorRamp(classes=num_classes,band=band_num,extent=raster_layer.extent())
 
     # Round values off to the nearest decimal place and construct the label
     # get the newly created values and classes
@@ -145,7 +146,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
     # iterate the values rounding and creating a range label.
     new_lst = []
     for i, (value, color) in enumerate(color_shader.legendSymbologyItems(), start=1):
-        value = float('{:.{dp}}g}'.format(float(value), dp=n_decimals))
+        value = float('{:.{dp}f}'.format(float(value),dp=n_decimals))
         if i == 1:
             label = "<= {}".format(value)
         elif i == len(color_shader.legendSymbologyItems()):

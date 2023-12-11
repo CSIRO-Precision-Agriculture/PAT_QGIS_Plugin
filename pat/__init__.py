@@ -24,19 +24,16 @@ from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 
-import configparser
-
 import os
 import sys
-import site
 import platform
 import tempfile
-import osgeo.gdal
+
 import logging
 from . import resources  # import resources like icons for the plugin
 
-from qgis.core import Qgis, QgsApplication
-from qgis.gui import QgsMessageBar
+from qgis.core import Qgis
+
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.utils import pluginMetadata
  
@@ -124,6 +121,7 @@ def classFactory(iface):
         sys.exit(check_py)
     
     check_pat_symbols()
+    #check_R_dependency()
 
     from .pat_toolbar import pat_toolbar
     return pat_toolbar(iface)

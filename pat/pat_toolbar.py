@@ -477,7 +477,9 @@ class pat_toolbar(object):
         # self.clear_modules()
 
     def queueAddTo(self, vesp_dict):
-        """ Add a control file to the VESPER queue"""
+        """ Add a control file to the VESPER queue
+        TODO: Investigate moving VESPER queue to QgsTask
+        https://docs.qgis.org/3.28/en/docs/pyqgis_developer_cookbook/tasks.html"""
 
         if next((x for x in self.vesper_queue if x['control_file'] == vesp_dict["control_file"])
                 , None) is not None:
@@ -1039,10 +1041,11 @@ class pat_toolbar(object):
 
     def run_blockGrid(self):
         """Run method for the block grid dialog"""
+
         dlgBlockGrid = BlockGridDialog(self.iface)
 
         # Show the dialog
-        dlgBlockGrid.show()
+        dlgBlockGrid.open()
 
         if dlgBlockGrid.exec_():
             message = 'Block grid completed successfully !'

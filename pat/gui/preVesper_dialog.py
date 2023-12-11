@@ -37,7 +37,7 @@ from qgis.PyQt.QtWidgets import QMessageBox, QPushButton, QApplication, QFileDia
 from qgis.PyQt.QtGui import QIntValidator
 
 from qgis.gui import QgsMessageBar
-from qgis.core import QgsCoordinateReferenceSystem, QgsApplication, QgsMessageLog, Qgis
+from qgis.core import Qgis, QgsProject, QgsExpressionContextUtils, QgsCoordinateReferenceSystem, QgsApplication, QgsMessageLog
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import describe, config
@@ -61,7 +61,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
 
     def __init__(self, iface, parent=None):
 
-        super(PreVesperDialog, self).__init__(iface.mainWindow())
+        super(PreVesperDialog, self).__init__(parent)
 
         # Set up the user interface from Designer.
         self.setupUi(self)
@@ -102,8 +102,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
 
         # this is a validation flag
         self.OverwriteCtrlFile = False
-        self.cboMethod.addItems(
-            ['High Density Kriging', 'Low Density Kriging (Advanced)'])
+        self.cboMethod.addItems(['High Density Kriging', 'Low Density Kriging (Advanced)'])
 
         # To allow only integers for the min number of pts.
         self.onlyInt = QIntValidator()
@@ -115,6 +114,35 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.gbRunVesper.setChecked(False)
             self.gbRunVesper.setCheckable(False)
             self.gbRunVesper.setEnabled(False)
+
+        # Read previously used settings from project variables.
+        project = QgsProject.instance()
+        for key,obj in [('PAT-Vesp-CSV',self.lneInCSVFile),
+                        ('PAT-Vesp-GRID',self.lneInGridFile),
+                        ('PAT-Vesp-OutDir',self.lneVesperFold)]:
+            val = QgsExpressionContextUtils.projectScope(project).variable(key)
+            if val:
+                if os.path.exists(val):
+                    obj.setText(val)
+        
+        
+        self.check_csv(self.lneInCSVFile.text())
+        overlaps, message = self.validate_csv_grid_files(self.lneInCSVFile.text(), self.lneInGridFile.text())
+
+        epsg = QgsExpressionContextUtils.projectScope(project).variable('PAT-Vesp-CRS')
+        
+        if not self.mCRSinput.crs().isValid() and epsg is not None:
+            self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(int(epsg.replace('EPSG:',''))))
+            
+        if not overlaps or message is not None:
+            self.lblInCSVFile.setStyleSheet('color:red')
+            self.lneInCSVFile.setStyleSheet('color:red')
+
+            self.send_to_messagebar(message,
+                                    level=Qgis.Critical,
+                                    duration=0, addToLog=True, showLogPanel=True,
+                                    exc_info=sys.exc_info())
+        
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -211,9 +239,9 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 ctrl_name = re.sub(fld, '', ctrl_name, flags=re.I)
 
             if self.cboMethod.currentText() == 'High Density Kriging':
-                krig_type = 'HighDensity'
+                krig_type = 'HD'
             else:
-                krig_type = 'LowDensity'
+                krig_type = 'LD'
 
             # add the chosen field name to the control filename
             ctrl_name = '{}_{}_{}_control'.format(ctrl_name, krig_type, fld)
@@ -276,8 +304,17 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lblInCSVFile.setStyleSheet('color:black')
         self.lneInCSVFile.setStyleSheet('color:black')
         self.lneInCSVFile.setText(s)
-
-        descCSV = describe.CsvDescribe(s)
+        self.check_csv(s)
+        write_setting(PLUGIN_NAME + "/" + self.toolKey +
+                      "/LastInFolder_CSV", os.path.dirname(s))
+        
+        self.updateCtrlFileName()
+    
+    def check_csv(self,csv_file):
+        
+        if csv_file is None or not os.path.exists(csv_file): return 
+        
+        descCSV = describe.CsvDescribe(csv_file)
         self.dfCSV = descCSV.open_pandas_dataframe(nrows=150)
 
         if len(self.dfCSV) <= 100:
@@ -308,10 +345,6 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         if epsg > 0:
             self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(epsg))
 
-        write_setting(PLUGIN_NAME + "/" + self.toolKey +
-                      "/LastInFolder_CSV", os.path.dirname(s))
-        del descCSV
-        self.updateCtrlFileName()
 
     @QtCore.pyqtSlot(name='on_cmdInGridFile_clicked')
     def on_cmdInGridFile_clicked(self):
@@ -697,17 +730,25 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             LOGGER.info('{st}\nProcessing {} {}'.format(
                 self.windowTitle(), message, st='*' * 50))
 
+            project = QgsProject.instance()
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
             settingsStr += '\n    {:30}\t{}'.format('Data File:', self.lneInCSVFile.text())
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-CSV', self.lneInCSVFile.text())
 
             settingsStr += '\n    {:30}\t{} - {}'.format('Input Projected Coordinate System:',
                                                          self.mCRSinput.crs().authid(),
                                                          self.mCRSinput.crs().description())
-
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-CRS', self.mCRSinput.crs().authid())
+            
             settingsStr += '\n    {:30}\t{}'.format('Krige Column:', self.cboKrigColumn.currentText())
+            
             settingsStr += '\n    {:30}\t{}'.format('Grid File:', self.lneInGridFile.text())
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-GRID', self.lneInGridFile.text())
+
             settingsStr += '\n    {:30}\t{}'.format('Output Vesper Folder:', self.lneVesperFold.text())
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-OutDir', self.lneVesperFold.text())
+
             settingsStr += '\n    {:30}\t{}'.format('Control File:', self.lneCtrlFile.text())
 
             settingsStr += '\n    {:30}\t{}'.format('Mode:',self.cboMethod.currentText())
