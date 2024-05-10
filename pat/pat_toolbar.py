@@ -1094,7 +1094,7 @@ class pat_toolbar(object):
 
     def run_help(self):
         """Open the help PDF"""
-        webbrowser.open_new('file:///' + os.path.join(PLUGIN_DIR, 'PAT_User_Manual.pdf#pagemode=bookmarks'))
+        webbrowser.open_new('file:///' + os.path.join(PLUGIN_DIR,'help', 'index.html'))
 
     def run_about(self):
         """Run method for the about dialog"""
