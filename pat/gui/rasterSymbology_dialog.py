@@ -93,8 +93,8 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_rasterSymbology.svg'))
         self.cboType.addItems(list(rs.RASTER_SYMBOLOGY))
         
-        rlayer = next(lyr for lyr in self.iface.layerTreeView().selectedLayers() if lyr.type() == QgsMapLayer.RasterLayer)
-        self.mcboTargetLayer.setLayer(rlayer)
+        #rlayer = next(lyr for lyr in self.iface.layerTreeView().selectedLayers() if lyr.type() == QgsMapLayer.RasterLayer)
+        #self.mcboTargetLayer.setLayer(rlayer)
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
