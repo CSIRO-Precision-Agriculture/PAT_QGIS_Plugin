@@ -17,10 +17,10 @@ about=PAT is a QGIS plugin for tools required for processing and analysing preci
 qgisMinimumVersion=3.0.0
 # qgisMaximumVersion=2.18.26
 
-version=1.1.0-dev1
+version=1.1.0-dev1-WIP
 # experimental=True
 
-author=Christina Ratcliff
+author=Christina Ratcliff with a little help from Mike Birchall
 email=PAT@csiro.au
 
 homepage=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
