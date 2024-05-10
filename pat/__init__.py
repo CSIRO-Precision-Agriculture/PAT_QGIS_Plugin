@@ -116,9 +116,9 @@ def classFactory(iface):
 
     gdal_ver = check_gdal_dependency()
     
-    check_py = check_python_dependencies(PLUGIN_DIR, iface)
-    if len(check_py) > 0:
-        sys.exit(check_py)
+    #check_py = check_python_dependencies(PLUGIN_DIR, iface)
+    #if len(check_py) > 0:
+    #    sys.exit(check_py)
     
     check_pat_symbols()
     #check_R_dependency()
