@@ -8,7 +8,7 @@
         begin      : 2017-05-25
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -49,10 +49,10 @@ except:
     # required for qgis 3.4
     import processing
 
-from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
+from qgis.PyQt.QtCore import QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt, QLocale
 from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton, QLabel
 from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication
+from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication, QgsSettings
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from .gui.about_dialog import AboutDialog
@@ -108,7 +108,7 @@ class pat_toolbar(object):
         self.plugin_dir = os.path.dirname(__file__)
 
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QgsSettings().value('locale/userLocale', QLocale().name())[0:2]
         locale_path = os.path.join(self.plugin_dir, 'i18n', 'pat_plugin_{}.qm'.format(locale))
 
         if os.path.exists(locale_path):
