@@ -120,6 +120,7 @@ def raster_apply_classified_renderer(raster_layer, rend_type, num_classes, color
 
     # get band statistics
     cbStats = raster_layer.dataProvider().bandStatistics(band_num, QgsRasterBandStats.All, raster_layer.extent(), 0)
+#    cbStats = raster_layer.dataProvider().bandStatistics(band_num, RasterBandStatistic.All, raster_layer.extent(), 0)
 
     # create the renderer
     renderer = QgsSingleBandPseudoColorRenderer(raster_layer.dataProvider(), band_num)
