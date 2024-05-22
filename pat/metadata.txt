@@ -15,9 +15,9 @@ about=PAT is a QGIS plugin for tools required for processing and analysing preci
       Developed by the CSIRO Precision Agriculture Team, this project is supported by Wine Australia through funding from the Australian Government Department of Agriculture as part of its Rural R&D for Profit program.
 
 qgisMinimumVersion=3.0.0
-# qgisMaximumVersion=2.18.26
+qgisMaximumVersion=3.99.99
 
-version=1.1.0-dev1
+version=1.1.0-dev2
 # experimental=True
 
 author=Christina Ratcliff
@@ -30,7 +30,7 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # End of mandatory metadata
 
 # Recommended items:
-release_date = 2024-03-01 09:00:28
+release_date = 2024-05-22 13:55:42
 
 # Tags are comma separated with spaces allowed
 tags=raster, vector, kriging, agriculture, precision agriculture, csiro

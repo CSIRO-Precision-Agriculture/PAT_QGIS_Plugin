@@ -42,7 +42,9 @@ import time
 import traceback
 import webbrowser
 from functools import partial
-from pkg_resources import parse_version
+
+from packaging.version import parse as parse_version
+
 try:
     from qgis import processing
 except:
@@ -465,16 +467,16 @@ class pat_toolbar(object):
             print(mess)
        
         self.menuPrecAg.clear()
+        
         for action in self.actions:
             self.iface.removePluginMenu(u'{}Menu'.format(PLUGIN_SHORT), action)
             self.iface.removeToolBarIcon(action)
-        
-        # # remove the toolbar
-        # del self.toolbar
-        self.menuPrecAg.deleteLater()
-        self.toolbar.deleteLater()
 
-        # self.clear_modules()
+        self.iface.mainWindow().removeToolBar(self.toolbar)
+
+        del self.menuPrecAg
+        del self.toolbar
+
 
     def queueAddTo(self, vesp_dict):
         """ Add a control file to the VESPER queue

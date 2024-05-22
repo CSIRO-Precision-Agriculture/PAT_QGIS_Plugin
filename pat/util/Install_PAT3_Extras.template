@@ -4,18 +4,21 @@ ECHO $pip_func Python 3 extras to support PAT.
 ECHO for $QGIS_VERSION   $QGIS_PATH
 
 cd %~dp0
-tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL 
-if "%ERRORLEVEL%"=="0" ( 
-    echo QGIS is Currently Running. Please save your work and close
-    pause
 
-    tasklist /FI "IMAGENAME eq qgis*" 2>NUL | find /I /N "qgis">NUL
+if "pause-$run_within" equ "pause-False" (
+    tasklist /FI "IMAGENAME eq qgis*"| find /I /N "qgis">NUL
+    IF %ERRORLEVEL% EQU 0 (
+        echo QGIS is Currently Running. Please save your work and close
+        pause
 
-    if "%ERRORLEVEL%"=="0" (
-        ECHO QGIS is Still taskkill /FI "IMAGENAME eq qgis* Running. Proceeding to Kill QGIS without saving.
-        taskkill /FI "IMAGENAME eq qgis*" /F
+        tasklist /FI "IMAGENAME eq qgis*" | find /I /N "qgis">NUL
+
+        IF %ERRORLEVEL% EQU 0 (
+            ECHO QGIS is Still Running. Proceeding to Kill QGIS without saving.
+            taskkill /FI "IMAGENAME eq qgis*" /F
+        )
+      )
     )
-)
 
 ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.... Please Wait
 ECHO Dependencies Log: $dependency_log  
@@ -76,15 +79,15 @@ GOTO :END
         ) ELSE (
             python -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
 
-            if EXIST $pip_packs (
-                ECHO renaming $pip_packs to $pip_packs.installed
-                rename $pip_packs $pip_packs.installed
-            )
+            REM if EXIST $pip_packs (
+            REM    ECHO renaming $pip_packs to $pip_packs.installed
+            REM   rename $pip_packs $pip_packs.installed
+            REM )
         )
     ) ELSE (
         REM  No PIP installation required
     )
-
+	type nul >> pat-install.finished
     EXIT /B
 
 :END     
@@ -95,6 +98,9 @@ GOTO :END
     ECHO ** Please restart QGIS to complete installation.
     ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.
     ECHO.
-    pause
+    
+    if "pause-$run_within" equ "pause-False" (
+    	pause
+    	)
     ECHO.
     goto:eof

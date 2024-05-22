@@ -22,44 +22,44 @@
 """
 from __future__ import print_function
 
-from builtins import next
-from builtins import str
-import os
-import traceback
+import re
+
 import glob
-import platform
-import configparser
-import subprocess
-import tempfile
-from distutils import file_util
-import shutil
-import sys
 import logging
+import os
+import shutil
+
+import pandas as pd
+from pathlib import Path
+import platform
+import subprocess
+import pythoncom
+import sys
+import tempfile
+import traceback
+from builtins import str
 from datetime import date, datetime
+
 import requests
-from pkg_resources import parse_version, get_distribution, DistributionNotFound
-from packaging.version import Version, parse as parse_version
-
-from qgis.PyQt.QtWidgets import QMessageBox
-import qgis
-from qgis.gui import QgsMessageBar
-from qgis.core import Qgis, QgsApplication, QgsStyle, QgsSymbolLayerUtils
-
-from qgis.PyQt.QtXml import QDomDocument
-from qgis.PyQt.QtCore import QFile, QIODevice
+from importlib.metadata import version
+from packaging.version import parse as parse_version
 
 import osgeo.gdal
-import pythoncom
+import qgis
+from qgis.PyQt import QtCore
+from qgis.PyQt.QtCore import QDateTime
+from qgis.PyQt.QtWidgets import QMessageBox, QApplication
+from qgis.core import Qgis, QgsApplication, QgsStyle
 
 if platform.system() == 'Windows':
     import win32api
     from win32com.shell import shell, shellcon
-    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER
+    from winreg import ConnectRegistry, OpenKey, QueryValueEx, HKEY_LOCAL_MACHINE
 
 import struct
 
 from pat import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR
-from util.settings import read_setting, write_setting
+from util.settings import read_setting, write_setting, remove_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -111,7 +111,9 @@ def check_R_dependency():
             r_installed = False
             write_setting('Processing/Configuration/R_FOLDER', '')
             write_setting('Processing/Configuration/ACTIVATE_R', False)
-            return 'R is not installed or not configured for QGIS.\n See "Configuring QGIS to use R" in help documentation'
+            mess = ('R is not installed or not configured for QGIS.\n '
+                    'See "Configuring QGIS to use R" in help documentation')
+            return
 
     else:
         # Linux/OSX - https://stackoverflow.com/a/25330049
@@ -138,16 +140,10 @@ def check_R_dependency():
     for src_file in files:
         dest_file = os.path.join(r_scripts_fold, os.path.basename(src_file))
 
-        # update flag will only update if file doesnt exist or is newer and returns a tuple of
-        # all files with a 1 if the file was copied
-        if file_util.copy_file(src_file, dest_file, update=True)[-1]:
+        # copy file if destination is older by more than a second, or does not exist
+        if not os.path.exists(dest_file) or os.stat(src_file).st_mtime - os.stat(dest_file).st_mtime > 120:
+            shutil.copy2(src_file, dest_file)
             LOGGER.info('Installing or Updating Whole-of-block analysis tool.')
-
-        # # only copy if it doesn't exist or it is newer by 1 second.
-        # if not os.path.exists(dest_file) or os.stat(src_file).st_mtime - os.stat(
-        #         dest_file).st_mtime > 1:
-        #     shutil.copy2(src_file, dest_file)
-
     return True
 
 
@@ -195,14 +191,14 @@ def check_vesper_dependency(iface=None):
                 vesper_exe = r'C:/Program Files (x86)/Vesper/Vesper1.6.exe'
 
             else:  # Otherwise report it.
-                if vesper_exe == '' or vesper_exe == None:
+                if vesper_exe == '' or vesper_exe is None:
                     message = 'Vesper*.exe not found. Please install and configure to allow for kriging to occur'
                 elif not os.path.exists(vesper_exe):
-                    message = 'Vesper*.exe at "{}" does not exist. Please install and configure to allow for kriging to occur'.format(
-                        vesper_exe)
+                    message = (f'Vesper*.exe at "{vesper_exe}" does not exist. Please install and '
+                               'configure to allow for kriging to occur')
 
-                vesper_exe = ''
-            write_setting(PLUGIN_NAME + '/VESPER_EXE', vesper_exe)
+                vesper_exe = None
+            write_setting(PLUGIN_NAME + '/VESPER_EXE', '' if vesper_exe is None else vesper_exe)
     else:
         message = 'VESPER is only supported on Windows.'
 
@@ -211,7 +207,7 @@ def check_vesper_dependency(iface=None):
             iface.messageBar().pushMessage("WARNING", message, level=Qgis.Warning,
                                            duration=15)
         else:
-            LOGGER.warn(message)
+            LOGGER.warning(message)
 
     return vesper_exe
 
@@ -224,53 +220,287 @@ def writeLineToFileS(line, openFileList=[]):
             eafile.write(line)
 
 
-def check_package(package):
-    """Check to see if a package is installed and what version it is.
-
-    Returns a dictionary containing:
-        Action is Install, Upgrade or None
-        Version is the installed version, if not installed will be ''
-        Wheel the wheel file or version.
-    for each package
-
+def check_python_dependencies(package, online=False):
+    """Check to see if a python package is installed and what version it is with an option to check online for updates.
     Args:
         package (str): the name of the package
-
-    Returns {dict}: a dictionary containing actions required, and which version is installed.
+        online (bool): Check online for updates with priority for osgeo4w over pip.
     """
-
     try:
-        pack_dict = {'Action': 'None', 'Version': get_distribution(package).version}
-    except DistributionNotFound:
-        pack_dict = {'Action': 'Install', 'Version': ''}
+        inst_ver = version(package)
+    except Exception as ex:
+        inst_ver = '0.0.0'
 
-    return pack_dict
+    available_ver = '0.0.0'
+    source = 'n/a'
+    if online:
+        if 'osgeo4w_packs' not in globals():
+            urls = ['http://download.osgeo.org/osgeo4w/v2/x86_64/release/python3/',
+                    'http://download.osgeo.org/osgeo4w/v2/x86_64/release/gdal/']
+
+            osgeo4w_packs = pd.DataFrame()
+            for url in urls:
+                ut = pd.read_html(url, header=0, skiprows=[1])[0]
+                ut.rename(columns=lambda c: re.sub('[^a-zA-Z0-9 ]', '', c).strip(), inplace=True)
+                ut = ut[ut['File Name'].str.endswith('/')]
+                ut['url'] = url + ut['File Name']
+                ut['File Name'] = ut['File Name'].str.rstrip("/")
+                ut.insert(0, 'package', ut['File Name'].str.split('-', n=1).str[-1])
+                ut.set_index('package', inplace=True)
+                osgeo4w_packs = pd.concat([osgeo4w_packs, ut], axis=0)
+
+        if package in osgeo4w_packs.index:
+            url = osgeo4w_packs.loc[package, 'url']
+            # print(f'Searching osgeo4w for {package},  {url}', end='\t')
+            table = pd.read_html(url, header=0, skiprows=[1])[0]
+            table.rename(columns=lambda c: re.sub('[^a-zA-Z0-9 ]', '', c).strip(), inplace=True)
+            table['Date'] = pd.to_datetime(table['Date'], yearfirst=True, format='mixed')
+            table = table.loc[table['File Name'].str.startswith('python3')]
+            newest = table.loc[table['Date'].argmax()]['File Name']
+            available_ver = newest.split('-')[2]
+            # print(f'found {available_ver}')
+            source = 'osgeo4w'
+        else:
+
+            try:
+                url = 'https://pypi.python.org/pypi/{}/json'.format(package)
+                # print(f'Searching pip for {package},  {url}', end='\t')
+                available_ver = requests.get(url)
+                available_ver.raise_for_status()
+                available_ver = available_ver.json()['info']['version']
+                source = 'pip'
+                # print(f'found {available_ver}')    
+            except (requests.ConnectionError, requests.exceptions.HTTPError) as err:
+                available_ver = None
+                # print(f'Skipping {package}. {err.args[0]}')
+
+    loc_whl = None
+    local_files = [p for p in Path(PLUGIN_DIR).joinpath('install_files').rglob(f'{package}*') if
+                   p.suffix in ['.gz', '.whl']]
+
+    if len(local_files) > 0:
+        for i, ea in enumerate(local_files):
+            loc_pack, loc_ver = ea.stem.split('-')
+            loc_ver = Path(loc_ver).stem
+
+            if parse_version(loc_ver) < parse_version(inst_ver):
+                continue  # installed version is new than wheel
+
+            package = loc_pack
+            source = 'pip_whl'
+            loc_whl = ea.name
+
+            if (parse_version(loc_ver) > parse_version(inst_ver)) or (
+                    available_ver is not None and parse_version(loc_ver) > parse_version(available_ver)):
+                available_ver = loc_ver
+
+        # print(f'Found {len(local_files)} local wheel files, newest version is {available_ver} ')
+
+    r = pd.Series({'name': package,
+                   'current': parse_version(inst_ver) if inst_ver != '0.0.0' else None,
+                   'available': parse_version(available_ver) if available_ver != '0.0.0' else None,
+                   'file': loc_whl,
+                   'source': source})
+
+    return r
 
 
-def check_pip_for_update(package):
-    """ Check a package against online pip via json get the most current release
-    version number
+def plugin_status(level='basic', check_for_updates=False, forced_update=False):
+    """ Check for extra python modules which the plugin requires.
 
-    source: https://stackoverflow.com/a/40745656
+    If they are not installed, a windows batch file will be created on the users desktop.
+    Run this as administrator to install relevant packages
+
+    Args:
+         level (): Install, basic or advanced.
+         check_for_updates (): Check online for updates.
+
+    Returns (bool): Passed Check or Not.
     """
 
-    # only check once a month for pyprecag updates.
-    last_pip_check = read_setting(PLUGIN_NAME + "/LAST_PIP_CHECK")
-    if last_pip_check is not None:
-        last_pip_check = datetime.strptime(last_pip_check, '%Y-%m-%d')
+    qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
 
-    if last_pip_check is None or (datetime.now() - last_pip_check).days > 30:
-        url = 'https://pypi.python.org/pypi/{}/json'.format(package)
-        try:
-            releases = requests.get(url).json()['releases']
-            current_version = sorted(releases, key=parse_version, reverse=True)[0]
+    df_dep = pd.DataFrame([{'type': 'QGIS Environment',
+                            'current': f'LTR-{Qgis.QGIS_VERSION}' if 'LTR' in qgis_prefix else Qgis.QGIS_VERSION,
+                            'folder': qgis_prefix}], index=['QGIS'])
 
-            write_setting(PLUGIN_NAME + '/LAST_PIP_CHECK', datetime.now().strftime('%Y-%m-%d'))
+    df_dep.index.name = 'name'
 
-            return current_version
-        except requests.ConnectionError:
-            LOGGER.info('Skipping pyprecag version check. Cannot reach {}'.format(url))
-    return
+    df_dep.loc['Temp', ['type', 'folder']] = ['QGIS Environment', tempfile.gettempdir()]
+    df_dep.loc['Python', ['type', 'current']] = ['QGIS Environment', sys.version]
+
+    import pyplugin_installer
+    p = pyplugin_installer.installer_data.plugins.all()
+
+    if 'pat' in p.keys():
+        p = p['pat']
+        df_dep.loc['PAT', ['type', 'current', 'folder']] = ['PAT Environment', parse_version(p['version_installed']),
+                                                            PLUGIN_DIR]
+
+        # if check_for_updates:
+        # pyplugin_installer.instance().fetchAvailablePlugins(False)
+        # p = pyplugin_installer.installer_data.plugins.all()['pat']
+        # df_dep.loc['PAT', 'available'] = parse_version(p['version_available'])  # needs further testing
+
+    vesper_exe = read_setting(PLUGIN_NAME + '/VESPER_EXE', str)
+    if vesper_exe is None or not Path(vesper_exe).exists():
+        vesper_exe = check_vesper_dependency(None)
+        write_setting(PLUGIN_NAME + '/VESPER_EXE', vesper_exe)
+
+    df_dep.loc['VESPER', ['type', 'folder']] = ['PAT Environment', vesper_exe]
+
+    if level.lower() == 'basic':
+        df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag'], columns=['name'])
+    else:
+        df_py = pd.DataFrame(['geopandas', 'rasterio', 'pandas', 'shapely', 'fiona', 'pyproj', 'unidecode', 'pint',
+                              'numpy', 'scipy', 'chardet', 'pyprecag', 'gdal'], columns=['name'])
+
+    df_py[['name', 'current', 'available', 'file', 'source']] = df_py['name'].apply(check_python_dependencies,
+                                                                                    args=(check_for_updates,))
+    df_py['type'] = 'Python'
+    df_py['action'] = None
+    df_py.loc[df_py['current'].isnull(), 'action'] = 'Install'
+
+    df_py.loc[df_py['current'].notnull() & (df_py['available'] > df_py['current']), 'action'] = 'Upgrade'
+    df_py.loc[df_py['current'].notnull() & (df_py['available'] < df_py['current']), 'action'] = 'Downgrade'
+    df_py.loc[df_py['current'].notnull() & (df_py['available'] == df_py['current']), 'action'] = 'Keep'
+
+    df_py = df_py.set_index('name')
+
+    df_dep = pd.concat([df_dep, df_py])
+
+    df_updates = df_py.loc[df_py['action'].isin(['Install', 'Upgrade'])]
+
+    df_dep[df_dep.notnull()] = df_dep.astype(str)  # convert parsed version to string
+    df_dep.loc[df_dep['file'].notnull(), 'current'] = df_dep['file']  # use tar/whl file
+
+    # are core dependencies installed
+    dep_met = read_setting(PLUGIN_NAME + '/STATUS/DEPENDENCIES_MET', object_type=bool, default=False)
+
+    if not dep_met or forced_update:
+        _ = install(df_updates,forced_update)
+
+    return df_dep
+
+
+def install(df_updates,forced_update):
+    if len(df_updates) == 0:
+        return True
+
+    dependencies_met = read_setting(PLUGIN_NAME + '/STATUS/DEPENDENCIES_MET', object_type=bool, default=False)
+
+    packs_mess = ''
+    if any(df_updates['source'] == 'osgeo4w'):
+        packs_mess += '    osgeo4w:\t{}\n'.format(
+            "\n\t".join(df_updates.loc[df_updates['source'] == 'osgeo4w'].index.tolist()))
+
+    if any(df_updates['source'].str.startswith('pip')):
+        packs_mess += '    pip:\t{}\n'.format(
+            "\n\t".join(df_updates.loc[df_updates['source'].str.startswith('pip')].index.tolist()))
+
+    inst_message = (f'PAT installation/update required for:\n{packs_mess}\n'
+                    'WARNING Installation may require administrator access.\n\n')
+
+    write_setting(PLUGIN_NAME + '/STATUS/UPDATE_AVAILABLE', True)
+    QApplication.restoreOverrideCursor()
+    msg_box = QMessageBox()
+    msg_box.setWindowTitle("PAT Updates available")
+    msg_box.setText(inst_message + 'Install now?')
+    msg_box.addButton(QMessageBox.Yes)
+    msg_box.addButton(QMessageBox.No)
+
+    if dependencies_met:
+        msg_box.addButton('Delay for 7 days', QMessageBox.ApplyRole)
+    if forced_update:
+        msg_box.addButton('Ignore', QMessageBox.RejectRole)
+        
+    inst_result = msg_box.exec_()
+
+    success = False
+    if inst_result == 1:  # Ignore role
+        return False
+    
+    if inst_result == 0:  # apply role or 7 day delay
+        write_setting(PLUGIN_NAME + '/STATUS/NEXT_CHECK', QDateTime.currentDateTime().addDays(7))
+        remove_setting(PLUGIN_NAME + '/STATUS/INSTALL_PENDING')
+        return True
+
+    elif inst_result == QMessageBox.Yes:
+        from qgis.utils import iface
+        if platform.system() == 'Windows':
+            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            install_bat = create_bat_files(df_updates, run_within_qgis=True)
+
+            # launch BAT file as administrator.
+            # https://stackoverflow.com/a/72792517
+            from ctypes import windll
+            result = windll.shell32.ShellExecuteW(None,  # handle to parent window
+                                                  'runas',  # runas: prompt for UAC, None as per normal
+                                                  'cmd.exe',  # file on which verb acts
+                                                  ' '.join(['/c', install_bat]),  # parameters
+                                                  None,  # working directory (default is cwd)
+                                                  1,  # show window normally
+                                                  )
+            success = result > 32
+
+            if success:
+                iface.messageBar().pushMessage("PAT", "Installing PAT Dependencies.. Please Wait....",
+                                               level=Qgis.Info, duration=15)
+
+            done_file = Path(install_bat).parent.joinpath('pat-install.finished')
+
+            while True:
+                if done_file.exists() or not success:
+                    break
+
+            # sometimes there is a permissions lock on the file so wait and try again 
+            timeout = 0
+            while done_file.exists():
+                if timeout > 10:
+                    break
+                try:
+                    done_file.unlink()
+                    break
+                except PermissionError:
+                    import time
+                    time.sleep(1)
+                    timeout += 1
+            
+            QApplication.restoreOverrideCursor()
+            if success:
+                _ = plugin_status(level='basic', check_for_updates=False)
+
+                write_setting(PLUGIN_NAME + '/STATUS/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
+                iface.messageBar().clearWidgets()
+                iface.messageBar().pushMessage("PAT", "Installing PAT Dependencies completed Successfully.",
+                                               level=Qgis.Success, duration=5)
+                return success
+
+    if inst_result == QMessageBox.No or not success:
+        # Create a shortcut on desktop with admin privileges.
+        if platform.system() == 'Windows':
+            install_bat = create_bat_files(df_updates, run_within_qgis=False)
+
+            desktop = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
+            shortcutPath = os.path.join(desktop, Path(install_bat).stem.replace('_', ' ') + '.lnk')
+
+            # add shortcut to desktop....
+            create_link(shortcutPath, install_bat, "Install setup for QGIS PAT Plugin",
+                        os.path.expanduser('~'), True)
+
+            LOGGER.critical(f"To install PAT please run the desktop shortcut {Path(install_bat).stem} "
+                            f"or bat file as administrator {install_bat}")
+
+            message = f'To install PAT please quit QGIS and run {Path(install_bat).stem} ' \
+                      'located on your desktop.'
+            from qgis.utils import iface
+            iface.messageBar().pushMessage("PAT Updates available", message,
+                                           level=Qgis.Critical, duration=0)
+
+            QMessageBox.critical(None, 'PAT Updates available', message)
+
+            write_setting(PLUGIN_NAME + '/STATUS/INSTALL_PENDING', shortcutPath)
+        return False
 
 
 def create_file_from_template(template_file, arg_dict, write_file):
@@ -290,65 +520,24 @@ def create_file_from_template(template_file, arg_dict, write_file):
     w_file.close()
 
 
-def check_python_dependencies(plugin_path, iface):
-    """ Check for extra python modules which the plugin requires.
-
-    If they are not installed, a windows batch file will be created on the users desktop.
-    Run this as administrator to install relevant packages
-
-    Args:
-         iface (): The QGIs gui interface required to add messagebar too.
-         plugin_path (): The path to the users plugin directory.
-
-    Returns (bool): Passed Check or Not.
-    """
-
+def create_bat_files(df, run_within_qgis=True):
     try:
-        # comes from metadata.txt
-        from qgis.utils import pluginMetadata
-        meta_version= {'version':pluginMetadata('pat', 'version'), 'date':pluginMetadata('pat', 'release_date')}
-        settings_version = read_setting(PLUGIN_NAME + "/PAT_VERSION")
-
-        if settings_version is not None:
-            settings_version = settings_version.strip()
-            settings_version= {'version':settings_version.split(' ')[0], 'date':settings_version.split(' ')[1]}
-        # # get the list of wheels matching the gdal version
-        # if not os.environ.get('GDAL_VERSION', None):
-        #     gdal_ver = osgeo.gdal.__version__
-        #     LOGGER.warning(
-        #         'Environment Variable GDAL_VERSION does not exist. Setting to {}'.format(gdal_ver))
-        #     os.environ['GDAL_VERSION'] = gdal_ver
-
         # the name of the install file.
-        title = 'Install_PAT3_Extras'
-        if platform.system() == 'Windows':
-            user_path = os.path.join(os.path.expanduser('~'))
-            desktop = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
-            shortcutPath = os.path.join(desktop, title.replace('_', ' ') + '.lnk')
-            
-            osgeo_path = os.path.abspath(win32api.GetLongPathName(os.environ['OSGEO4W_ROOT']))
-
-            if os.path.exists(shortcutPath):
-                # Copy logs into PAT plugin folder
-                pass
-        else:
-            osgeo_path = os.path.abspath(os.environ['OSGEO4W_ROOT'])
-
+        title = 'Install_PAT3'
         qgis_prefix_path = os.path.abspath(QgsApplication.prefixPath())
 
         if 'LTR' in os.path.basename(qgis_prefix_path).upper():
             qgis_version = 'LTR {}'.format(Qgis.QGIS_VERSION)
+            title = f'{title}_qgis-LTR-{Qgis.QGIS_VERSION_INT // 100}'
         else:
             qgis_version = Qgis.QGIS_VERSION
+            title = f'{title}_qgis-{Qgis.QGIS_VERSION_INT // 100}'
 
-        packCheck = {}
-        pip_packs = []
-        osgeo_packs = []
         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/v2'
 
-        if 'LTR' in qgis_version :
+        if 'LTR' in qgis_version:
             if Qgis.QGIS_VERSION_INT < 31609:
-                OSGeo4W_site ='http://download.osgeo.org/osgeo4w/'
+                OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
         else:
             if Qgis.QGIS_VERSION_INT < 32000:
                 OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
@@ -358,150 +547,57 @@ def check_python_dependencies(plugin_path, iface):
         #     if not os.path.exists(os.path.join(osgeo_path,'bin','gdal300.dll')):
         #         packCheck['gdal300dll']={'Action': 'Install', 'Version': ''}
         #         osgeo_packs += ['gdal300dll']
-        
-        # Check for the listed modules.
-        for argCheck in ['fiona', 'geopandas', 'rasterio']:
-            packCheck[argCheck] = check_package(argCheck)
-            if packCheck[argCheck]['Action'] == 'Install':
-                osgeo_packs += [argCheck]
+        df = df.reset_index()
+        df['inst'] = df['name']
+        df.loc[df['source'] == 'pip_whl', 'inst'] = df['file']
+        df.loc[df['source'] == 'osgeo4w', 'inst'] = '-P python3-' + df['name']
 
-        packCheck['pyprecag'] = check_package('pyprecag')
-        cur_pyprecag_ver = check_pip_for_update('pyprecag')
-        if cur_pyprecag_ver is not None:
-            if parse_version(packCheck['pyprecag']['Version']) < parse_version(cur_pyprecag_ver):
-                packCheck['pyprecag']['Action'] = 'Upgrade'
+        pip_packages = df.loc[df['source'] != 'osgeo4w', 'inst'].unique().tolist()
+        osgeo4w_packages = df.loc[df['source'] == 'osgeo4w', 'inst'].unique().tolist()
+        osgeo4w_names = df.loc[df['source'] == 'osgeo4w', 'name'].unique().tolist()
 
-        if packCheck['fiona']['Action'] == 'Install':
-            message = ''
-
-            if 'LTR' in qgis_version:
-                if Qgis.QGIS_VERSION_INT < 31011:
-                    message = 'PAT is no longer supported by QGIS LTR {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
-              
-            elif Qgis.QGIS_VERSION_INT < 31600:
-                message = 'PAT is no longer supported by QGIS {}\nPlease upgrade to the current QGIS release.'.format(Qgis.QGIS_VERSION)
-
-            if message != '':
-                iface.messageBar().pushMessage(message, level=Qgis.Critical, duration=30)
-                LOGGER.info(message)
-                QMessageBox.critical(None, 'QGIS Upgrade required', message)
-                return(message)
-        
-        # Install via a tar wheel file prior to publishing via pip to test pyprecag bug fixes
-        # otherwise just use a standard pip install.
-        local_wheel = glob.glob1(os.path.join(plugin_path, 'install_files'), "pyprecag*")
-        if len(local_wheel) == 1 and 'installed' not in local_wheel[0]:
-            packCheck['pyprecag']['Action'] = 'Upgrade'
-            pip_packs += [local_wheel[0]]
-        elif packCheck['pyprecag']['Action'] in ['Install', 'Upgrade']:
-            pip_packs += ['{}'.format('pyprecag')]
-
-        failDependencyCheck = [key for key, val in packCheck.items() if val['Action'] in ['Install', 'Upgrade']]
-
-        osgeo_packs = ['-P ' + p if 'gdal' in p else '-P python3-' + p for p in osgeo_packs]
-        
         # create a dictionary to use with the template file.
-        d = {'dependency_log': os.path.join(plugin_path, 'install_files',
+        d = {'dependency_log': os.path.join(PLUGIN_DIR, 'install_files',
                                             'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))),
-             'QGIS_PATH': osgeo_path,
-             'QGIS_VERSION': qgis_version,
-             'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
+             'QGIS_PATH': str(Path(os.environ['OSGEO4W_ROOT']).resolve()),
+             'QGIS_VERSION': Qgis.QGIS_VERSION,
+             'osgeo_message': 'Installing {}'.format(', '.join(osgeo4w_names)),
              'site': OSGeo4W_site,
-             'osgeo_packs': '' if len(osgeo_packs) == 0 else ' '.join(osgeo_packs),
+             'osgeo_packs': '' if len(osgeo4w_packages) == 0 else ' '.join(osgeo4w_packages),
              'pip_func': 'install',
-             'pip_packs': '' if len(pip_packs) == 0 else ' '.join(pip_packs),
-             'py_version': struct.calcsize("P") * 8}  # this will return 64 or 32
+             'pip_packs': '' if len(pip_packages) == 0 else ' '.join(pip_packages),
+             'py_version': struct.calcsize("P") * 8,
+             'run_within': run_within_qgis
+             }  # this will return 64 or 32
 
         # 'osgeo_uninst': ' -x python3-'.join(['fiona', 'geopandas', 'rasterio'])
-        temp_file = os.path.join(plugin_path, 'util', 'Install_PAT3_Extras.template')
-        if 'LTR' in qgis_version:
-            install_file = os.path.join(plugin_path, 'install_files', '{}_4_qgis-LTR-{}.bat'.format(title, str(Qgis.QGIS_VERSION_INT)[:-2]))
-            uninstall_file = os.path.join(plugin_path, 'install_files', 'Un{}_4_qgis-LTR-{}.bat'.format(title, str(Qgis.QGIS_VERSION_INT)[:-2]))
-        else:
-            install_file = os.path.join(plugin_path, 'install_files', '{}_4_qgis-{}.bat'.format(title, str(Qgis.QGIS_VERSION_INT)[:-2]))
-            uninstall_file = os.path.join(plugin_path, 'install_files', 'Un{}_4_qgis-{}.bat'.format(title, str(Qgis.QGIS_VERSION_INT)[:-2]))
+        temp_file = os.path.join(PLUGIN_DIR, 'util', 'Install_PAT3_Extras.template')
+        install_file = os.path.join(PLUGIN_DIR, 'install_files', title + '.bat')
+        uninstall_file = os.path.join(PLUGIN_DIR, 'install_files', title + '.bat')
 
         python_version = struct.calcsize("P") * 8  # this will return 64 or 32
 
         if not os.path.exists(os.path.dirname(install_file)):
             os.mkdir(os.path.dirname(install_file))
 
-        if len(failDependencyCheck) > 0:
-
+        if len(osgeo4w_packages + pip_packages) > 0:
             create_file_from_template(temp_file, d, install_file)
-
-            # Create a shortcut on desktop with admin privileges.
-            if platform.system() == 'Windows':
-                LOGGER.critical("Failed Dependency Check. Please run the shortcut {} "
-                                "or the following bat file as administrator {}".format(shortcutPath,
-                                                                                       install_file))
-
-                create_link(shortcutPath, install_file, "Install setup for QGIS PAT Plugin",
-                            user_path, True)
-
-            message = 'Installation or updates are required for {}.\n\nPlease quit QGIS and run {} ' \
-                      'located on your desktop.'.format(', '.join(failDependencyCheck), title)
-
-            iface.messageBar().pushMessage("ERROR Failed Dependency Check", message,
-                                           level=Qgis.Critical,duration=0)
-
-            QMessageBox.critical(None, 'Failed Dependency Check', message)
-            return(message)
-        else:
-
-
-            if settings_version is None:
-                LOGGER.info('Successfully installed and setup PAT {}'.format(meta_version))
-            else:
-                if parse_version(meta_version['version']) > parse_version(settings_version['version']):
-                    LOGGER.info('Successfully upgraded and setup PAT from {} to {})'.format(settings_version, meta_version))
-
-                elif parse_version(meta_version['version']) < parse_version(settings_version['version']):
-                    LOGGER.info('Successfully downgraded and setup PAT from {} to {})'.format(settings_version, meta_version))
-
-            write_setting(PLUGIN_NAME + '/PAT_VERSION', f'{meta_version["version"]} {meta_version["date"]}')
-
-            if os.path.exists(shortcutPath):
-                os.remove(shortcutPath)
-
-            if len(osgeo_packs) == 0:
-                osgeo_packs = ['geopandas', 'rasterio']
-
-            if len(pip_packs) == 0:
-                pip_packs = ["pyprecag"]
-
-            d.update({'osgeo_message': 'Installing {}'.format(', '.join(osgeo_packs)),
-                      'osgeo_packs': '' if len(osgeo_packs) == 0 else '-P python3-' + ' -P python3-'.join(osgeo_packs),
-                      'pip_packs': '' if len(pip_packs) == 0 else ' '.join(pip_packs),
-                      })
-
-            # Create master un&install files
-            create_file_from_template(temp_file, d, install_file)
-
-            d.update({'osgeo_message': 'Uninstalling {}'.format(', '.join(osgeo_packs)),
-                      'site': OSGeo4W_site,
-                      'osgeo_packs': '-o -x python3-' + ' -x python3-'.join(osgeo_packs),
-                      'pip_func': 'uninstall'})
-
-            create_file_from_template(temp_file, d, uninstall_file)
+            return install_file
 
     except Exception as err:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         mess = str(traceback.format_exc())
 
-        setup = get_plugin_state()
-        LOGGER.info(setup + '\n\n')
+        # setup = get_plugin_state()
+        # LOGGER.info(setup + '\n\n')
         LOGGER.error('\n' + mess)
-
-        message = ('An error occurred during setup, please report this error to PAT@csiro.au '
-                   'and attach the following files \n\t {} \n\t{}'.format(get_logger_file(),
-                                                                          install_file))
-
-        QMessageBox.critical(None, 'Failed setup', message)
-
-        sys.exit(message + '\n\n' + mess)
-
-    return failDependencyCheck
+        #
+        # message = ('An error occurred during setup, please report this error to PAT@csiro.au ')
+        #            # 'and attach the following files \n\t {} \n\t{}'.format(get_logger_file(),
+        #            #                                                        install_file))
+        #
+        # QMessageBox.critical(None, 'Failed setup', message)
+        sys.exit(mess)
 
 
 def get_logger_file():
@@ -539,52 +635,3 @@ def create_link(link_path, target_path, description=None, directory=None,
     file_link = link.QueryInterface(pythoncom.IID_IPersistFile)
     file_link.Save(link_path, 0)
     LOGGER.info('Created shortcut {}'.format(link_path))
-
-
-def get_plugin_state(level='full'):
-    from qgis.utils import pluginMetadata
-
-    """TODO: Make the paths clickable links to open folder
-        def create_path_link(path):
-            path = os.path.normpath(path)
-            #"<a href={}>Open Project Folder</a>".format("`C:/Progra~1/needed"`)
-            return '<a href= file:///"`{0}"`>{0}</a>'.format(path)
-        """
-    plug_state = 'QGIS Environment :\n'
-    qgis_prefix = qgis.core.QgsApplication.prefixPath()
-    if 'LTR' in os.path.basename(qgis_prefix).upper():
-        plug_state += '    {:20}\t{}\n'.format('QGIS LTR:', Qgis.QGIS_VERSION)
-    else:
-        plug_state += '    {:20}\t{}\n'.format('QGIS :', Qgis.QGIS_VERSION)
-
-    if level == 'full':
-        if platform.system() == 'Windows':
-            qgis_prefix = os.path.abspath(win32api.GetLongPathName(qgis_prefix))
-         
-        plug_state += '    {:20}\t{}\n'.format('Install Path : ', qgis_prefix)
-
-        plug_state += '    {:20}\t{}\n'.format('Plugin Dir :', os.path.normpath(PLUGIN_DIR))
-        plug_state += '    {:20}\t{}\n'.format('Temp Folder :', os.path.normpath(tempfile.gettempdir()))
-
-    plug_state += '    {:20}\t{}\n'.format('Python :', sys.version)
-    plug_state += '    {:20}\t{}\n'.format('GDAL :', os.environ.get('GDAL_VERSION', None))
-    
-    if level == 'full':
-        plug_state += '\nPAT Version :\n'
-    
-    plug_state += '    {:20}\t{} {}\n'.format('PAT :', pluginMetadata('pat', 'version'),
-                                                    pluginMetadata('pat', 'release_date'))
-    
-    plug_state += '    {:20}\t{}\n'.format('Log File :', read_setting(PLUGIN_NAME + '/LOG_FILE'))
-
-    if level == 'full':
-        plug_state += '    {:20}\t{}\n'.format('pyPrecAg :', get_distribution('pyprecag').version)
-        plug_state += '    {:20}\t{}\n'.format('Geopandas :', get_distribution('geopandas').version)
-        plug_state += '    {:20}\t{}\n'.format('Rasterio :', get_distribution('rasterio').version)
-        plug_state += '    {:20}\t{}\n'.format('Fiona :', get_distribution('fiona').version)
-        plug_state += '    {:20}\t{}\n'.format('Pandas :', get_distribution('pandas').version)
-    
-        plug_state += '\nR Configuration :\n'
-        plug_state += '    {:20}\t{}\n'.format('R Active :', read_setting('Processing/Configuration/ACTIVATE_R'))
-        plug_state += '    {:20}\t{}\n'.format('R Install Folder :', read_setting('Processing/Configuration/R_FOLDER'))
-    return plug_state
