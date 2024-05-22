@@ -37,7 +37,6 @@ from qgis.core import QgsMessageLog, QgsProject, Qgis
 from qgis.utils import iface
 
 from util.settings import read_setting, write_setting
-from util.check_dependencies import get_plugin_state
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -84,7 +83,7 @@ class QgsLogHandler(logging.Handler):
 
         except MemoryError:
             message = 'Due to memory limitations on this machine, PrecisionAg can not handle the full log'
-            print(message)
+            #print(message)
             QgsMessageLog.logMessage(message, PLUGIN_SHORT, 0)
         except IOError:
             pass
@@ -134,7 +133,7 @@ def set_log_file():
         folder = TEMPDIR
         log_file = os.path.normpath(os.path.join(TEMPDIR, 'PAT.log'))
     else:
-        folder = os.path.normpath(os.path.join(QgsProject.instance().absolutePath()))
+        folder = os.path.normpath(QgsProject.instance().absolutePath())
         
         if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME',bool):
             log_file = os.path.splitext(QgsProject.instance().fileName())[0] + '_PAT.log'
@@ -152,8 +151,8 @@ def set_log_file():
         
         iface.messageBar().pushMessage("Log File", log_file, level=Qgis.Info,duration=15)
         
-        if not os.path.exists(log_file):
-            LOGGER.info(get_plugin_state('basic'))
+        # if not os.path.exists(log_file):
+        #     LOGGER.info(get_plugin_state('basic'))
             
     return log_file
 
