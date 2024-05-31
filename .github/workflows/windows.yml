@@ -1,1 +1,49 @@
-#windows
+# Windows Build of QGis from scratch with the addition of pyprecag
+name: Github Actions in Windows
+
+on: push
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
+        C:\Miniconda\condabin\conda.bat init powershell
+    - name: Lint with flake8
+      run: |
+        # Activate the base environment
+        C:\Miniconda\condabin\conda.bat activate base
+        C:\Miniconda\condabin\conda.bat install flake8
+        C:\Miniconda\condabin\conda.bat install gdal
+        C:\Miniconda\condabin\conda.bat install fiona
+        C:\Miniconda\condabin\conda.bat install geopandas
+        #conda install fiona
+        #conda install geopandas
+        pip install .
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with unittest
+      run: |
+        # Activate the base environment
+        #C:\Miniconda\condabin\conda.bat activate base
+        #C:\Miniconda\condabin\conda.bat install pytest
+        #pytest
+        #mv ./pyprecag/tests/test_processing.py ./pyprecag/tests/X_test_processing.py
+        #mv ./pyprecag/tests/test_vector_ops.py ./pyprecag/tests/X_test_vector_ops.py
+        #mv ./pyprecag/tests/test_end2end.py ./pyprecag/tests/X_test_end2end.py
+        #python -m unittest discover -s pyprecag/tests -p "test_*.py" -v
+        #python -m unittest discover -s pyprecag/tests -p "test_v*.py" -v
