@@ -23,7 +23,7 @@ jobs:
         dir "C:\Program Files"
         curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o osgeo.msi
         echo "Installing QGIS"
-        msiexec /qn osgeo.msi
+        msiexec ./osgeo.msi /quiet
         echo "Finished installation"
     - name: Install dependencies
       run: |
