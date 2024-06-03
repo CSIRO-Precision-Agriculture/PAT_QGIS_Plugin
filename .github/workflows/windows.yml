@@ -3,6 +3,11 @@ name: Github Actions in Windows
 
 on: push
 
+env:
+    MNBV1: 42
+    MNBV2: Myfile.txt
+    GH_REPO: ${{ github.repository }}
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -19,6 +24,8 @@ jobs:
     - name: Install QGIS
       run: |
         env
+        echo "MNBV1 is $MNBV1 and MNBV2 is $MNBV2"
+        echo "GH_REPO is $GH_REPO"
         echo "GITHUB_ACTOR is ${GITHUB_ACTOR} or $GITHUB_ACTOR or or %GITHUB_ACTOR%"
         echo "Downloading OSGeo4W msi installer in ${RUNNER_TEMP}"
         dir "C:\Program Files"
