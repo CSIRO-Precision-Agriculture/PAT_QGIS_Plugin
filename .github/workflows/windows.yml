@@ -34,6 +34,8 @@ jobs:
         echo "Installing QGIS"
         echo "msiexec /i D:\a\_temp\QGIS-OSGeo4W-3.36.3-1.msi /qn "
         msiexec /i D:\a\_temp\QGIS-OSGeo4W-3.36.3-1.msi /qn 
+        echo "pwd"
+        pwd
     - name: Install dependencies
       run: |
         echo "Check The Program Files"
