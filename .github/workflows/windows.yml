@@ -19,19 +19,20 @@ jobs:
     - name: Install QGIS
       run: |
         echo "Downloading OSGeo4W msi installer"
-        pwd
         dir "C:\Program Files"
-        curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o osgeo.msi
+        curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o $RUNNER_TEMP/osgeo.msi
         echo "Installing QGIS"
-        msiexec ./osgeo.msi /quiet /log msiexec.log
-        echo "Finished installation"
-        dir
+        msiexec /i $RUNNER_TEMP/osgeo.msi /qn /L $RUNNER_TEMP/msiexec.log
     - name: Install dependencies
       run: |
         echo "Check The Program Files"
         dir "C:\Program Files"
         C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
         C:\Miniconda\condabin\conda.bat init powershell
+    - name: Check QGIS Installation
+      run: |
+        cat $RUNNER_TEMP/msiexec.log
+        dir "C:\Program Files"
     - name: Lint with flake8
       run: |
         # Activate the base environment
