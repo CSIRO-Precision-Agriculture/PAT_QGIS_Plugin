@@ -29,11 +29,11 @@ jobs:
         echo "GITHUB_ACTOR is $env:GITHUB_ACTOR or $GITHUB_ACTOR or or %GITHUB_ACTOR%"
         echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
         dir "C:\Program Files"
-        curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o D:\a\_temp\QGIS-OSGeo4W-3.36.3-1.msi 
-        dir D:\a\_temp\
+        curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o  D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi 
+        dir 
         echo "Installing QGIS"
-        echo "msiexec /i D:\a\_temp\QGIS-OSGeo4W-3.36.3-1.msi /qn "
-        msiexec /i D:\a\_temp\QGIS-OSGeo4W-3.36.3-1.msi /qn 
+        echo "msiexec /i D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi  /qn "
+        msiexec /i D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi  /qn 
         echo "pwd"
         pwd
     - name: Install dependencies
