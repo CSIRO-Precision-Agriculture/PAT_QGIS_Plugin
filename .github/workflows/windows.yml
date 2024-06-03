@@ -17,8 +17,9 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install QGIS
+      run: env
       run: |
-        echo "Downloading OSGeo4W msi installer in ${RUNNER_TEMP}"
+        echo "Downloading OSGeo4W msi installer in $RUNNER_TEMP"
         dir "C:\Program Files"
         curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o ${RUNNER_TEMP}\osgeo.msi
         dir ${RUNNER_TEMP}
