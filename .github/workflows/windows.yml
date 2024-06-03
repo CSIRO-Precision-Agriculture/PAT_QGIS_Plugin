@@ -32,6 +32,7 @@ jobs:
         curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o $env:RUNNER_TEMP\osgeo.msi
         dir $env:RUNNER_TEMP
         echo "Installing QGIS"
+        echo msiexec /i $env:RUNNER_TEMP\osgeo.msi /qn /L $env:RUNNER_TEMP\msiexec.log
         msiexec /i $env:RUNNER_TEMP\osgeo.msi /qn /L $env:RUNNER_TEMP\msiexec.log
     - name: Install dependencies
       run: |
