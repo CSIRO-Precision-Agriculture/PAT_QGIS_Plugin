@@ -27,12 +27,12 @@ jobs:
         echo "MNBV1 is $env:MNBV1 and MNBV2 is $env:MNBV2"
         echo "GH_REPO is $GH_REPO"
         echo "GITHUB_ACTOR is $env:GITHUB_ACTOR or $GITHUB_ACTOR or or %GITHUB_ACTOR%"
-        echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP"
+        echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
         dir "C:\Program Files"
-        curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o ${RUNNER_TEMP}\osgeo.msi
-        dir ${RUNNER_TEMP}
+        curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o $env:RUNNER_TEMP\osgeo.msi
+        dir $env:RUNNER_TEMP
         echo "Installing QGIS"
-        msiexec /i ${RUNNER_TEMP}\osgeo.msi /qn /L ${RUNNER_TEMP}\msiexec.log
+        msiexec /i $env:RUNNER_TEMP\osgeo.msi /qn /L $env:RUNNER_TEMP\msiexec.log
     - name: Install dependencies
       run: |
         echo "Check The Program Files"
