@@ -33,10 +33,10 @@ jobs:
         echo "Installing QGIS"
         msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         dir "C:\Program Files"
-        echo sleep for 60s
+        echo "sleep for 60s"
         sleep 60
         dir "C:\Program Files"
-        echo sleep for next 60s
+        echo "sleep for next 60s"
         sleep 60
         dir "C:\Program Files"
     - name: Install dependencies
@@ -47,7 +47,11 @@ jobs:
         C:\Miniconda\condabin\conda.bat init powershell
     - name: Check QGIS Installation
       run: |
-        cat $RUNNER_TEMP\msiexec.log
+        echo "S2.0: sleep for 60s"
+        sleep 60
+        dir "C:\Program Files"
+        echo "S2.1: sleep for next 60s"
+        sleep 60
         dir "C:\Program Files"
     - name: Lint with flake8
       run: |
