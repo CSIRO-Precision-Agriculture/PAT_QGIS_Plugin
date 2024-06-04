@@ -4,9 +4,12 @@ name: Github Actions in Windows
 on: push
 
 env:
-    MNBV1: 42
-    MNBV2: Myfile.txt
-    GH_REPO: ${{ github.repository }}
+    MNBV1:     42
+    MNBV2:     Myfile.txt
+    GH_REPO:   ${{ github.repository }}
+    QGIS_PKG:  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi
+    PRGM_DIR:  "C:\Program Files"
+    QGIS_DIR:  "C:\Program Files\QGIS 3.36.3"
 
 jobs:
   build-windows:
@@ -26,13 +29,13 @@ jobs:
         env
         echo "MNBV1 is $env:MNBV1 and MNBV2 is $env:MNBV2"
         echo "GH_REPO is $GH_REPO"
-        echo "GITHUB_ACTOR is $env:GITHUB_ACTOR or $GITHUB_ACTOR or or %GITHUB_ACTOR%"
+        echo "GITHUB_ACTOR is $env:GITHUB_ACTOR"
         echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
-        dir "C:\Program Files"
+        dir $env:PRGM_DIR
         #curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o  D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi 
         echo "Installing QGIS"
         msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
-        dir "C:\Program Files"
+        dir $env:PRGM_DIR
         #echo "sleep for 60s"
         #sleep 60
     - name: Install Test Tool Dependencies
@@ -73,5 +76,7 @@ jobs:
     - name: Setup For GeoNom Testing
       run: |
         echo "Looking for C:\Program Files\Qgis"
-        dir "C:\Program Files"
+        dir $env:PRGM_DIR
+        echo "Contents of QGIS directory"
+        dir $QGIS_DIR
     
