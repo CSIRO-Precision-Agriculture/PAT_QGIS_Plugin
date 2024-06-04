@@ -33,13 +33,9 @@ jobs:
         echo "Installing QGIS"
         msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         dir "C:\Program Files"
-        echo "sleep for 60s"
-        sleep 60
-        dir "C:\Program Files"
-        echo "sleep for next 60s"
-        sleep 60
-        dir "C:\Program Files"
-    - name: Install dependencies
+        #echo "sleep for 60s"
+        #sleep 60
+    - name: Install Test Tool Dependencies
       run: |
         echo "Check The Program Files"
         dir "C:\Program Files"
@@ -47,11 +43,6 @@ jobs:
         C:\Miniconda\condabin\conda.bat init powershell
     - name: Check QGIS Installation
       run: |
-        echo "S2.0: sleep for 60s"
-        sleep 60
-        dir "C:\Program Files"
-        echo "S2.1: sleep for next 60s"
-        sleep 60
         dir "C:\Program Files"
     - name: Lint with flake8
       run: |
@@ -79,3 +70,8 @@ jobs:
         #mv ./pyprecag/tests/test_end2end.py ./pyprecag/tests/X_test_end2end.py
         #python -m unittest discover -s pyprecag/tests -p "test_*.py" -v
         #python -m unittest discover -s pyprecag/tests -p "test_v*.py" -v
+- name: Setup For GeoNom Testing
+      run: |
+        echo "Looking for C:\Program Files\Qgis*-*"
+        dir "C:\Program Files"
+    
