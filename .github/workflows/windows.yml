@@ -70,8 +70,8 @@ jobs:
         #mv ./pyprecag/tests/test_end2end.py ./pyprecag/tests/X_test_end2end.py
         #python -m unittest discover -s pyprecag/tests -p "test_*.py" -v
         #python -m unittest discover -s pyprecag/tests -p "test_v*.py" -v
-- name: Setup For GeoNom Testing
+    - name: Setup For GeoNom Testing
       run: |
-        echo "Looking for C:\Program Files\Qgis*-*"
+        echo "Looking for C:\Program Files\Qgis"
         dir "C:\Program Files"
     
