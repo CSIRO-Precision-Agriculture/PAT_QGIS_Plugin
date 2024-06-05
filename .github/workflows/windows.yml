@@ -74,5 +74,19 @@ jobs:
         dir "C:\Program Files\QGIS 3.36.3"
         echo "Attempt to list all the python packages available in the Qgis enviroment"
         #"C:\Program Files\QGIS 3.36.3\OSGeo4W.bat" python-qgis -m pip list
+        echo "Check OSGeo4w.bat commands:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' o-help
-    
+        echo "Check python-qgis packages:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list
+        echo "Install pyprecag package:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
+        echo "Install pb_tool package:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
+        echo "Check python-qgis packages after pip installs:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list
+        echo "Compile python-qgis plugin:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
+        echo "Deploy python-qgis plugin:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
+        echo "Zip python-qgis plugin:"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
