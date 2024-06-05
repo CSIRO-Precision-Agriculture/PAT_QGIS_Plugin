@@ -7,7 +7,7 @@ env:
     MNBV1: 42
     MNBV2: Myfile.txt
     GH_REPO: ${{ github.repository }}
-    
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -24,10 +24,12 @@ jobs:
     - name: Install QGIS
       run: |
         env
+        echo "Trying Again 4.0 series"
         echo "MNBV1 is $env:MNBV1 and MNBV2 is $env:MNBV2"
-        echo "GH_REPO is $GH_REPO"
+        echo "GH_REPO is $env:GH_REPO"
         echo "GITHUB_ACTOR is $env:GITHUB_ACTOR"
         echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
+        dir "C:\Program Files"
         #curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o  D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi 
         echo "Installing QGIS"
         msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
@@ -69,10 +71,8 @@ jobs:
         #mv ./pyprecag/tests/test_end2end.py ./pyprecag/tests/X_test_end2end.py
         #python -m unittest discover -s pyprecag/tests -p "test_*.py" -v
         #python -m unittest discover -s pyprecag/tests -p "test_v*.py" -v
-    - name: Setup For GeoNom Testing
+- name: Setup For GeoNom Testing
       run: |
-        echo "Looking for C:\Program Files\Qgis"
+        echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files"
-        echo "Contents of QGIS directory"
-        dir "C:\Program Files\Q*"
     
