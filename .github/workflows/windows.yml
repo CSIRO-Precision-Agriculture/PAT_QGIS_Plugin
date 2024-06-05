@@ -1,12 +1,10 @@
-# Windows Build of QGis from scratch with the addition of pyprecag
-name: Github Actions in Windows
+name: Windows Build of QGis from scratch
 
 on: push
 
 env:
     MNBV1: 42
     MNBV2: Myfile.txt
-    GH_REPO: ${{ github.repository }}
 
 jobs:
   build-windows:
@@ -26,7 +24,6 @@ jobs:
         env
         echo "Trying Again 4.0 series"
         echo "MNBV1 is $env:MNBV1 and MNBV2 is $env:MNBV2"
-        echo "GH_REPO is $env:GH_REPO"
         echo "GITHUB_ACTOR is $env:GITHUB_ACTOR"
         echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
         dir "C:\Program Files"
