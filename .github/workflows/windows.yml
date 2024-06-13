@@ -57,23 +57,12 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with unittest
+    - name: Installing pyprecag
       run: |
-        # Activate the base environment
-        #C:\Miniconda\condabin\conda.bat activate base
-        #C:\Miniconda\condabin\conda.bat install pytest
-        #pytest
-        #mv ./pyprecag/tests/test_processing.py ./pyprecag/tests/X_test_processing.py
-        #mv ./pyprecag/tests/test_vector_ops.py ./pyprecag/tests/X_test_vector_ops.py
-        #mv ./pyprecag/tests/test_end2end.py ./pyprecag/tests/X_test_end2end.py
-        #python -m unittest discover -s pyprecag/tests -p "test_*.py" -v
-        #python -m unittest discover -s pyprecag/tests -p "test_v*.py" -v
-    - name: Setup For Geocoding Nominatum Testing
-      run: |
+        # Check the base environment
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS 3.36.3"
         echo "Attempt to list all the python packages available in the Qgis enviroment"
-        #"C:\Program Files\QGIS 3.36.3\OSGeo4W.bat" python-qgis -m pip list
         echo "Check OSGeo4w.bat commands:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' o-help
         echo "Check python-qgis packages:"
@@ -83,13 +72,15 @@ jobs:
         echo "Install pb_tool package:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Check python-qgis packages after pip installs:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list
-        echo "Perform unit tests"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
+    - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
+      run: |
         echo "Excluding test_preVesper.py"
         mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
+        dir .\pat\tests
+        echo "Perform unit tests"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         echo "Compile python-qgis plugin:"
-        
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
         echo "Deploy python-qgis plugin:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
