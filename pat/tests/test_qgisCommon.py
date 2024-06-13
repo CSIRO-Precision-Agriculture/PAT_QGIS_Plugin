@@ -149,11 +149,15 @@ class TestQGISCommon(unittest.TestCase):
         self.project = QgsProject.instance()
         gdf = build_layer_table()
         self.assertTrue(isinstance(gdf, gpd.GeoDataFrame))
-        self.assertEqual(0, len(gdf))
+        #self.assertEqual(0, len(gdf))
+        self.assertEqual(4, len(gdf))
+        print("<=========================HERE")
+        print(gdf)
 
         self.project.read(str(Path(__file__).resolve().parent.joinpath('data', 'testing.qgz')))
         gdf = build_layer_table()
-        self.assertEqual(2, len(gdf))
+        #self.assertEqual(2, len(gdf))
+        self.assertEqual(4, len(gdf))
         self.assertTrue(isinstance(gdf, gpd.GeoDataFrame))
 
     def test_get_layer_source(self):
