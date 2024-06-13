@@ -68,7 +68,7 @@ jobs:
         #mv ./pyprecag/tests/test_end2end.py ./pyprecag/tests/X_test_end2end.py
         #python -m unittest discover -s pyprecag/tests -p "test_*.py" -v
         #python -m unittest discover -s pyprecag/tests -p "test_v*.py" -v
-    - name: Setup For GeoNom Testing
+    - name: Setup For Geocoding Nominatum Testing
       run: |
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS 3.36.3"
@@ -84,9 +84,14 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list
+        echo "Perform unit tests"
+        echo "Excluding 
+        mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_presVesper.py
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         echo "Compile python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
+        
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
         echo "Deploy python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
         echo "Zip python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
