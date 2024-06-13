@@ -457,7 +457,10 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
 
             # Change cursor to Wait cursor
             QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
+            try:
+                self.iface.mainWindow().statusBar().showMessage('Processing {}'.format(self.windowTitle()))
+            except:
+                print("No status Bar")
             LOGGER.info('{st}\nProcessing {}'.format(self.windowTitle(), st='*' * 50))
 
             self.send_to_messagebar("Please wait.. QGIS will be locked... See log panel for progress.",
@@ -559,7 +562,10 @@ class CalculateImageIndicesDialog(QDialog, FORM_CLASS):
         except Exception as err:
 
             QApplication.restoreOverrideCursor()
-            self.iface.mainWindow().statusBar().clearMessage()
+            try:
+                self.iface.mainWindow().statusBar().clearMessage()
+            except:
+                print("No Status Bar")
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
 
