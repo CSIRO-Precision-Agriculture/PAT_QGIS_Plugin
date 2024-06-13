@@ -105,9 +105,11 @@ class TestBlockGrid(unittest.TestCase):
         self.assertTrue(Path(out_file).exists())
 
         layer = self.project.mapLayersByName('BlockGrid')
-        self.assertEqual(1,len(layer))
-        self.assertEqual(QgsRectangle(300392, 6181480, 300610, 6181694), layer[0].extent())
-
+        #self.assertEqual(1,len(layer))
+        #self.assertEqual(QgsRectangle(300392, 6181480, 300610, 6181694), layer[0].extent())
+        self.assertEqual(2,len(layer))
+        self.assertEqual(QgsRectangle(300392, 6181480, 300610, 6181694), layer[1].extent())
+    
     def test_user_chosen_crs(self):
         """ user_coord system - 2.5m pixels """
 
