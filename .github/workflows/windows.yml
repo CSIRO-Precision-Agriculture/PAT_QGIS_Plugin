@@ -85,8 +85,8 @@ jobs:
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list
         echo "Perform unit tests"
-        echo "Excluding 
-        mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_presVesper.py
+        echo "Excluding test_preVesper.py"
+        mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         echo "Compile python-qgis plugin:"
         
