@@ -1,0 +1,14 @@
+		   =================================================================
+           NOTES OF RUNNING EXAMPLE QGIS TESTS VIA THE QGIS-PYTHON UNITTESTS
+		   =================================================================
+
+& 'C:\Program Files\QGIS 3.36.2\OSGeo4W.bat' python-qgis -m unittest .\tests\test_utility.py
+
+& 'C:\Program Files\QGIS 3.36.2\OSGeo4W.bat' python-qgis -m unittest .\tests\test_utility2.py
+
+
+--------------------------------------------------------------
+TRYING TO RUN A PAT GUI, WE MUST RUN FROM THE PARENT DIRECTORY
+--------------------------------------------------------------
+
+ & 'C:\Program Files\QGIS 3.36.2\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_utility2.py
