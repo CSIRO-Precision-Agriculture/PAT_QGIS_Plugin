@@ -66,6 +66,7 @@ jobs:
         # Check the base environment
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS*"
+        dir "C:\Program Files\QGIS 3.36.3"
         echo "Attempt to list all the python packages available in the Qgis enviroment"
         echo "Check OSGeo4w.bat commands:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' o-help
