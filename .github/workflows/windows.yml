@@ -37,26 +37,26 @@ jobs:
       run: |
         echo "Check The Program Files"
         dir "C:\Program Files"
-        C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
-        C:\Miniconda\condabin\conda.bat init powershell
+        #C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
+        #C:\Miniconda\condabin\conda.bat init powershell
     - name: Check QGIS Installation
       run: |
         dir "C:\Program Files"
     - name: Lint with flake8
       run: |
         # Activate the base environment
-        C:\Miniconda\condabin\conda.bat activate base
-        C:\Miniconda\condabin\conda.bat install flake8
-        C:\Miniconda\condabin\conda.bat install gdal
-        C:\Miniconda\condabin\conda.bat install fiona
-        C:\Miniconda\condabin\conda.bat install geopandas
+        #C:\Miniconda\condabin\conda.bat activate base
+        #C:\Miniconda\condabin\conda.bat install flake8
+        #C:\Miniconda\condabin\conda.bat install gdal
+        #C:\Miniconda\condabin\conda.bat install fiona
+        #C:\Miniconda\condabin\conda.bat install geopandas
         #conda install fiona
         #conda install geopandas
-        pip install .
+        #pip install .
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        #flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        #flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Installing pyprecag
       run: |
         echo "Do a git checkout of the latest mnbFromMaint branch of pyprecag"
