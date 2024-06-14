@@ -67,10 +67,14 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' o-help
         echo "Check python-qgis packages:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list
-        echo "Install pyprecag package:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
         echo "Install pb_tool package:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
+        echo "Install pyprecag package:"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
+        echo "Do a git checkout of the latest mnbFromMaint branch of pyprecag"
+        git clone -b mnbFromMaint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+        echo Do a pip intstall via the pyprecag requirements.txt
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install -r pyprecag\requirements.txt
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
     - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
