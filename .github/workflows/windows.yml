@@ -59,6 +59,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Installing pyprecag
       run: |
+        echo "Do a git checkout of the latest mnbFromMaint branch of pyprecag"
+        git clone -b mnbFromMaint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         # Check the base environment
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS 3.36.3"
@@ -71,8 +73,6 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Install pyprecag package:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
-        echo "Do a git checkout of the latest mnbFromMaint branch of pyprecag"
-        git clone -b mnbFromMaint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         echo "Do a pip intstall via the pyprecag requirements.txt"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install -r .\pyprecag\requirments.txt
         echo "Check python-qgis packages after pip installs:"
