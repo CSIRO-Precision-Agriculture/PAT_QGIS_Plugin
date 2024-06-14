@@ -73,11 +73,11 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Install pyprecag package:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
-        echo "Do a pip intstall via the pyprecag requirements.txt"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install -r .\pyprecag\requirments.txt
+        echo "Do a pip intstall of the checked out pyprecag"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
         echo "Add rasterio and unidecode"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install rasterio
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install Unidecode
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install rasterio
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install Unidecode
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
     - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
