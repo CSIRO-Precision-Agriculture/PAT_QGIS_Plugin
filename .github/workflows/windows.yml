@@ -94,9 +94,12 @@ jobs:
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Compile python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat'
+        pb_tool compile
         echo "Deploy python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
-        echo "Zip python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
+        pb_tool deploy
+        #echo "Zip python-qgis plugin:"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
+        pb_tool zip
         dir .
