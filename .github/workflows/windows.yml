@@ -31,7 +31,7 @@ jobs:
         echo "Installing QGIS"
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
-        start-Process -Wait msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn        
+        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn " -Wait
         dir "C:\Program Files"
         #echo "sleep for 60s"
         #sleep 60
