@@ -63,8 +63,6 @@ jobs:
         # Activate the base environment
         echo "Do a git checkout of the latest mnbFromMaint branch of pyprecag"
         git clone -b mnbFromMaint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
-        echo "Pause for 240 seconds"
-        sleep 240        
         # Check the base environment
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS*"
@@ -88,13 +86,17 @@ jobs:
     - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
       run: |
         echo "Excluding test_preVesper.py"
-        mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
+        #mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
         dir .\pat\tests
         echo "Perform unit tests"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
+    - name: Build and Package the PAT Qgis Plugin
+      run: |
+        echo "Excluding test_preVesper.py"        
         echo "Compile python-qgis plugin:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
         echo "Deploy python-qgis plugin:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
         echo "Zip python-qgis plugin:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
+        dir .
