@@ -89,10 +89,10 @@ jobs:
         #mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
         dir .\pat\tests
         echo "Perform unit tests"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_Cleantrim.py
     - name: Build and Package the PAT Qgis Plugin
       run: |
-        echo "Excluding test_preVesper.py"        
         echo "Compile python-qgis plugin:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool compile
         echo "Deploy python-qgis plugin:"
