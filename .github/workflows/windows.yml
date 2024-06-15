@@ -90,7 +90,7 @@ jobs:
         dir .\pat\tests
         echo "Perform unit tests"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleantrim.py
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Compile python-qgis plugin:"
