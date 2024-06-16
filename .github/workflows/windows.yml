@@ -101,6 +101,6 @@ jobs:
         #echo "Zip python-qgis plugin:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
         #pb_tool zip
-        & 'C:\Program Files\QGIS 3.36.2\OSGeo4W.bat' python-qgis .\pbt_ops.py
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pbt_ops.py
 
         dir .
