@@ -92,14 +92,15 @@ jobs:
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
     - name: Build and Package the PAT Qgis Plugin
-      shell: pwsh
       run: |
         echo "Compile python-qgis plugin:"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' ; pb_tool compile
-        echo "Deploy python-qgis plugin:"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' ; pb_tool compile
+        #echo "Deploy python-qgis plugin:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
-        pb_tool deploy
+        #pb_tool deploy
         #echo "Zip python-qgis plugin:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
-        pb_tool zip
+        #pb_tool zip
+        & 'C:\Program Files\QGIS 3.36.2\OSGeo4W.bat' python-qgis .\pbt_ops.py
+
         dir .
