@@ -5,7 +5,11 @@ on: push
 env:
     MNBV1: 42
     MNBV2: Myfile.txt
-
+    QGIS_VER: '3.36.3'
+    QGIS_MSI:  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi
+    QGIS_BIN: 'C:\Program Files\QGIS 3.36.3\bin'
+    OSGEO4W_BAT: 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' 
+    
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -38,8 +42,10 @@ jobs:
         echo "Download 7z.exe"
         curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
         echo "Place in QGIS bin directory"
-        cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
-        dir "C:\Program Files\QGIS 3.36.3\bin"
+        #cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
+        #dir "C:\Program Files\QGIS 3.36.3\bin"
+        cp 7z.exe $env:QGIS_BIN
+        dir $env:QGIS_BIN
     - name: Install Test Tool Dependencies
       run: |
         echo "Check The Program Files"
