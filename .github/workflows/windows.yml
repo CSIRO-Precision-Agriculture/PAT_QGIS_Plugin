@@ -39,7 +39,7 @@ jobs:
         curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
         echo "Place in QGIS bin directory"
         cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
-        dir "C:\Program Files\QGIS 3.36.3"
+        dir "C:\Program Files\QGIS 3.36.3\bin"
     - name: Install Test Tool Dependencies
       run: |
         echo "Check The Program Files"
@@ -106,6 +106,6 @@ jobs:
         #echo "Zip python-qgis plugin:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
         #pb_tool zip
+        echo "Invoking the pbt_ops.py python script"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
-
-        dir .
+        dir .\pat\zip_build
