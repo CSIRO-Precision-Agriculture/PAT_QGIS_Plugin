@@ -6,9 +6,12 @@ env:
     MNBV1: 42
     MNBV2: Myfile.txt
     QGIS_VER: '3.36.3'
-    QGIS_MSI:  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi
+    QGIS_MSI:  'https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi'
     QGIS_BIN: 'C:\Program Files\QGIS 3.36.3\bin'
     OSGEO4W_BAT: 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' 
+    PROG_FILES_DIR: 'C:\Program Files'
+    BAT_FILE: 'OSGeo4W.bat'
+    BAT_PATH: '${env:PROG_FILES_DIR}/${env:BAT_FILE}'
     
 jobs:
   build-windows:
@@ -35,7 +38,7 @@ jobs:
         echo "Installing QGIS"
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
-        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn " -Wait
+        start-Process msiexec -ArgumentList "/i $env:GGIS_MSI /qn " -Wait
         dir "C:\Program Files"        
     - name: Install 7-Zip 
       run: |
