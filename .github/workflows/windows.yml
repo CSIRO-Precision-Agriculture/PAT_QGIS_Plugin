@@ -11,7 +11,7 @@ env:
     OSGEO4W_BAT: 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' 
     PROG_FILES_DIR: 'C:\Program Files'
     BAT_FILE: 'OSGeo4W.bat'
-    BAT_PATH: '${env:PROG_FILES_DIR}/${env:BAT_FILE}'
+    BAT_PATH: '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
     
 jobs:
   build-windows:
@@ -45,10 +45,10 @@ jobs:
         echo "Download 7z.exe"
         curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
         echo "Place in QGIS bin directory"
-        #cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
-        #dir "C:\Program Files\QGIS 3.36.3\bin"
-        cp 7z.exe $env:QGIS_BIN
-        dir $env:QGIS_BIN
+        cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
+        dir "C:\Program Files\QGIS 3.36.3\bin"
+        #cp 7z.exe $env:QGIS_BIN
+        #dir $env:QGIS_BIN
     - name: Install Test Tool Dependencies
       run: |
         echo "Check The Program Files"
