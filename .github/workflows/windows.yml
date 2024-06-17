@@ -38,7 +38,7 @@ jobs:
         echo "Installing QGIS"
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
-        start-Process msiexec -ArgumentList "/i $env:GGIS_MSI /qn " -Wait
+        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn " -Wait
         dir "C:\Program Files"        
     - name: Install 7-Zip 
       run: |
