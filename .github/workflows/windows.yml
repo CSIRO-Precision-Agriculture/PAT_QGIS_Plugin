@@ -38,7 +38,7 @@ jobs:
         echo "Installing QGIS"
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
-        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn " -Wait
+        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-2.msi /qn " -Wait
         dir "C:\Program Files"        
     - name: Install 7-Zip 
       run: |
@@ -90,9 +90,9 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Install pyprecag package:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
-        echo "Do a pip intstall of the checked out pyprecag"
+        echo "Do a pip install of the checked out version of pyprecag"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
-        echo "Add rasterio and unidecode"
+        #echo "Add rasterio and unidecode"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install rasterio
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install Unidecode
         echo "Check python-qgis packages after pip installs:"
@@ -104,7 +104,8 @@ jobs:
         dir .\pat\tests
         echo "Perform unit tests"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
+        echo "Just try test_cleanTrim"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Compile python-qgis plugin:"
