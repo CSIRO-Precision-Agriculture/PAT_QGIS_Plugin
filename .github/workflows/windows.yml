@@ -32,9 +32,14 @@ jobs:
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
         start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn " -Wait
-        dir "C:\Program Files"
-        #echo "sleep for 60s"
-        #sleep 60
+        dir "C:\Program Files"        
+    - name: Install 7-Zip 
+      run: |
+        echo "Download 7z.exe"
+        curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
+        echo "Place in QGIS bin directory"
+        cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
+        dir "C:\Program Files\QGIS 3.36.3"
     - name: Install Test Tool Dependencies
       run: |
         echo "Check The Program Files"
