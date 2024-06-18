@@ -39,6 +39,10 @@ jobs:
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
         start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-2.msi /qn " -Wait
+        echo "Uninstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
+        echo "Reinstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
         dir "C:\Program Files"        
     - name: Install 7-Zip 
       run: |
