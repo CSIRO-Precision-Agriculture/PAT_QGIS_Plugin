@@ -39,6 +39,10 @@ jobs:
         #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
         echo "Use startProcess"
         start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-2.msi /qn " -Wait
+        echo "Uninstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
+        echo "Reinstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
         dir "C:\Program Files"        
     - name: Install 7-Zip 
       run: |
@@ -99,13 +103,13 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
     - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
       run: |
-        echo "Excluding test_preVesper.py"
+        #echo "Excluding test_preVesper.py"
         #mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
         dir .\pat\tests
         echo "Perform unit tests"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
-        echo "Just try test_cleanTrim"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
+        #echo "Just try test_cleanTrim"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Compile python-qgis plugin:"
