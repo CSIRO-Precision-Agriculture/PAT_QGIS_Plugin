@@ -79,8 +79,8 @@ jobs:
     - name: Installing pyprecag
       run: |
         # Activate the base environment
-        echo "Do a git checkout of the latest mnbFromMaint branch of pyprecag"
-        git clone -b mnbFromMaint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+        echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
+        git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         # Check the base environment
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS*"
