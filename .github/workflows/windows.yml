@@ -101,15 +101,6 @@ jobs:
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install Unidecode
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
-    - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
-      run: |
-        #echo "Excluding test_preVesper.py"
-        #mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
-        dir .\pat\tests
-        echo "Perform unit tests"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
-        #echo "Just try test_cleanTrim"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Compile python-qgis plugin:"
@@ -123,6 +114,16 @@ jobs:
         echo "Invoking the pbt_ops.py python script"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
         dir .\pat\zip_build
+
+    - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
+      run: |
+        #echo "Excluding test_preVesper.py"
+        #mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
+        dir .\pat\tests
+        echo "Perform unit tests"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
+        #echo "Just try test_cleanTrim"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
        
     - name: Deploy 2 Pages
       uses: actions/upload-artifact@v4
