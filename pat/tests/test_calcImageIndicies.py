@@ -72,7 +72,7 @@ class TestBlockGrid(unittest.TestCase):
         dlg.cboBandIR.setIndex(3)
         dlg.cboBandNonVine.setIndex(4)
 
-        for x in self.chkgrpIndices.buttons() :
+        for x in dlg.chkgrpIndices.buttons() :
             x.setChecked(True)
         #
         # dlg.chkNDVI.setChecked(True)
