@@ -124,7 +124,7 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         #echo "Just try test_cleanTrim"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
-    -name: Create pat.zip file
+    - name: Create pat.zip file
       run: |
         echo "Invoking the pbt_ops.py python script"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
