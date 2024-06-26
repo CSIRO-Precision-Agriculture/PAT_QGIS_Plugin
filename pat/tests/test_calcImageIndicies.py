@@ -66,11 +66,11 @@ class TestBlockGrid(unittest.TestCase):
         #dlg.dsbPixelSize.setValue(5.0)
         #BandMapping(red=3, green=2, infrared=4, rededge=1, mask=5)
 
-        dlg.cboBandRed.setIndex(2)
-        dlg.cboBandGreen.setIndex(1)
-        dlg.cboBandRedEdge.setIndex(0)
-        dlg.cboBandIR.setIndex(3)
-        dlg.cboBandNonVine.setIndex(4)
+        dlg.cboBandRed.setCurrentIndex(2)
+        dlg.cboBandGreen.setCurrentIndex(1)
+        dlg.cboBandRedEdge.setCurrentIndex(0)
+        dlg.cboBandIR.setCurrentIndex(3)
+        dlg.cboBandNonVine.setCurrentIndex(4)
 
         for x in dlg.chkgrpIndices.buttons() :
             x.setChecked(True)
