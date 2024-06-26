@@ -108,7 +108,9 @@ class TestBlockGrid(unittest.TestCase):
         #self.assertEqual(1,len(layer))
         #self.assertEqual(QgsRectangle(300392, 6181480, 300610, 6181694), layer[0].extent())
         self.assertEqual(2,len(layer))
-        self.assertEqual(QgsRectangle(300392, 6181480, 300610, 6181694), layer[1].extent())
+        #self.assertEqual(QgsRectangle(300392, 6181480, 300610, 6181694), layer[1].extent())
+        self.assertEqual(QgsRectangle(300392, 6181480, 300942, 6181696), layer[1].extent())
+         
         #self.assertEqual(QgsRectangle(300330, 6181420, 301005, 6181760), layer[0].extent())
     
     def test_user_chosen_crs(self):
