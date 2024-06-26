@@ -127,6 +127,10 @@ jobs:
        
     - name: Deploy 2 Pages
       uses: actions/upload-artifact@v4
+      run: |
+        echo "Invoking the pbt_ops.py python script"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
+        dir .\pat\zip_build
       with:
         name: my-artifact.zip
         path: .\pat\zip_build\pat.zip
