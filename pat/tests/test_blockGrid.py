@@ -74,7 +74,7 @@ class TestBlockGrid(unittest.TestCase):
         layer = self.project.mapLayersByName('BlockGrid_5m')
         self.assertEqual(1,len(layer))        
         #self.assertEqual(QgsRectangle(300330, 6181420, 301005, 6181760), layer[0].extent())
-		self.assertEqual(QgsRectangle(300392 6181480, 300942 6181696), layer[0].extent())
+        self.assertEqual(QgsRectangle(300392 6181480, 300942 6181696), layer[0].extent())
     def test_feature_selection(self):
         """ poly selection """
 
