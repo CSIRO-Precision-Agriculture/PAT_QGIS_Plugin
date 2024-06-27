@@ -51,29 +51,15 @@ jobs:
         echo "Place in QGIS bin directory"
         cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
         dir "C:\Program Files\QGIS 3.36.3\bin"
-        #cp 7z.exe $env:QGIS_BIN
-        #dir $env:QGIS_BIN
-    - name: Install Test Tool Dependencies
-      run: |
-        echo "Check The Program Files"
-        dir "C:\Program Files"
-        #C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
-        #C:\Miniconda\condabin\conda.bat init powershell
     - name: Check QGIS Installation
       run: |
+        echo "Check The Program Files"
         dir "C:\Program Files"
     - name: Lint with flake8
       run: |
         # Activate the base environment
         C:\Miniconda\condabin\conda.bat activate base
         C:\Miniconda\condabin\conda.bat install flake8
-        #C:\Miniconda\condabin\conda.bat install gdal
-        #C:\Miniconda\condabin\conda.bat install fiona
-        #C:\Miniconda\condabin\conda.bat install geopandas
-        #conda install fiona
-        #conda install geopandas
-        # stop the build if there are Python syntax errors or undefined names
-        #python -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         C:\Miniconda\condabin\conda.bat run python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Installing pyprecag
@@ -96,42 +82,23 @@ jobs:
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
         echo "Do a pip install of the checked out version of pyprecag"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
-        #echo "Add rasterio and unidecode"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install rasterio
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install Unidecode
+        
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
     - name: Build and Package the PAT Qgis Plugin
       run: |
-        echo "Compile python-qgis plugin:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' ; pb_tool compile
-        #echo "Deploy python-qgis plugin:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool deploy
-        #pb_tool deploy
-        #echo "Zip python-qgis plugin:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pb_tool zip
-        #pb_tool zip
-        echo "Invoking the pbt_ops.py python script"
+        echo "Invoking the pbt_ops.py python script. This will perform pbt compile, deploy and zip"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
+        echo "Checking the zip build directory"
         dir .\pat\zip_build
 
     - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
       run: |
-        #echo "Excluding test_preVesper.py"
-        #mv .\pat\tests\test_preVesper.py .\pat\tests\X_test_preVesper.py
         dir .\pat\tests
         echo "Perform unit tests"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
-        #echo "Just try test_cleanTrim"
+        #echo "Just try a single test"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
-    - name: Create pat.zip file
-      run: |
-        echo "Invoking the pbt_ops.py python script"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
-        echo "dir .\pat\zip_build:"
-        dir .\pat\zip_build
-        echo "dir .\pat\zip_build\pat:"
-        dir .\pat\zip_build\pat  
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
       with:
