@@ -64,9 +64,7 @@ jobs:
         C:\Miniconda\condabin\conda.bat run python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Installing pyprecag
       run: |
-        # Activate the base environment
-        echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
-        git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+        # Check the base environment
         # Check the base environment
         echo "Looking for C:\Program Files\Qgis*-*"
         dir "C:\Program Files\QGIS*"
@@ -80,6 +78,8 @@ jobs:
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Install pyprecag package:"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
+        echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
+        git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         echo "Do a pip install of the checked out version of pyprecag"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
         
