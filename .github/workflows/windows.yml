@@ -57,7 +57,7 @@ jobs:
         dir "C:\Program Files"
     - name: Lint with flake8
       run: |
-        # Activate the base environment
+        echo "Activate the base environment"
         C:\Miniconda\condabin\conda.bat activate base
         C:\Miniconda\condabin\conda.bat install flake8
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -81,14 +81,14 @@ jobs:
         ####& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' setup -q -k -r -A -s https://download.osgeo.org/osgeo4w/v2/ -P proj
         ####& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
         ### Example of checking out a specific branch version of pyprecag and installing via pip
-        ##echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
-        ##git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
-        ##echo "Do a pip install of the checked out version of pyprecag"
-        ##& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
-        echo "Do a git checkout of the latest main branch of pyprecag"
-        git clone -b master --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+        echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
+        git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         echo "Do a pip install of the checked out version of pyprecag"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
+        ##echo "Do a git checkout of the latest main branch of pyprecag"
+        ##git clone -b master --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+        ##echo "Do a pip install of the checked out version of pyprecag"
+        ##& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
         
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
