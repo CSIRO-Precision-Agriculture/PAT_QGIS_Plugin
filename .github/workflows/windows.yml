@@ -77,11 +77,12 @@ jobs:
         echo "Install pb_tool package:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pb_tool
         echo "Install pyprecag package:"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
-        echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
-        git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
-        echo "Do a pip install of the checked out version of pyprecag"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install pyprecag
+        ## Example of checking out a branch version of pyprecag and installing via pip
+        #echo "Do a git checkout of the latest mnbMerge2Maint branch of pyprecag"
+        #git clone -b mnbMerge2Maint --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+        #echo "Do a pip install of the checked out version of pyprecag"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
         
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
