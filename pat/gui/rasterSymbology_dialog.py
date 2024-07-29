@@ -234,8 +234,11 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
         except Exception as err:
             QApplication.restoreOverrideCursor()
             self.cleanMessageBars(True)
-            self.iface.mainWindow().statusBar().clearMessage()
-
+            try:
+                self.iface.mainWindow().statusBar().clearMessage()
+            except:
+            	# This exception error occurs in unittests when there is no status bar
+                print("No Status Bar To Clear")
             self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, exc_info=sys.exc_info())
             return False  # leave dialog open
