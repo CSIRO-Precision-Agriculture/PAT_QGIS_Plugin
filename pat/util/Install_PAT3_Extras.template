@@ -6,22 +6,24 @@ ECHO for $QGIS_VERSION   $QGIS_PATH
 cd %~dp0
 
 if "pause-$run_within" equ "pause-False" (
-    tasklist /FI "IMAGENAME eq qgis*"| find /I /N "qgis">NUL
-    IF %ERRORLEVEL% EQU 0 (
+    tasklist /FI "IMAGENAME eq qgis*"| find ":" > NUL
+    
+    IF errorlevel 1 (
         echo QGIS is Currently Running. Please save your work and close
         pause
 
-        tasklist /FI "IMAGENAME eq qgis*" | find /I /N "qgis">NUL
+        tasklist /FI "IMAGENAME eq qgis*"| find ":" > NUL
 
-        IF %ERRORLEVEL% EQU 0 (
+        IF errorlevel 1 (
             ECHO QGIS is Still Running. Proceeding to Kill QGIS without saving.
-            taskkill /FI "IMAGENAME eq qgis*" /F
+            taskkill /F /FI "IMAGENAME eq qgis*" 
         )
       )
     )
 
-ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.... Please Wait
+
 ECHO Dependencies Log: $dependency_log  
+ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.... Please Wait
 
 type NUL > "$dependency_log"   
 CALL :PROCESS > "$dependency_log"   

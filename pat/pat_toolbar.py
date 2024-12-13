@@ -35,7 +35,7 @@ except ImportError:
 
 from datetime import timedelta
 import logging
-import os.path
+import os
 import shutil
 import sys
 import time

@@ -309,6 +309,12 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                       "/LastInFolder_CSV", os.path.dirname(s))
         
         self.updateCtrlFileName()
+        
+        self.lblVesperFold.setStyleSheet('color:black')
+        self.lneVesperFold.setStyleSheet('color:black')
+        self.lneVesperFold.setText(os.path.dirname(s))
+        write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", s)
+        
     
     def check_csv(self,csv_file):
         
@@ -402,11 +408,12 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
+        fld = unidecode(self.cboKrigColumn.currentText())
         s, _f = QFileDialog.getOpenFileName(self, caption=self.tr("Choose the Vesper Variogram File"),
-                                            directory=inFolder,
-                                            filter='{}  (*.txt);;{}  (*.*);;'.format(
-                                                self.tr("Variogram Text File(s)"),
-                                                self.tr("All Files"))
+                                            directory= inFolder,
+                                            filter=f'{fld} (*{fld}*.txt);;'
+                                                   f'{self.tr("Variogram Text File(s)")} (*.txt);;'
+                                                   f'{ self.tr("All Files")} (*.*);;'
                                             )
 
         self.cleanMessageBars(self)
@@ -429,6 +436,11 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lblVariogramFile.setStyleSheet('color:black')
         self.lneVariogramFile.setStyleSheet('color:black')
         self.lneVariogramFile.setText(s)
+
+        ctrl_name = os.path.basename(s).replace('Variogram_','').replace('.txt','_control.txt')
+
+        self.lneCtrlFile.setText(ctrl_name)
+
         write_setting(PLUGIN_NAME + "/" + self.toolKey +
                       "/LastInFolder_Variogram", os.path.dirname(s))
 
