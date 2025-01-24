@@ -354,7 +354,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
         
     #copy processing alg to profile for when PAT fails install to assist with debugging.
     dest_file = Path(QgsApplication.qgisSettingsDirPath(), 'processing', 'scripts', "PAT_CheckVersions_alg.py")
-        
+
     src_file = Path(PLUGIN_DIR,'util', "PAT_CheckVersions_alg.py")
 
     # copy file if destination is older by more than a second, or does not exist
@@ -370,7 +370,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
             # Finally, refresh the algorithms for the Processing script provider
             QgsApplication.processingRegistry().providerById("script").refreshAlgorithms()
     
-    if read_setting(PLUGIN_NAME + '/STATUS/LOAD_TIMES', bool):
+    if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-copy_alg',
                                                 func_step.strftime("%H:%M:%S.%f"),
                                                 datetime.now().strftime("%H:%M:%S.%f"),
@@ -385,7 +385,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
     df_dep.loc['Temp', ['type', 'path']] = ['QGIS Environment', tempfile.gettempdir()]
     df_dep.loc['Python', ['type', 'current']] = ['QGIS Environment', sys.version]
     
-    if read_setting(PLUGIN_NAME + '/STATUS/LOAD_TIMES', bool):
+    if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-qgis_env',
                                                 func_step.strftime("%H:%M:%S.%f"),
                                                 datetime.now().strftime("%H:%M:%S.%f"),
@@ -406,7 +406,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
         # p = pyplugin_installer.installer_data.plugins.all()['pat']
         # df_dep.loc['PAT', 'available'] = parse_version(p['version_available'])  # needs further testing
     
-    if read_setting(PLUGIN_NAME + '/STATUS/LOAD_TIMES', bool):
+    if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-pat_ver',
                                                 func_step.strftime("%H:%M:%S.%f"),
                                                 datetime.now().strftime("%H:%M:%S.%f"),
@@ -419,7 +419,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
         write_setting(PLUGIN_NAME + '/VESPER_EXE', vesper_exe)
 
     df_dep.loc['VESPER', ['type', 'path']] = ['PAT Environment', vesper_exe]
-    if read_setting(PLUGIN_NAME + '/STATUS/LOAD_TIMES', bool):
+    if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-vesp_ver',
                                                 func_step.strftime("%H:%M:%S.%f"),
                                                 datetime.now().strftime("%H:%M:%S.%f"),
@@ -435,7 +435,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
     df_py[['package', 'current', 'available', 'file', 'source']] = df_py['name'].apply(check_python_dependencies,
                                                                                     args=(check_for_updates,))
     
-    if read_setting(PLUGIN_NAME + '/STATUS/LOAD_TIMES', bool):
+    if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-pydep_ver',
                                                 func_step.strftime("%H:%M:%S.%f"),
                                                 datetime.now().strftime("%H:%M:%S.%f"),
@@ -467,12 +467,12 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
     df_dep.loc[df_dep['file'].notnull(), 'current'] = df_dep['path']  # use tar/whl file
 
     # are core dependencies installed
-    #dep_met = read_setting(PLUGIN_NAME + '/STATUS/DEPENDENCIES_MET', object_type=bool, default=False)
+    #dep_met = read_setting(PLUGIN_NAME + '/SETUP/DEPENDENCIES_MET', object_type=bool, default=False)
     
     if 'pyprecag' in df_updates.index or forced_update:
         _ = install(df_updates,forced_update)
 
-    if read_setting(PLUGIN_NAME + '/STATUS/LOAD_TIMES', bool):
+    if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-install',
                                                 func_step.strftime("%H:%M:%S.%f"),
                                                 datetime.now().strftime("%H:%M:%S.%f"),
@@ -494,7 +494,7 @@ def install(df_updates,forced_update):
     
     func_time = datetime.now()
     
-    dependencies_met = read_setting(PLUGIN_NAME + '/STATUS/DEPENDENCIES_MET', object_type=bool, default=False)
+    dependencies_met = read_setting(PLUGIN_NAME + '/SETUP/DEPENDENCIES_MET', object_type=bool, default=False)
 
     packs_mess = ''
     if any(df_updates['source'] == 'osgeo4w'):
@@ -527,7 +527,7 @@ def install(df_updates,forced_update):
         return False
     
     if inst_result == 0:  # apply role or 7 day delay
-        write_setting(PLUGIN_NAME + '/STATUS/NEXT_CHECK', QDateTime.currentDateTime().addDays(7))
+        write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(7))
         # qgis.utils.unloadPlugin('pat')
         return True
 
@@ -576,7 +576,7 @@ def install(df_updates,forced_update):
             if success:
                 _ = plugin_status(level='basic', check_for_updates=False)
 
-                write_setting(PLUGIN_NAME + '/STATUS/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
+                write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
                 iface.messageBar().clearWidgets()
                 iface.messageBar().pushMessage("PAT", "Installing PAT Dependencies completed Successfully.",
                                                level=Qgis.Success, duration=5)
@@ -606,7 +606,7 @@ def install(df_updates,forced_update):
 
             QMessageBox.critical(None, 'PAT Updates available', message)
 
-            write_setting(PLUGIN_NAME + '/STATUS/INSTALL_PENDING', shortcutPath)
+            write_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', shortcutPath)
 
 
 

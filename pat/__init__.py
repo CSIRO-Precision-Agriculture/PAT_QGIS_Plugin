@@ -109,12 +109,12 @@ def classFactory(iface):
     done_file = Path(PLUGIN_DIR).joinpath('install_files', 'pat-install.finished')
     if done_file.exists(): 
         done_file.unlink()
-        shortcutPath  = read_setting(PLUGIN_NAME + '/STATUS/INSTALL_PENDING', object_type=str,default='')
+        shortcutPath  = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
             
         if shortcutPath != '' and Path(shortcutPath).exists():
              Path(shortcutPath).unlink()
              
-        remove_setting(PLUGIN_NAME + '/STATUS/INSTALL_PENDING')
+        remove_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING')
 
     if read_setting(PLUGIN_NAME + "/DEBUG", bool):
         LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
@@ -124,30 +124,8 @@ def classFactory(iface):
                                            dur=datetime.now() - start_time))
     
     step_time = datetime.now() 
-    # try:
-    #     from .pat_toolbar import pat_toolbar
-    #
-    #     import rasterio
-    #     import geopandas
-    #     from pyprecag import crs
-    #
-    #     from pyprecag import config
-    #     config.set_debug_mode(read_setting(PLUGIN_NAME + "/DEBUG", bool))
-    #     dep_met = True
-    # except ImportError:
-    #     # this will catch any import issues within the plugin or within pyprecag and force an update if available.
-    #     dep_met = False
-    # if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-    #     LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-    #                                     'Import Test',
-    #                                     step_time.strftime("%H:%M:%S.%f"),
-    #                                        datetime.now().strftime("%H:%M:%S.%f"),
-    #                                        dur=datetime.now() - step_time))
-    #
-    # step_time = datetime.now()
-    #write_setting(PLUGIN_NAME + '/STATUS/DEPENDENCIES_MET', dep_met)
 
-    next_check = read_setting(PLUGIN_NAME + "/STATUS/NEXT_CHECK", object_type=QDateTime)
+    next_check = read_setting(PLUGIN_NAME + "/SETUP/NEXT_CHECK", object_type=QDateTime)
     
     if next_check.isNull():   
         check_online = True
@@ -184,7 +162,7 @@ def classFactory(iface):
                                            dur=datetime.now() - step_time))
     step_time = datetime.now()
 
-    if  read_setting(PLUGIN_NAME + '/STATUS/INSTALL_PENDING', object_type=bool, default=False):
+    if  read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=bool, default=False):
         #qgis.utils.unloadPlugin('pat')
                
         if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
@@ -197,8 +175,8 @@ def classFactory(iface):
         sys.exit('Please install dependencies to use PAT')   
     else:
         # if we get here, then plugin should be imported and ready to go so set new check date.
-        if QDateTime.currentDateTime() > read_setting(PLUGIN_NAME + "/STATUS/NEXT_CHECK", object_type=QDateTime):
-            write_setting(PLUGIN_NAME + '/STATUS/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
+        if QDateTime.currentDateTime() > read_setting(PLUGIN_NAME + "/SETUP/NEXT_CHECK", object_type=QDateTime):
+            write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
         
         #qgis.utils.reloadPlugin('pat')
         step_time = datetime.now()
@@ -220,18 +198,4 @@ def classFactory(iface):
         check_pat_symbols()
                 
         return pat_toolbar(iface)
-
-    # except Exception as err:
-    #     if iface.mainWindow():
-    #         iface.mainWindow().statusBar().clearMessage()
-    #
-    #     message =f'Unable to load PAT due to \n {str(err)}'  
-    #     iface.messageBar().pushMessage("ERROR", message,
-    #                                level=Qgis.Critical,
-    #                                duration=20)
-    #
-    #     #LOGGER.critical(message)
-    #     _ =  plugin_status(level='basic', check_for_updates=True)
-    #
-    #     sys.exit(message)
 
