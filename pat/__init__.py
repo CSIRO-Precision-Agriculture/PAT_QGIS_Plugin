@@ -215,6 +215,9 @@ def classFactory(iface):
                                     start_time.strftime("%H:%M:%S.%f"),
                                     datetime.now().strftime("%H:%M:%S.%f"),
                                     dur=datetime.now() - start_time))
+        
+        from .util.check_dependencies import check_pat_symbols
+        check_pat_symbols()
                 
         return pat_toolbar(iface)
 

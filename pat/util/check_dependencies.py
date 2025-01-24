@@ -46,7 +46,7 @@ from packaging.version import parse as parse_version
 import osgeo.gdal
 import qgis
 from qgis.PyQt import QtCore
-from qgis.PyQt.QtCore import QDateTime
+from qgis.PyQt.QtCore import QDateTime, QFileInfo
 from qgis.PyQt.QtWidgets import QMessageBox, QApplication
 from qgis.core import Qgis, QgsApplication, QgsStyle
 
@@ -68,20 +68,21 @@ def check_pat_symbols():
     pat_xml = os.path.join(PLUGIN_DIR, 'PAT_Symbols.xml')
     if not os.path.exists(pat_xml):
         return
-
-    loaded_date = read_setting(PLUGIN_NAME + "/PAT_SYMBOLOGY")
-    if loaded_date is not None:
-        loaded_date = datetime.strptime(loaded_date, '%Y-%m-%d %H:%M:%S')
-
-    xml_date = datetime.fromtimestamp(os.path.getmtime(pat_xml)).replace(microsecond=0)
-
+    
+    loaded_date = read_setting(PLUGIN_NAME + "/PAT_SYMBOLOGY", object_type=QDateTime)
+    xml_date = QFileInfo(pat_xml).lastModified()
+    
+    new = False
+    if loaded_date.isNull() or  xml_date > loaded_date:
+        new = True
+    
     styles = QgsStyle().defaultStyle()
 
-    if 'PAT' not in styles.tags() or (loaded_date is None or xml_date > loaded_date):
+    if 'PAT' not in styles.tags() or new:
         if styles.isXmlStyleFile(pat_xml):
             if styles.importXml(pat_xml):
                 LOGGER.info('Loaded PAT Symbology')
-                write_setting(PLUGIN_NAME + '/PAT_SYMBOLOGY', xml_date.strftime('%Y-%m-%d %H:%M:%S'))
+                write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', xml_date)
             else:
                 LOGGER.warning('Loading PAT Symbology failed')
         else:
