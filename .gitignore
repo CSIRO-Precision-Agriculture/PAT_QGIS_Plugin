@@ -1,0 +1,15 @@
+# Build artifacts and directories
+pat/zip_build
+pat/help
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# IDE files
+.project
+.idea/
+*.dat
+.vscode/
+.github/
+
