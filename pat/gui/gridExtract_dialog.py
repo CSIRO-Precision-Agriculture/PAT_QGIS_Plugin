@@ -205,10 +205,10 @@ class GridExtractDialog(QDialog, FORM_CLASS):
 
         # Find layers that don't overlap, have a different pixel size or have already been added.
         if self.tabList.rowCount() == 0:
-            df_rastlyrs = df_rastlyrs[~df_rastlyrs.intersects(df_pts.unary_union)]
+            df_rastlyrs = df_rastlyrs[~df_rastlyrs.intersects(df_pts.union_all())]
         else:
             df_rastlyrs = df_rastlyrs[((df_rastlyrs['layer_id'].isin(used_layers)) | (df_rastlyrs['pixel_size'] != self.pixel_size[0])) |
-                        (~df_rastlyrs.intersects(df_pts.unary_union))]
+                        (~df_rastlyrs.intersects(df_pts.union_all()))]
             
         self.mcboRasterLayer.setExceptedLayerList(df_rastlyrs['layer'].tolist())
         

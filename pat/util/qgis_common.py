@@ -214,7 +214,7 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
                     gpd_rPoly = gpd.GeoDataFrame.from_features(geoms, crs=layer.crs().authid())
                     dest_crs.authid().replace('epgs:', '')
                     gpd_rPoly.to_crs(dest_crs.authid().replace('epgs:', ''), inplace=True)
-                    row_dict.update({'geometry': gpd_rPoly.unary_union})
+                    row_dict.update({'geometry': gpd_rPoly.union_all()})
 
                     del gpd_rPoly, results, msk, rast_shapes
                 except:

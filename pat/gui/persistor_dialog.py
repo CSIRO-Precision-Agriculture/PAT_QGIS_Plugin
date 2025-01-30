@@ -219,7 +219,7 @@ class PersistorDialog(QDialog, FORM_CLASS):
 
             # Find layers that don't overlap, have a different pixel size or have already been added (via list of layer id's).
             df_sub = df_sub[( (df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size[0]) ) |
-                               (~df_sub.intersects(df_used.unary_union))]
+                               (~df_sub.intersects(df_used.union_all()))]
 
             if len(df_sub['layer'].tolist()) > 0:
                 self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())

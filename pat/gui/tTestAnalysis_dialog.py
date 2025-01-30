@@ -222,13 +222,13 @@ class tTestAnalysisDialog(QDialog, FORM_CLASS):
         if self.pixel_size[0] == '0':
             # Find layers that overlap.
             if len(df_pts) > 0:
-                df_keep = df_rastlyrs[df_rastlyrs.intersects(df_pts.unary_union)]
+                df_keep = df_rastlyrs[df_rastlyrs.intersects(df_pts.union_all())]
 
         else:
             # Find layers that overlap and have the same pixel size.
             if len(df_pts) > 0:
                 df_keep = df_rastlyrs[
-                    (df_rastlyrs['pixel_size'] == self.pixel_size[0]) & (df_rastlyrs.intersects(df_pts.unary_union))]
+                    (df_rastlyrs['pixel_size'] == self.pixel_size[0]) & (df_rastlyrs.intersects(df_pts.union_all()))]
 
         # process for each raster layer cbo
         for cbo in cbo_list:
