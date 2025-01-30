@@ -564,7 +564,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 return False, 'Grid file does not exist'
             else:
                 try:
-                    df_grid = pd.read_table(grid_file, names=['X', 'Y'], delim_whitespace=True, skipinitialspace=True)
+                    df_grid = pd.read_table(grid_file, names=['X', 'Y'],sep='\s+', skipinitialspace=True)
 
                     grid_bbox = box(df_grid['X'].min(), df_grid['Y'].min(),
                                     df_grid['X'].max(), df_grid['Y'].max())
