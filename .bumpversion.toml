@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "1.1.0-dev5"
+current_version = "1.1.0-rc1"
 parse = """(?x)
 	(?P<major>\\d+)\\.
 	(?P<minor>\\d+)\\.
@@ -34,7 +34,7 @@ values = ["dev", "rc", "final"]
 optional_value = "final"
 
 [tool.bumpversion.parts.pre_n]
-first_value = "1"
+first_value = "0"
 
 [[tool.bumpversion.files]]
 filename = "pat/metadata.txt"
@@ -46,3 +46,4 @@ filename = "pat/metadata.txt"
 search = "release_date = \\d{{4}}-\\d{{2}}-\\d{{2}} \\d{{2}}:\\d{{2}}:\\d{{2}}"
 replace = "release_date = {now:%Y-%m-%d %H:%M:%S}"
 regex = true
+

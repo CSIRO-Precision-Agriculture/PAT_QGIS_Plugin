@@ -17,7 +17,7 @@ about=PAT is a QGIS plugin for tools required for processing and analysing preci
 qgisMinimumVersion=3.0.0
 qgisMaximumVersion=3.99.99
 
-version=1.1.0-dev5
+version=1.1.0
 # experimental=True
 
 author=Christina Ratcliff
@@ -30,7 +30,7 @@ repository=https://github.com/CSIRO-Precision-Agriculture/PAT_QGIS_Plugin
 # End of mandatory metadata
 
 # Recommended items:
-release_date = 2024-08-07 15:07:44
+release_date = 2025-01-30 14:31:55
 
 # Tags are comma separated with spaces allowed
 tags=raster, vector, kriging, agriculture, precision agriculture, csiro
@@ -44,7 +44,11 @@ citation=Ratcliff, Christina; Gobbett, David; Bramley, Rob (2019): PAT - Precisi
 Software Collection. https://doi.org/10.25919/5d23f9fb58722
 
 # Uncomment the following line and add your changelog:
+# dont forget to update the CHANGELOG.MD file
 changelog=
+  1.1.0: New Installation procedure.
+         Added processing tool to show pyprecag dependencies status 
+  1.0.4: Fixed installation issues and assorted bugs 
   1.0.3: Fix Missing DLL error. Now installs gdal300.dll (#54)
          Fix for raster services (#55)
          Load k-means cluster statistics into qgis
