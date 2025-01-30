@@ -32,5 +32,5 @@ Citation
 --------
 If you use PAT - Precision Agriculture Tools for any published work, please use the citation below. 
 
-Ratcliff, Christina; Gobbett, David; Bramley, Rob (2019): PAT - Precision Agriculture Tools. CSIRO.
-Software Collection. https://doi.org/10.25919/5d23f9fb58722
+Ratcliff, Christina; Gobbett, David; Bramley, Rob (2020): PAT - Precision Agriculture Tools. v4. CSIRO. 
+Software Collection. http://hdl.handle.net/102.100.100/78354
