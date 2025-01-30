@@ -69,7 +69,7 @@ def check_pat_symbols():
     if not os.path.exists(pat_xml):
         return
     
-    loaded_date = read_setting(PLUGIN_NAME + "/PAT_SYMBOLOGY", object_type=QDateTime)
+    loaded_date = read_setting(PLUGIN_NAME + "/SYMBOL_CHECK", object_type=QDateTime)
     xml_date = QFileInfo(pat_xml).lastModified()
     
     new = False
@@ -82,7 +82,7 @@ def check_pat_symbols():
         if styles.isXmlStyleFile(pat_xml):
             if styles.importXml(pat_xml):
                 LOGGER.info('Loaded PAT Symbology')
-                write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', xml_date)
+                write_setting(PLUGIN_NAME + '/SETUP/SYMBOL_CHECK', xml_date)
             else:
                 LOGGER.warning('Loading PAT Symbology failed')
         else:
