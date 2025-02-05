@@ -30,23 +30,17 @@ jobs:
       with:
         python-version: '3.10'
         
-    - name: Install QGIS
+    - name: Install Latest version of QGIS via osgeo4w-setup.exe 
       run: |
         env
-        echo "Trying Again 4.0 series"
-        echo "MNBV1 is $env:MNBV1 and MNBV2 is $env:MNBV2"
-        echo "GITHUB_ACTOR is $env:GITHUB_ACTOR"
-        echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
-        dir "C:\Program Files"
-        #curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o  D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi 
+        echo "Downloading osgeo4w-setup.exe"
+        curl https://download.osgeo.org/osgeo4w/v2/osgeo4w-setup.exe  -o osgeo4w-setup.exe 
+        dir 
         echo "Installing QGIS"
-        #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
-        echo "Use startProcess"
-        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-2.msi /qn " -Wait
-        echo "Installing Osgeo4W Geopandas"
-        & "C:\Program Files\QGIS 3.36.3\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
-        echo "Uninstalling fiona"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
-        echo "Reinstalling fiona"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
-        dir "C:\Program Files"      
+#        echo "Installing Osgeo4W Geopandas"
+#        & "C:\Program Files\QGIS 3.36.3\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
+#        echo "Uninstalling fiona"
+#        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
+#        echo "Reinstalling fiona"
+#        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
+#        dir "C:\Program Files"      
