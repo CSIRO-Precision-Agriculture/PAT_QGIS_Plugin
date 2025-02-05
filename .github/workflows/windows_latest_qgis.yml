@@ -3,18 +3,7 @@ name: Windows Build of latest QGis from scratch
 on: push
 
 env:
-    MNBV1: 42
-    MNBV2: Myfile.txt
-    #PYPRECAG_BRANCH: mnbMerge2Maint
     PYPRECAG_BRANCH: master
-    QGIS_VER: '3.36.3'
-    QGIS_MSI:  'https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi'
-    QGIS_BIN: 'C:\Program Files\QGIS 3.36.3\bin'
-    OSGEO4W_BAT: 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' 
-    PROG_FILES_DIR: 'C:\Program Files'
-    BAT_FILE: 'OSGeo4W.bat'
-    BAT_PATH: '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
-    OSGEO4WBAT:  '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
     
 jobs:
   build-windows:
@@ -29,16 +18,17 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.10'
-        
-    - name: Install Latest version of QGIS via osgeo4w-setup.exe 
+
+    - name: Download  osgeo4w-setup installer from https://download.osgeo.org
       run: |
-        env
         echo "Downloading osgeo4w-setup.exe"
         curl https://download.osgeo.org/osgeo4w/v2/osgeo4w-setup.exe  -o osgeo4w-setup.exe 
         dir 
+        
+    - name: Install Latest version of QGIS via osgeo4w-setup.exe 
+      run: |
         echo "Installing QGIS"
-#        echo "Installing Osgeo4W Geopandas"
-#        & "C:\Program Files\QGIS 3.36.3\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
+        & "C:\Program Files\QGIS 3.36.3\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
 #        echo "Uninstalling fiona"
 #        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
 #        echo "Reinstalling fiona"
