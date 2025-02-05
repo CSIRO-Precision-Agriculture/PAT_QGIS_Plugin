@@ -28,7 +28,7 @@ jobs:
     - name: Install Latest version of QGIS via osgeo4w-setup.exe 
       run: |
         echo "Installing QGIS"
-        & .\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
+        & .\osgeo4w-setup.exe  -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
 #        echo "Uninstalling fiona"
 #        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
 #        echo "Reinstalling fiona"
