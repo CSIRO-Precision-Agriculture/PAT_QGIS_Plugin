@@ -27,7 +27,8 @@ jobs:
         
     - name: Install Latest version of QGIS via osgeo4w-setup.exe 
       run: |
-        .\osgeo4w-setup.exe  -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2  -P qgis-ltr-full -P python3-geopandas -P python3-rasterio
+        .\osgeo4w-setup.exe  -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2  --packages qgis-ltr-full
+#        .\osgeo4w-setup.exe  -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2  -P qgis-ltr-full -P python3-geopandas -P python3-rasterio
         echo "Finished install"
 
     - name: Check directory
