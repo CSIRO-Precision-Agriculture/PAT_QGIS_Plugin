@@ -68,10 +68,12 @@ jobs:
         
     - name: Lint with flake8
       run: |
-        echo "Activate the base environment"
+        echo "Activate the conda base environment"
         C:\Miniconda\condabin\conda.bat activate base
+        echo "Install flake (for lint checking of python code)"
         C:\Miniconda\condabin\conda.bat install flake8
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        # Syntax check the python code.
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide        
         C:\Miniconda\condabin\conda.bat run python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
         
     - name: Installing pyprecag
@@ -97,6 +99,8 @@ jobs:
         git clone -b $env:PYPRECAG_BRANCH --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         echo "Do a pip install of the checked out version of pyprecag"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
+        echo "Try a pip re install of fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
         ##echo "Do a git checkout of the latest main branch of pyprecag"
         ##git clone -b master --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         ##echo "Do a pip install of the checked out version of pyprecag"
