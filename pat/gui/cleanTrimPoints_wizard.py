@@ -45,7 +45,13 @@ import geopandas as gpd
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 import pyprecag
-from pyprecag import processing, describe, crs as pyprecag_crs, convert, config, LOGGER
+from pyprecag import processing
+from pyprecag import describe
+from pyprecag import crs as pyprecag_crs
+from pyprecag import convert
+from pyprecag import config
+from pyprecag import LOGGER
+#from pyprecag import processing, describe, crs as pyprecag_crs, convert, config, LOGGER
 from pyprecag.describe import predictCoordinateColumnNames
 
 from qgis.PyQt import uic, QtGui, QtCore, QtWidgets
