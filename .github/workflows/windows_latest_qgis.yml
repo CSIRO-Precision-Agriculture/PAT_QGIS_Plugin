@@ -1,0 +1,52 @@
+name: Windows Build of latest QGis from scratch
+
+on: push
+
+env:
+    MNBV1: 42
+    MNBV2: Myfile.txt
+    #PYPRECAG_BRANCH: mnbMerge2Maint
+    PYPRECAG_BRANCH: master
+    QGIS_VER: '3.36.3'
+    QGIS_MSI:  'https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi'
+    QGIS_BIN: 'C:\Program Files\QGIS 3.36.3\bin'
+    OSGEO4W_BAT: 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' 
+    PROG_FILES_DIR: 'C:\Program Files'
+    BAT_FILE: 'OSGeo4W.bat'
+    BAT_PATH: '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
+    OSGEO4WBAT:  '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
+    
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+        
+    - name: Install QGIS
+      run: |
+        env
+        echo "Trying Again 4.0 series"
+        echo "MNBV1 is $env:MNBV1 and MNBV2 is $env:MNBV2"
+        echo "GITHUB_ACTOR is $env:GITHUB_ACTOR"
+        echo "Downloading OSGeo4W msi installer in $env:RUNNER_TEMP eg $env:RUNNER_TEMP\osgeo.msi"
+        dir "C:\Program Files"
+        #curl  https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi -o  D:\a\PAT_QGIS_Plugin\PAT_QGIS_Plugin\QGIS-OSGeo4W-3.36.3-1.msi 
+        echo "Installing QGIS"
+        #msiexec /i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi /qn 
+        echo "Use startProcess"
+        start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-2.msi /qn " -Wait
+        echo "Installing Osgeo4W Geopandas"
+        & "C:\Program Files\QGIS 3.36.3\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
+        echo "Uninstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
+        echo "Reinstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
+        dir "C:\Program Files"      
