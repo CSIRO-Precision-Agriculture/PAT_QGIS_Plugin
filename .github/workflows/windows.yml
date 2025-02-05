@@ -5,7 +5,8 @@ on: push
 env:
     MNBV1: 42
     MNBV2: Myfile.txt
-    PYPRECAG_BRANCH: mnbMerge2Maint
+    #PYPRECAG_BRANCH: mnbMerge2Maint
+    PYPRECAG_BRANCH: master
     QGIS_VER: '3.36.3'
     QGIS_MSI:  'https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-1.msi'
     QGIS_BIN: 'C:\Program Files\QGIS 3.36.3\bin'
