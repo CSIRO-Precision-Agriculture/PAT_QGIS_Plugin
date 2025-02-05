@@ -27,8 +27,11 @@ jobs:
         
     - name: Install Latest version of QGIS via osgeo4w-setup.exe 
       run: |
-        echo "Installing QGIS"
         .\osgeo4w-setup.exe  -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
         echo "Finished install"
-        dir C:\OSGeo4W
-        echo "Done"
+
+    - name: Check directory
+      run: |
+          dir
+          echo "Finished directory check"
+        
