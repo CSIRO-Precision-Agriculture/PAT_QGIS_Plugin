@@ -44,7 +44,7 @@ import pandas as pd
 import geopandas as gpd
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
-
+import pyprecag
 from pyprecag import processing, describe, crs as pyprecag_crs, convert, config, LOGGER
 from pyprecag.describe import predictCoordinateColumnNames
 
