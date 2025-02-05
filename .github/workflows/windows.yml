@@ -45,10 +45,10 @@ jobs:
         start-Process msiexec -ArgumentList "/i https://qgis.org/downloads/QGIS-OSGeo4W-3.36.3-2.msi /qn " -Wait
         echo "Installing Osgeo4W Geopandas"
         & "C:\Program Files\QGIS 3.36.3\bin\osgeo4w-setup.exe" -q -b -A -k -n -s http://download.osgeo.org/osgeo4w/v2 -P python3-geopandas -P python3-rasterio
-        #echo "Uninstalling fiona"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
-        #echo "Reinstalling fiona"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
+        echo "Uninstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
+        echo "Reinstalling fiona"
+        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
         dir "C:\Program Files"      
         
     - name: Install 7-Zip 
@@ -99,8 +99,8 @@ jobs:
         git clone -b $env:PYPRECAG_BRANCH --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         echo "Do a pip install of the checked out version of pyprecag"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install .\pyprecag
-        echo "Try a pip re install of fiona"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
+        #echo "Try a pip re install of fiona"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
         ##echo "Do a git checkout of the latest main branch of pyprecag"
         ##git clone -b master --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
         ##echo "Do a pip install of the checked out version of pyprecag"
