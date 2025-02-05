@@ -33,6 +33,6 @@ jobs:
     - name: Check directory
       run: |
           dir C:\OSGeo4W
-          dir C:\OSGeo4W\bin
+          dir C:\OSGeo4W\etc
           echo "Finished directory check"
         
