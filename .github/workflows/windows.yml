@@ -109,7 +109,7 @@ jobs:
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Invoking the pbt_ops.py python script. This will perform pbt compile, deploy and zip"
-        & $env:OSGEO4WBAT python-qgis .\pat\pbt_ops.py
+        & ${env:OSGEO4WBAT} python-qgis .\pat\pbt_ops.py
         echo "Checking the zip build directory"
         dir .\pat\zip_build
 
