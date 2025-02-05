@@ -14,6 +14,7 @@ env:
     PROG_FILES_DIR: 'C:\Program Files'
     BAT_FILE: 'OSGeo4W.bat'
     BAT_PATH: '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
+    OSGEO4WBAT:  '${env:PROG_FILES_DIR}\${env:BAT_FILE}'
     
 jobs:
   build-windows:
@@ -28,6 +29,7 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: '3.10'
+        
     - name: Install QGIS
       run: |
         env
@@ -47,7 +49,8 @@ jobs:
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip uninstall fiona --yes
         #echo "Reinstalling fiona"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip install fiona
-        dir "C:\Program Files"        
+        dir "C:\Program Files"      
+        
     - name: Install 7-Zip 
       run: |
         echo "Download 7z.exe"
@@ -55,10 +58,14 @@ jobs:
         echo "Place in QGIS bin directory"
         cp 7z.exe "C:\Program Files\QGIS 3.36.3\bin"
         dir "C:\Program Files\QGIS 3.36.3\bin"
+
+        
     - name: Check QGIS Installation
       run: |
         echo "Check The Program Files"
         dir "C:\Program Files"
+
+        
     - name: Lint with flake8
       run: |
         echo "Activate the base environment"
@@ -66,6 +73,7 @@ jobs:
         C:\Miniconda\condabin\conda.bat install flake8
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         C:\Miniconda\condabin\conda.bat run python -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
     - name: Installing pyprecag
       run: |
         # Check the base environment
@@ -96,10 +104,12 @@ jobs:
         
         echo "Check python-qgis packages after pip installs:"
         & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m pip list        
+
+        
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Invoking the pbt_ops.py python script. This will perform pbt compile, deploy and zip"
-        & 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis .\pat\pbt_ops.py
+        & $env:OSGEO4WBAT python-qgis .\pat\pbt_ops.py
         echo "Checking the zip build directory"
         dir .\pat\zip_build
 
@@ -110,6 +120,8 @@ jobs:
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         #echo "Just try a single test"
         #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest .\pat\tests\test_cleanTrim.py
+
+        
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
       with:
