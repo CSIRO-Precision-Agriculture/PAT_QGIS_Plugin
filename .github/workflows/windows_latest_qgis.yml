@@ -39,5 +39,6 @@ jobs:
           dir $PWD\HERE2
           #dir C:\OSGeo4W
           #dir C:\OSGeo4W\etc
+          dir "C:\Program Files"
           echo "Finished directory check"
         
