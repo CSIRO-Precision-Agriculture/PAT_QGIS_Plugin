@@ -35,7 +35,7 @@ jobs:
           python3-core
           python3-tools
           python3-rasterio
-          python-fiona
+          python3-fiona
           libjpeg-turbo-devel
           liblas-devel
           libpng-devel
@@ -60,6 +60,25 @@ jobs:
       run: |
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
-        
+
+    - name: Install pbtools via qgis-python
+      run: |
+          echo "Testing qgis-python"
+          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pbtools
+
+    - name: Checkout of the $env:PYPRECAG_BRANCH branch of pyprecag"
+      run: |
+          echo "Checking out"
+          git clone -b $env:PYPRECAG_BRANCH --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+
+    - name: Install the checked out pyprecag via qgis-python
+      run: |
+          echo "Do a pip install of the checked out version of pyprecag"
+          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install .\pyprecag
+                  
+    - name: Final check of qgis-python modules, i.e. does it contain pyprecag
+      run: |
+          echo "Testing qgis-python"
+          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
    
       
