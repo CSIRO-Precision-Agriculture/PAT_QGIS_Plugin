@@ -92,6 +92,8 @@ jobs:
         echo "Invoking the pbt_ops.py python script. This will perform pbt compile, deploy and zip"
         C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr .\pat\pbt_ops.py
         echo "Checking the zip build directory"
-        dir .\pat\zip_build
+        dir .
+        dir .\pat
+        #dir .\pat\zip_build
 
       
