@@ -107,6 +107,6 @@ jobs:
 
     - name: Try something else
       run: |
-        call C:\OSGeo4W\OSGeo4W.bat        
+        C:\OSGeo4W\OSGeo4W.bat        
 
       
