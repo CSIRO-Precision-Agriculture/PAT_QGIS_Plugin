@@ -1,4 +1,4 @@
-name: Windows Build of QGis via 
+name: Windows Build of PAT QGis Plugin via OSGeo4W
 
 on: push
 
@@ -66,6 +66,15 @@ jobs:
       run: |
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pbtools
+    
+    - name: Install 7-Zip (for pbtool zip options)
+      run: |
+        echo "Download 7z.exe"
+        curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
+        echo "Place in OSGeo4W bin directory"
+        cp 7z.exe C:\Osgeo4W\bin
+        dir C:\Osgeo4W\bin
+          
 
     - name: Checkout pyprecag from git repository"
       run: |
