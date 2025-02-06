@@ -4,6 +4,7 @@ on: push
 
 env:
     PYPRECAG_BRANCH: master
+    PYTHON_QGIS: C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr
     
 jobs:
   build-windows:
@@ -66,9 +67,9 @@ jobs:
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pbtools
 
-    - name: Checkout of the $env:PYPRECAG_BRANCH branch of pyprecag"
+    - name: Checkout pyprecag from git repository"
       run: |
-          echo "Checking out"
+          echo "Checking out $env:PYPRECAG_BRANCH branch of pyprecag"
           git clone -b $env:PYPRECAG_BRANCH --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
 
     - name: Install the checked out pyprecag via qgis-python
@@ -79,6 +80,7 @@ jobs:
     - name: Final check of qgis-python modules, i.e. does it contain pyprecag
       run: |
           echo "Testing qgis-python"
-          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
+          $env:PYTHON_QGIS -m pip list
+          #C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
    
       
