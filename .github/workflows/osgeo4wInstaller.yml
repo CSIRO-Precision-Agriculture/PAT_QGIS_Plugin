@@ -49,7 +49,7 @@ jobs:
     - name: Check osgeo
       run: |
           echo "Testing osgeo"
-          call "C:\OSGeo4W\OSGeo4W.bat o-help"
+          C:\OSGeo4W\OSGeo4W.bat o-help
         
    
       
