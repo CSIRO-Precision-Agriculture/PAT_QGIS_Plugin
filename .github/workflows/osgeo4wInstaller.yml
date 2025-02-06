@@ -1,0 +1,42 @@
+name: Windows Build of QGis via 
+
+on: push
+
+env:
+    PYPRECAG_BRANCH: master
+    
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    strategy:
+      max-parallel: 5
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.10'
+
+
+
+    - name: Setup OSGeo4W environment
+      id: setup-osgeo4w
+      uses: echoix/setup-OSGeo4W@v0.2.0
+      with:
+        # Using line folding replacing newlines by a space, and striping the final newlines
+        # See https://yaml-multiline.info/
+        packages: >-
+          cairo-devel
+          freetype-devel
+          gdal-devel
+          geos-devel
+          libjpeg-turbo-devel
+          liblas-devel
+          libpng-devel
+          libpq-devel
+          libtiff-devel
+          netcdf-devel
+    - run: o-help
+      
