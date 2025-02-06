@@ -44,6 +44,6 @@ jobs:
             dir
             dir C:\OSGeo4W
             dir C:\OSGeo4W\bin
-            echo "Finished directory check"
+            echo "Finished directory check."
    
       
