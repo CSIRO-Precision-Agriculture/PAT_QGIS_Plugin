@@ -108,6 +108,6 @@ jobs:
     - name: Try something else
       run: |
         C:\OSGeo4W\OSGeo4W.bat
-        o-help
+        pb_tool
 
       
