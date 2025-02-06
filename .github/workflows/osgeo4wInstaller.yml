@@ -45,5 +45,11 @@ jobs:
         dir C:\OSGeo4W
         dir C:\OSGeo4W\bin
         echo "Finished directory check."
+
+    - name: Check osgeo
+      run: |
+          echo "Testing osgeo"
+          call "C:\OSGeo4W\OSGeo4W.bat o-help"
+        
    
       
