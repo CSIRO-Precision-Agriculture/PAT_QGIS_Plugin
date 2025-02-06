@@ -40,5 +40,6 @@ jobs:
           #dir C:\OSGeo4W
           #dir C:\OSGeo4W\etc
           dir "C:\Program Files"
+          dir C:
           echo "Finished directory check"
         
