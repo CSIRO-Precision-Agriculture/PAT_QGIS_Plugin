@@ -39,11 +39,11 @@ jobs:
           netcdf-devel
 
     - name: Check directory
-        run:|
-            echo "Checking directories"
-            dir
-            dir C:\OSGeo4W
-            dir C:\OSGeo4W\bin
-            echo "Finished directory check."
+      run: |
+        echo "Checking directories"
+        dir
+        dir C:\OSGeo4W
+        dir C:\OSGeo4W\bin
+        echo "Finished directory check."
    
       
