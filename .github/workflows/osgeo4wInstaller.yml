@@ -31,6 +31,8 @@ jobs:
           freetype-devel
           gdal-devel
           geos-devel
+          python3-core
+          python3-tools
           libjpeg-turbo-devel
           liblas-devel
           libpng-devel
