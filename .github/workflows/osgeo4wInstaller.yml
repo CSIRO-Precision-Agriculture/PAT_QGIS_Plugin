@@ -53,6 +53,11 @@ jobs:
       run: |
           echo "Testing osgeo"
           C:\OSGeo4W\OSGeo4W.bat o-help
+    
+    - name: Check qgis-python
+      run: |
+          echo "Testing qgis-python"
+          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
         
    
       
