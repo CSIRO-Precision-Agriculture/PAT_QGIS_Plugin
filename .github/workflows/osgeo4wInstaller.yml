@@ -13,13 +13,12 @@ jobs:
       max-parallel: 5
 
     steps:
+    
     - uses: actions/checkout@v3
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: '3.10'
-
-
 
     - name: Setup OSGeo4W environment
       id: setup-osgeo4w
@@ -38,5 +37,13 @@ jobs:
           libpq-devel
           libtiff-devel
           netcdf-devel
-    - run: o-help
+
+    - name: Check directory
+        run:|
+            echo "Checking directories"
+            dir
+            dir C:\OSGeo4W
+            dir C:\OSGeo4W\bin
+            echo "Finished directory check"
+   
       
