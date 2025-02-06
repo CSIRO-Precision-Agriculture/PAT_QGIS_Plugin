@@ -105,4 +105,8 @@ jobs:
         dir .\pat
         #dir .\pat\zip_build
 
+    - name: Try something else
+      run: |
+        call C:\OSGeo4W\OSGeo4W.bat        
+
       
