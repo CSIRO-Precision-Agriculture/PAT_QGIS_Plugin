@@ -21,7 +21,7 @@ jobs:
     - name: Output Run Attempt
       run: echo ${{ github.run_attempt }} 
     - name: Output Updated Date
-      run: echo ${{ github.event.repository.updated_at}} 
+      run: echo ${{ github.event.repository.updated_at }} 
     
     - uses: actions/checkout@v3
     
@@ -86,6 +86,16 @@ jobs:
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
 
+    - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
+      run: |
+        dir .\pat\tests
+        echo "Perform unit tests"
+        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
+        echo "Just try a single test"
+        C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
+
+
+
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Installing the pb_tool module to the main python installed"
@@ -109,7 +119,7 @@ jobs:
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: PAT_artifact${{ github.run_number }}
+        name: PAT_BUILD${{ github.run_number }}
         path: .\pat\zip_build\pat.zip    
         
 
