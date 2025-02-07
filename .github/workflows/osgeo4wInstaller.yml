@@ -89,6 +89,8 @@ jobs:
           
     - name: Build and Package the PAT Qgis Plugin
       run: |
+        echo "Installing the qt5-tools"
+        pip install qt5-tools
         echo "Installing the pb_tool module to the main python installed"
         python --version
         pip install pb_tool
