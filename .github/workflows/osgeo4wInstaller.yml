@@ -46,6 +46,7 @@ jobs:
           python3-tools
           python3-rasterio
           python3-fiona
+          qt5-tools
           libjpeg-turbo-devel
           liblas-devel
           libpng-devel
@@ -116,7 +117,7 @@ jobs:
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: PAT_BUILD_${{  github.event.repository.updated_at }}
+        name: PAT_QGIS_PLUGIN_${{  github.event.repository.updated_at }}
         path: .\pat\zip_build\pat.zip    
         
 
