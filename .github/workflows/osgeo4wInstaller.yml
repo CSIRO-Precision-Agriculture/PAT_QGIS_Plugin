@@ -19,7 +19,9 @@ jobs:
     - name: Output Run Number
       run: echo ${{ github.run_number }}
     - name: Output Run Attempt
-      run: echo ${{ github.run_attempt }}    
+      run: echo ${{ github.run_attempt }} 
+    - name: Output Updated Date
+      run: echo ${{ github.event.repository.updated_at}} 
     
     - uses: actions/checkout@v3
     
@@ -107,7 +109,7 @@ jobs:
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: artifact
+        name: PAT_artifact${{ github.run_number }}
         path: .\pat\zip_build\pat.zip    
         
 
