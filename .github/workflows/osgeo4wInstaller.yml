@@ -85,16 +85,7 @@ jobs:
       run: |
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
-
-    - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
-      run: |
-        dir .\pat\tests
-        echo "Perform unit tests"
-        echo "Just try a single test"
-        C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
-
-
-
+          
     - name: Build and Package the PAT Qgis Plugin
       run: |
         echo "Installing the pb_tool module to the main python installed"
@@ -114,6 +105,13 @@ jobs:
         dir
         echo "Check the zip_build directory"
         dir zip_build
+
+    - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
+      run: |
+        dir .\pat\tests
+        echo "Perform unit tests"
+        echo "Just try a single test"
+        C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
         
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
