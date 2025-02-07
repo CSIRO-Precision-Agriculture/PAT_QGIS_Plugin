@@ -93,7 +93,12 @@ jobs:
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pb_tool
           echo "Test if we can access it"
           C:\OSGeo4W\OSGeo4W.bat pb_tool
-          
+       
+          echo "Invoking the pbt_tool ops to perform compile, deploy and zip"
+          cd pat
+          echo "pb_tool compile"
+          C:\OSGeo4W\OSGeo4W.bat pb_tool compile
+          dir
           
     - name: Build and Package the PAT Qgis Plugin
       run: |
