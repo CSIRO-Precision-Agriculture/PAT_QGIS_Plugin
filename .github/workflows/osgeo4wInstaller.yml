@@ -110,6 +110,18 @@ jobs:
         python --version
         pip install pb_tool
         pb_tool
+        cd .pat
+        echo "pb_tool compile"
+        pb_tool compile
+        echo "pb_tool deploy"
+        pb_tool deploy -p tmp_deploy -y
+        echo "pb_tool zip"
+        pb_tool zip
+        dir
+        dir
+        
+
+        
         #echo "Call OSGeo4W.bat to setup env"
         #C:\OSGeo4W\OSGeo4W.bat
         #"call Call OSGeo4W.bat pb_tool"
