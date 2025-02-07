@@ -109,8 +109,7 @@ jobs:
       run: |
         echo "Call OSGeo4W.bat to setup env"
         C:\OSGeo4W\OSGeo4W.bat
-        "call python-qgis-ltr -m pip install pb_tool"
-        python-qgis-ltr -m pip install pb_tool
-        pb_tool
+        "call Call OSGeo4W.bat pb_tool"
+        C:\OSGeo4W\OSGeo4W.bat pb_tool
 
       
