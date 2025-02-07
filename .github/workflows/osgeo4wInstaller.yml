@@ -120,11 +120,11 @@ jobs:
         dir
         dir zip_build
         
-
+    - name: Upload pat.zip file as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: artifact.zip
+        path: .\pat\zip_build\pat.zip    
         
-        #echo "Call OSGeo4W.bat to setup env"
-        #C:\OSGeo4W\OSGeo4W.bat
-        #"call Call OSGeo4W.bat pb_tool"
-        #C:\OSGeo4W\OSGeo4W.bat pb_tool
 
       
