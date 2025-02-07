@@ -86,6 +86,14 @@ jobs:
       run: |
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
+
+    - name: Experimental
+      run: |
+          echo "Installing pb_tool to qgis python"
+          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pb_tool
+          echo "Test if we can access it"
+          C:\OSGeo4W\OSGeo4W.bat pb_tool
+          
           
     - name: Build and Package the PAT Qgis Plugin
       run: |
