@@ -118,7 +118,7 @@ jobs:
         echo "pb_tool zip"
         pb_tool zip
         dir
-        dir
+        dir zip_build
         
 
         
