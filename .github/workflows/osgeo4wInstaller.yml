@@ -90,7 +90,6 @@ jobs:
       run: |
         dir .\pat\tests
         echo "Perform unit tests"
-        #& 'C:\Program Files\QGIS 3.36.3\OSGeo4W.bat' python-qgis -m unittest discover -s .\pat\tests -p test_*
         echo "Just try a single test"
         C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
 
@@ -119,7 +118,7 @@ jobs:
     - name: Upload pat.zip file as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: PAT_BUILD${{ github.run_number }}
+        name: PAT_BUILD_${{  github.event.repository.updated_at }}
         path: .\pat\zip_build\pat.zip    
         
 
