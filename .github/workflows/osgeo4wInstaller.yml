@@ -62,20 +62,6 @@ jobs:
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
 
-    - name: Install pbtools via qgis-python
-      run: |
-          echo "Testing qgis-python"
-          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pbtools
-    
-    - name: Install 7-Zip (for pbtool zip options)
-      run: |
-        echo "Download 7z.exe"
-        curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
-        echo "Place in OSGeo4W bin directory"
-        cp 7z.exe C:\Osgeo4W\bin
-        dir C:\Osgeo4W\bin
-          
-
     - name: Checkout pyprecag from git repository"
       run: |
           echo "Checking out $env:PYPRECAG_BRANCH branch of pyprecag"
@@ -86,11 +72,6 @@ jobs:
           echo "Do a pip install of the checked out version of pyprecag"
           C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install .\pyprecag
                   
-    - name: Final check of qgis-python modules, i.e. does it contain pyprecag
-      run: |
-          echo "Testing qgis-python"
-          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
-
     - name: Final check of qgis-python modules, i.e. does it contain pyprecag
       run: |
           echo "Testing qgis-python"
