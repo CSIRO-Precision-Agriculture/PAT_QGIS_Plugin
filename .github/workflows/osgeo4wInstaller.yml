@@ -54,7 +54,7 @@ jobs:
           libtiff-devel
           netcdf-devel
 
-    - name: Check directory
+    - name: Check OSGeo4W directory has been installed
       run: |
         echo "Checking directories"
         dir
@@ -62,7 +62,7 @@ jobs:
         dir C:\OSGeo4W\bin
         echo "Finished directory check."
 
-    - name: Check osgeo
+    - name: Check osgeo commands
       run: |
           echo "Testing osgeo"
           C:\OSGeo4W\OSGeo4W.bat o-help
@@ -129,7 +129,7 @@ jobs:
         echo "Just try a single test"
         C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
         
-    - name: Upload pat.zip file as artifact
+    - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
       with:
         name: PAT_QGIS_PLUGIN_${{  github.event.repository.updated_at }}
