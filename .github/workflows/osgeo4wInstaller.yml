@@ -128,10 +128,20 @@ jobs:
         echo "Perform unit tests"
         echo "Just try a single test"
         C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
+        echo "=========================================================================="
+        echo "=========================================================================="
+        echo "Try all test_* tests"
+        C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest discover -s .\pat\tests -p test_*
 
     - name: Retrieve Timestamp of Last Update
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter="T" -f 1 
+        echo "Try setting to an env var"
+        echo "UPDATE_DATE=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
+
+    - name: Retrieve Timestamp of Last Update Part 2
+      run: | 
+          echo "${{ env.UPDATE_DATE }}"
         
     - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
