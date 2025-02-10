@@ -101,7 +101,7 @@ jobs:
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip list
 
-    - name: Experimental
+    - name: Build and Package the PAT Qgis Plugin
       run: |
           echo "Installing pb_tool to qgis python"
           C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install pb_tool
@@ -123,7 +123,7 @@ jobs:
           C:\OSGeo4W\OSGeo4W.bat pb_tool zip
           dir
           
-    - name: Build and Package the PAT Qgis Plugin
+    - name: Older Method of Build and Package the PAT Qgis Plugin
       run: |
         echo "Installing the qt5-tools"
         pip install qt5-tools
@@ -134,12 +134,12 @@ jobs:
         echo "Invoking the pbt_tool ops to perform compile, deploy and zip"
         cd pat
         echo "pb_tool compile"
-        pb_tool compile
+        #pb_tool compile
         echo "pb_tool deploy"
         #mkdir tmp_deploy
-        pb_tool deploy -p tmp_deploy -y
+        #pb_tool deploy -p tmp_deploy -y
         echo "pb_tool zip"
-        pb_tool zip
+        #pb_tool zip
         echo "Check the pat directory"
         dir
         echo "Check the zip_build directory"
