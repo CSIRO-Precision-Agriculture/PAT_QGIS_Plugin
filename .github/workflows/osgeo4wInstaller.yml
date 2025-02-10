@@ -23,17 +23,18 @@ jobs:
       run: echo ${{ github.run_attempt }} 
     - name: Output Updated Date
       run: echo ${{ github.event.repository.updated_at }} 
-    - name: Retrieve Timestamp of Last Update without the time component    
+    - name: Retrieve Timestamp of Last Update without the time component 
+       # Use bash commands and dump to GitHub env var
       shell: bash
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
         # Pipe the above command into a temp file DATE_STAMP.txt
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 | xargs echo > DATE_STAMP.txt
-        # Place the contents of this file into a temporay shell variable
+        # Place the contents of this file into a temporary shell variable
         DATE=$(cat DATE_STAMP.txt)
         # Place this is into a GitHub enviromental variable (accesible via $${{ env.DATE_STAMP }}
         echo "DATE_STAMP=$DATE" >> $GITHUB_ENV
-    - name: Retrieve Timestamp of Last Update Part 2
+    - name: Sanity Check Display of GitHub variable for the Timestamp of Last Update
       run: | 
           echo "Date Stamp: ${{ env.DATE_STAMP }}"
           
@@ -113,12 +114,9 @@ jobs:
       run: |
           echo "Installing pb_tool to qgis python"
           C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install pb_tool
-          echo "Test if we can access it"
+          echo "Test if we can access pb_tool"
           C:\OSGeo4W\OSGeo4W.bat pb_tool
 
-          echo "Installing zip to qgis python"
-          C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install zipfile
-       
           echo "Invoking the pbt_tool ops to perform compile, deploy and zip"
           cd pat
           echo "pb_tool compile"
