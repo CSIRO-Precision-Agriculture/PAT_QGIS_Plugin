@@ -113,6 +113,12 @@ jobs:
           echo "pb_tool compile"
           C:\OSGeo4W\OSGeo4W.bat pb_tool compile
           dir
+          echo "pb_tool deploy"
+          C:\OSGeo4W\OSGeo4W.bat pb_tool deploy -p tmp_deploy -y
+          dir
+          echo "pb_tool zip"
+          C:\OSGeo4W\OSGeo4W.bat pb_tool zip
+          dir
           
     - name: Build and Package the PAT Qgis Plugin
       run: |
@@ -140,15 +146,12 @@ jobs:
       run: |
         dir .\pat\tests
         echo "Perform unit tests"
-        #echo "Just try a single test"
-        #C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m unittest .\pat\tests\test_cleanTrim.py
-        #echo "Try all test_* tests"
         C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m unittest discover -s .\pat\tests -p test_*
         
     - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
       with:      
-        name: PAT_QGIS_PLUGIN_$QGIS_VER_${{ env.DATE_STAMP }}
+        name: PAT_QGIS_PLUGIN_${{ env.QGIS_VER }}_${{ env.DATE_STAMP }}
         path: .\pat\zip_build\pat.zip    
         
 
