@@ -135,7 +135,10 @@ jobs:
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
         echo "Try setting to an env var"
-        echo "UD=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
+        #echo "UD=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
+        echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1` >> TMP.TXT
+        cat TMP.TXT
+        UD=cat TMP.TXT >> $GITHUB_ENV
 
     - name: Retrieve Timestamp of Last Update Part 2
       run: | 
