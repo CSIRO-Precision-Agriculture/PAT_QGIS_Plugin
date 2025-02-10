@@ -26,7 +26,7 @@ jobs:
       shell: bash
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
-        # Pipe hthe above command into a temp file DATE_STAMP.txt
+        # Pipe the above command into a temp file DATE_STAMP.txt
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 | xargs echo > DATE_STAMP.txt
         # Place the contents of this file into a temporay shell variable
         DATE=$(cat DATE_STAMP.txt)
@@ -34,9 +34,8 @@ jobs:
         echo "DATE_STAMP=$DATE" >> $GITHUB_ENV
     - name: Retrieve Timestamp of Last Update Part 2
       run: | 
-          echo "${{ env.DATE_STAMP }}"
-      
-    
+          echo "Date Stamp: ${{ env.DATE_STAMP }}"
+          
     - uses: actions/checkout@v3
     
     - name: Set up Python 3.10
@@ -148,7 +147,7 @@ jobs:
     - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
       with:      
-        name: PAT_QGIS_PLUGIN_WHEN
+        name: PAT_QGIS_PLUGIN_${{ env.DATE_STAMP }}
         path: .\pat\zip_build\pat.zip    
         
 
