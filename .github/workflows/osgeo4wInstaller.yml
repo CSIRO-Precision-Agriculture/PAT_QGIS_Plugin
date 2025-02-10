@@ -90,7 +90,7 @@ jobs:
     - name: Checkout pyprecag from git repository"
       run: |
           echo "Checking out $PYPRECAG_BRANCH branch of pyprecag"
-          git clone -b $PYPRECAG_BRANCH --single-branch --depth 1 $PYPRECAG_REPO
+          git clone -b ${{ env.PYPRECAG_BRANCH }} --single-branch --depth 1 ${{ env.PYPRECAG_REPO }}
 
     - name: Install the checked out pyprecag via qgis-python
       run: |
