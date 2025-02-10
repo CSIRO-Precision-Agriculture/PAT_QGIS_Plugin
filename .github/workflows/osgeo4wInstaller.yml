@@ -52,7 +52,7 @@ jobs:
         # Using line folding replacing newlines by a space, and striping the final newlines
         # See https://yaml-multiline.info/
         packages: >-
-          $QGIS_VER-full 
+          qgis-ltr-full 
           cairo-devel
           freetype-devel
           gdal-devel
