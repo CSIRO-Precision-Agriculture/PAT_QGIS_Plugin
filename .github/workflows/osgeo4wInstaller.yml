@@ -38,6 +38,7 @@ jobs:
     - name: Retrieve Timestamp of Last Update Part 2
       run: | 
           echo "${{ env.UD }}"
+          echo "${{ env.VERSION }}"
       
     
     - uses: actions/checkout@v3
