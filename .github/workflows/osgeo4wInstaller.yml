@@ -25,6 +25,10 @@ jobs:
     - name: Retrieve Timestamp of Last Update
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
+
+        echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 | xargs echo > VERSION        
+        VER=$(cat VERSION)
+        echo "VERSION=$VER" >> $GITHUB_ENV
         echo "Try setting to an env var"
         #echo "UD=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
         echo ${{  github.event.repository.updated_at }} | cut -d T -f 1 > TMP.TXT
