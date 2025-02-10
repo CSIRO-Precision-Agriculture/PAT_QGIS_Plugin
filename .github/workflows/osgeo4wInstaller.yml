@@ -101,6 +101,14 @@ jobs:
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip list
 
+    - name: Install 7-Zip 
+      run: |
+        echo "Download 7z.exe"
+        curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
+        echo "Place in OSGeo4W bin directory"
+        cp 7z.exe C:OSGeo4W\bin
+        dir C:OSGeo4W\bin
+
     - name: Build and Package the PAT Qgis Plugin
       run: |
           echo "Installing pb_tool to qgis python"
