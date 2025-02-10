@@ -22,23 +22,19 @@ jobs:
       run: echo ${{ github.run_attempt }} 
     - name: Output Updated Date
       run: echo ${{ github.event.repository.updated_at }} 
-    - name: Retrieve Timestamp of Last Update      
+    - name: Retrieve Timestamp of Last Update without the time component    
       shell: bash
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
-
-        echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 | xargs echo > VERSION        
-        VER=$(cat VERSION)
-        echo "VERSION=$VER" >> $GITHUB_ENV
-        echo "Try setting to an env var"
-        #echo "UD=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
-        echo ${{  github.event.repository.updated_at }} | cut -d T -f 1 > TMP.TXT
-        cat TMP.TXT
-        echo "UD=cat TMP.TXT" >> $GITHUB_ENV
+        # Pipe hthe above command into a temp file DATE_STAMP.txt
+        echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 | xargs echo > DATE_STAMP.txt
+        # Place the contents of this file into a temporay shell variable
+        DATE=$(cat DATE_STAMP.txt)
+        # Place this is into a GitHub enviromental variable (accesible via $${{ env.DATE_STAMP }}
+        echo "DATE_STAMP=$DATE" >> $GITHUB_ENV
     - name: Retrieve Timestamp of Last Update Part 2
       run: | 
-          echo "${{ env.UD }}"
-          echo "${{ env.VERSION }}"
+          echo "${{ env.DATE_STAMP }}"
       
     
     - uses: actions/checkout@v3
