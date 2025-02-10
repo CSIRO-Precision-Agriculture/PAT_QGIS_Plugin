@@ -101,7 +101,7 @@ jobs:
           echo "Testing qgis-python"
           C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip list
 
-    - name: Install 7-Zip 
+    - name: Install 7-Zip necessary to call pb_tool zip
       run: |
         echo "Download 7z.exe"
         curl https://www.7-zip.org/a/7zr.exe -o 7z.exe 
@@ -129,30 +129,9 @@ jobs:
           dir
           echo "pb_tool zip"
           C:\OSGeo4W\OSGeo4W.bat pb_tool zip
-          dir
-          
-    - name: Older Method of Build and Package the PAT Qgis Plugin
-      run: |
-        echo "Installing the qt5-tools"
-        pip install qt5-tools
-        echo "Installing the pb_tool module to the main python installed"
-        python --version
-        pip install pb_tool
-        pb_tool
-        echo "Invoking the pbt_tool ops to perform compile, deploy and zip"
-        cd pat
-        echo "pb_tool compile"
-        #pb_tool compile
-        echo "pb_tool deploy"
-        #mkdir tmp_deploy
-        #pb_tool deploy -p tmp_deploy -y
-        echo "pb_tool zip"
-        #pb_tool zip
-        echo "Check the pat directory"
-        dir
-        echo "Check the zip_build directory"
-        dir zip_build
-
+          echo "Check the zip_build directory"
+          dir zip_build
+             
     - name: Executing Unit Tests similar to the Geocoding Nominatum Testing
       run: |
         dir .\pat\tests
