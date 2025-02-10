@@ -5,7 +5,6 @@ on: push
 env:
     PYPRECAG_BRANCH: master
     PYPRECAG_REPO: https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
-    PYTHON_QGIS: python-qgis-ltr
     QGIS_VER: qgis-ltr
     
 jobs:
@@ -100,7 +99,7 @@ jobs:
     - name: Final check of qgis-python modules, i.e. does it contain pyprecag
       run: |
           echo "Testing qgis-python"
-          C:\OSGeo4W\OSGeo4W.bat python-${{ env.$QGIS_VER }} -m pip list
+          C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip list
 
     - name: Experimental
       run: |
