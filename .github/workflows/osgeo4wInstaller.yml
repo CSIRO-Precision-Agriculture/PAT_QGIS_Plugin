@@ -22,6 +22,18 @@ jobs:
       run: echo ${{ github.run_attempt }} 
     - name: Output Updated Date
       run: echo ${{ github.event.repository.updated_at }} 
+    - name: Retrieve Timestamp of Last Update
+      run: | 
+        echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
+        echo "Try setting to an env var"
+        #echo "UD=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
+        echo ${{  github.event.repository.updated_at }} | cut -d T -f 1 > TMP.TXT
+        cat TMP.TXT
+        echo "UD=cat TMP.TXT" >> $GITHUB_ENV
+    - name: Retrieve Timestamp of Last Update Part 2
+      run: | 
+          echo "${{ env.UD }}"
+      
     
     - uses: actions/checkout@v3
     
@@ -130,19 +142,6 @@ jobs:
         #C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
         #echo "Try all test_* tests"
         C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest discover -s .\pat\tests -p test_*
-
-    - name: Retrieve Timestamp of Last Update
-      run: | 
-        echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
-        echo "Try setting to an env var"
-        #echo "UD=`echo ${{  github.event.repository.updated_at }} | cut --delimiter='T' -f 1`" >> $GITHUB_ENV
-        echo ${{  github.event.repository.updated_at }} | cut -d T -f 1 > TMP.TXT
-        cat TMP.TXT
-        UD=cat TMP.TXT >> $GITHUB_ENV
-
-    - name: Retrieve Timestamp of Last Update Part 2
-      run: | 
-          echo "${{ env.UD }}"
         
     - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
