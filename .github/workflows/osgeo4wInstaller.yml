@@ -88,7 +88,7 @@ jobs:
 
     - name: Checkout pyprecag from git repository"
       run: |
-          echo "Checking out $PYPRECAG_BRANCH branch of pyprecag"
+          echo "Checking out ${{ env.PYPRECAG_BRANCH }} branch of pyprecag"
           git clone -b ${{ env.PYPRECAG_BRANCH }} --single-branch --depth 1 ${{ env.PYPRECAG_REPO }}
 
     - name: Install the checked out pyprecag via qgis-python
@@ -107,6 +107,9 @@ jobs:
           C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install pb_tool
           echo "Test if we can access it"
           C:\OSGeo4W\OSGeo4W.bat pb_tool
+
+          echo "Installing zip to qgis python"
+          C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install zipfile
        
           echo "Invoking the pbt_tool ops to perform compile, deploy and zip"
           cd pat
@@ -133,7 +136,7 @@ jobs:
         echo "pb_tool compile"
         pb_tool compile
         echo "pb_tool deploy"
-        mkdir tmp_deploy
+        #mkdir tmp_deploy
         pb_tool deploy -p tmp_deploy -y
         echo "pb_tool zip"
         pb_tool zip
