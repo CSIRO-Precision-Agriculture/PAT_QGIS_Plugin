@@ -6,7 +6,7 @@ env:
     PYPRECAG_BRANCH: master
     PYPRECAG_REPO: https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
     PYTHON_QGIS: python-qgis-ltr
-    PYTHON_VERSION: 3.10
+    QGIS_VER: qgis-ltr
     
 jobs:
   build-windows:
