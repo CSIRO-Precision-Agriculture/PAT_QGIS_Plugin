@@ -4,7 +4,9 @@ on: push
 
 env:
     PYPRECAG_BRANCH: master
-    PYTHON_QGIS: C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr
+    PYPRECAG_REPO: https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+    PYTHON_QGIS: python-qgis-ltr
+    PYTHON_VERSION: 3.10
     
 jobs:
   build-windows:
