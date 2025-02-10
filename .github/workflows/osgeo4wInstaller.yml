@@ -22,7 +22,8 @@ jobs:
       run: echo ${{ github.run_attempt }} 
     - name: Output Updated Date
       run: echo ${{ github.event.repository.updated_at }} 
-    - name: Retrieve Timestamp of Last Update
+    - name: Retrieve Timestamp of Last Update      
+      shell: bash
       run: | 
         echo ${{  github.event.repository.updated_at }} | cut --delimiter=T -f 1 
 
