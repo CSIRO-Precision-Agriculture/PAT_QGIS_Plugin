@@ -95,17 +95,17 @@ jobs:
     - name: Install the checked out pyprecag via qgis-python
       run: |
           echo "Do a pip install of the checked out version of pyprecag"
-          C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m pip install .\pyprecag
+          C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install .\pyprecag
                   
     - name: Final check of qgis-python modules, i.e. does it contain pyprecag
       run: |
           echo "Testing qgis-python"
-          C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m pip list
+          C:\OSGeo4W\OSGeo4W.bat python-${{ env.$QGIS_VER }} -m pip list
 
     - name: Experimental
       run: |
           echo "Installing pb_tool to qgis python"
-          C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m pip install pb_tool
+          C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m pip install pb_tool
           echo "Test if we can access it"
           C:\OSGeo4W\OSGeo4W.bat pb_tool
        
@@ -144,7 +144,7 @@ jobs:
         #echo "Just try a single test"
         #C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m unittest .\pat\tests\test_cleanTrim.py
         #echo "Try all test_* tests"
-        C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m unittest discover -s .\pat\tests -p test_*
+        C:\OSGeo4W\OSGeo4W.bat python-${{ env.QGIS_VER }} -m unittest discover -s .\pat\tests -p test_*
         
     - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
