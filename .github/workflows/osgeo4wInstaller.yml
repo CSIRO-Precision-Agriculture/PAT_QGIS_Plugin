@@ -52,7 +52,7 @@ jobs:
         # Using line folding replacing newlines by a space, and striping the final newlines
         # See https://yaml-multiline.info/
         packages: >-
-          qgis-ltr-full 
+          $QGIS_VER-full 
           cairo-devel
           freetype-devel
           gdal-devel
@@ -89,23 +89,23 @@ jobs:
 
     - name: Checkout pyprecag from git repository"
       run: |
-          echo "Checking out $env:PYPRECAG_BRANCH branch of pyprecag"
-          git clone -b $env:PYPRECAG_BRANCH --single-branch --depth 1 https://github.com/CSIRO-Precision-Agriculture/pyprecag.git
+          echo "Checking out $PYPRECAG_BRANCH branch of pyprecag"
+          git clone -b $PYPRECAG_BRANCH --single-branch --depth 1 $PYPRECAG_REPO
 
     - name: Install the checked out pyprecag via qgis-python
       run: |
           echo "Do a pip install of the checked out version of pyprecag"
-          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install .\pyprecag
+          C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m pip install .\pyprecag
                   
     - name: Final check of qgis-python modules, i.e. does it contain pyprecag
       run: |
           echo "Testing qgis-python"
-          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip list
+          C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m pip list
 
     - name: Experimental
       run: |
           echo "Installing pb_tool to qgis python"
-          C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m pip install pb_tool
+          C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m pip install pb_tool
           echo "Test if we can access it"
           C:\OSGeo4W\OSGeo4W.bat pb_tool
        
@@ -142,14 +142,14 @@ jobs:
         dir .\pat\tests
         echo "Perform unit tests"
         #echo "Just try a single test"
-        #C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest .\pat\tests\test_cleanTrim.py
+        #C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m unittest .\pat\tests\test_cleanTrim.py
         #echo "Try all test_* tests"
-        C:\OSGeo4W\OSGeo4W.bat python-qgis-ltr -m unittest discover -s .\pat\tests -p test_*
+        C:\OSGeo4W\OSGeo4W.bat python-$QGIS_VER -m unittest discover -s .\pat\tests -p test_*
         
     - name: Upload pat.zip file as artifact zip file with the time stamp of last update in its name
       uses: actions/upload-artifact@v4
       with:      
-        name: PAT_QGIS_PLUGIN_${{ env.DATE_STAMP }}
+        name: PAT_QGIS_PLUGIN_$QGIS_VER_${{ env.DATE_STAMP }}
         path: .\pat\zip_build\pat.zip    
         
 
