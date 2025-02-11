@@ -1,6 +1,6 @@
 name: Windows Build of QGis from scratch
 
-on: push workflow_dispatch
+on: push
 
 env:
     MNBV1: 42
