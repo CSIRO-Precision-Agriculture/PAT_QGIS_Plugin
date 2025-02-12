@@ -54,7 +54,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
     # calling from the QGIS console.
 
     LEVEL = 'LEVEL'
-    CHECK_ONLINE = 'CHECK_ONLINE'
+    #CHECK_ONLINE = 'CHECK_ONLINE'
     LEVEL_LIST = ['Basic','Full']
     OUTPUT = 'OUTPUT'
 
@@ -121,9 +121,9 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                                                      defaultValue=1,
                                                      optional=False)  )
 
-        self.addParameter( QgsProcessingParameterBoolean(name=self.CHECK_ONLINE,
-                                          description=self.tr('Check for updates'),
-                                          defaultValue=False ) )
+        # self.addParameter( QgsProcessingParameterBoolean(name=self.CHECK_ONLINE,
+        #                                   description=self.tr('Check for updates'),
+        #                                   defaultValue=False ) )
 
         self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT, 
                             self.tr('Output File'), 
@@ -135,7 +135,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         """
         self.context = context
         self.feedback = feedback
-        self.CHECK_ONLINE = self.parameterAsBoolean(parameters, self.CHECK_ONLINE,self.context)
+        #self.CHECK_ONLINE = self.parameterAsBoolean(parameters, self.CHECK_ONLINE,self.context)
         self.LEVEL = self.LEVEL_LIST[self.parameterAsInt(parameters, self.LEVEL, self.context)]
         
         self.OUTPUT = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
@@ -146,14 +146,16 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         
         self.feedback.pushInfo(f'{"QGIS":.<25} {qgis_version}')
                 
-        df_dep = pd.DataFrame([{'current': qgis_version}], index=['QGIS'])
+        df_dep = pd.DataFrame([{    'current': qgis_version,
+                                    'path': qgis_prefix}], index=['QGIS'])
 
         df_dep.index.name = 'name'
 
-        df_dep.loc['Temp', 'current'] = tempfile.gettempdir()
+        df_dep.loc['Temp', 'path'] = [ tempfile.gettempdir()]
+        df_dep.loc['Python', 'current'] = [ sys.version]
+        
         self.feedback.pushInfo(f'{"Temp":.<25} {tempfile.gettempdir()}')
         
-        df_dep.loc['Python','current'] = sys.version
         self.feedback.pushInfo(f'{"Python":.<25} {sys.version}')
         
         import pyplugin_installer
@@ -165,28 +167,26 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             df_dep.loc['PAT', 'current'] = inst_ver
 
             self.feedback.pushInfo(f'{"PAT":.<25} {inst_ver}')
-            if self.CHECK_ONLINE :
-                pyplugin_installer.instance().fetchAvailablePlugins(False)
-                p = pyplugin_installer.installer_data.plugins.all()['pat']
-                df_dep.loc['PAT', 'available'] = parse_version(p['version_available'])  # needs further testing
+            # if self.CHECK_ONLINE :
+            #     pyplugin_installer.instance().fetchAvailablePlugins(False)
+            #     p = pyplugin_installer.installer_data.plugins.all()['pat']
+            #     df_dep.loc['PAT', 'available'] = parse_version(p['version_available'])  # needs further testing
 
-        if level.lower() == 'basic':
-            df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag','gdal308-runtime'], columns=['name'])
+        if self.LEVEL.lower() == 'basic':
+            df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag','fiona','osgeo.gdal'], columns=['name'])
         else:
             df_py = pd.DataFrame(['geopandas', 'rasterio', 'pandas', 'shapely', 'fiona', 'pyproj', 'unidecode', 'pint',
-                                  'numpy', 'scipy', 'chardet', 'pyprecag', 'gdal','gdal308-runtime'], columns=['name'])
+                                'numpy', 'scipy', 'chardet', 'pyprecag', 'osgeo.gdal'], columns=['name'])
 
-        df_py[['name', 'current', 'available', 'source']] = df_py['name'].apply(self.check_python_dependencies,
-                                                                                        args=(self.CHECK_ONLINE ,))
-        # df_py['type'] = 'Python'
-
+        df_py[['package', 'current', 'available', 'file', 'source']] = df_py['name'].apply(self.check_python_dependencies, online=False)
+    
         df_py = df_py.set_index('name')
-
         df_dep = pd.concat([df_dep, df_py])
 
         # convert version object to string
         df_dep[['current', 'available']] = df_dep[['current', 'available']].astype('string')
         df_dep.dropna(axis=1, how='all',inplace=True)
+        df_dep.drop(columns='package',inplace=True)
 
         if 'csv' in self.OUTPUT:
             df_dep.to_csv(self.OUTPUT, header=True)
@@ -198,106 +198,120 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         #     strlen = df_dep[ea].str.len().max()
         #     df_dep[ea]='| '+df_dep[ea].str.pad(width=strlen,side='right', fillchar=' ') +' |'
             
-        vl = QgsVectorLayer(path=self.OUTPUT, baseName=f"PAT_Depencancies", providerLib="ogr")
+        vl = QgsVectorLayer(path=self.OUTPUT, baseName=f"PAT_Depencencies", providerLib="ogr")
         QgsProject.instance().addMapLayer(vl, True)
 
         
         return {self.OUTPUT: vl}
 
-    def check_python_dependencies(self, package, online=False):
+    def check_python_dependencies(self,package_name, online=False):
         """Check to see if a python package is installed and what version it is with an option to check online for updates.
         Args:
-            package (str): the name of the package
+            package_name (str): the name of the package
             online (bool): Check online for updates with priority for osgeo4w over pip.
         """
         
-        #https://stackoverflow.com/a/29770964
-        inst_ver = '0.0.0'
-        if package in sys.modules:
-            module = sys.modules[package]
-            if hasattr(module, '__version__'): 
-                inst_ver = sys.modules[package].__version__
-        elif package == 'gdal':
-            inst_ver = sys.modules['osgeo'].__version__
-        
-        elif 'runtime' in package:
-            
-            dll_file = Path(QgsApplication.applicationDirPath()).joinpath(package.split('-')[0] +'.dll')
+        # NOTE: importlib.metadata.version has issues if there are dist-info for a package
+        # and will return the first it finds and most likely the older version.
+        pack_status = {'package': package_name,
+                    'current': '0.0.0',
+                    'available': '0.0.0',
+                    'path': None,
+                    'source': None}
+
+        if 'runtime' in package_name:
+            dll_file = Path(QgsApplication.applicationDirPath()).joinpath(package_name.split('-')[0] +'.dll')
             if dll_file.exists():
-                inst_ver=dll_file.name
+                if platform.system() == 'Windows':
+                    from win32api import GetFileVersionInfo, LOWORD, HIWORD
+                    info = GetFileVersionInfo (str(dll_file), "\\")
+                    ms = info['FileVersionMS']
+                    ls = info['FileVersionLS']
+                    inst_ver = f'{HIWORD(ms)}.{LOWORD(ms)}.{HIWORD(ls)}'  #.{LOWORD (ls)}'
+        else:
+            try:
+                exec(f'import {package_name}')
+                module = sys.modules[package_name]
+                if hasattr(module, '__version__'): 
+                    pack_status['current'] = module.__version__    
+            except ModuleNotFoundError as err:
+                # ie package not installed   
+                # based on the version of QGIS installed find the correct snapshot.
+                pass
+        
+        if pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']:
+            df_ver = pd.read_csv(os.path.join(PLUGIN_DIR, 'util','versions_table.csv'))
+
+            # convert all columns to version numbers
+            # for col in df_ver.filter(regex='version').columns:
+            #     df_ver[col] = df_ver[col].dropna().apply(parse_version)
             
-        available_ver = '0.0.0'
-        file = None
-        source = None
+            # check if this is a ltr version
+            qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
+            qgis_col = f'qgis-ltr_version' if 'ltr' in Path(qgis_prefix).name.lower() else 'qgis_version'
+            
+            # Find the latest snapshot for each version of QGIS
+            df_ver = df_ver.filter(regex=(f'snap|{qgis_col}') ,axis=1).drop_duplicates(qgis_col,keep='last').set_index(qgis_col)
 
-        if online:
-            #self.feedback.pushInfo(f'Checking online ...... {package}')
-            if 'osgeo4w_packs' not in globals():
-                urls = ['http://download.osgeo.org/osgeo4w/v2/x86_64/release/python3/',
-                        'http://download.osgeo.org/osgeo4w/v2/x86_64/release/gdal/']
+            qgis_version = Qgis.version().split('-')[0]
 
-                osgeo4w_packs = pd.DataFrame()
-                for url in urls:
-                    ut = pd.read_html(url, header=0, skiprows=[1])[0]
-                    ut.rename(columns=lambda c: re.sub('[^a-zA-Z0-9 ]', '', c).strip(), inplace=True)
-                    ut = ut[ut['File Name'].str.endswith('/')]
-                    ut['url'] = url + ut['File Name']
-                    ut['File Name'] = ut['File Name'].str.rstrip("/")
-                    ut.insert(0, 'package', ut['File Name'].str.split('-', n=1).str[-1])
-                    ut.set_index('package', inplace=True)
-                    osgeo4w_packs = pd.concat([osgeo4w_packs, ut], axis=0)
+            # if 'LTR' in qgis_version:
+            #     if Qgis.QGIS_VERSION_INT < 31609:
+            #         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
+            # else:
+            #     if Qgis.QGIS_VERSION_INT < 32000:
+            #         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
 
-            if package in osgeo4w_packs.index:
-                url = osgeo4w_packs.loc[package, 'url']
-                # print(f'Searching osgeo4w for {package},  {url}', end='\t')
-                table = pd.read_html(url, header=0, skiprows=[1])[0]
-                table.rename(columns=lambda c: re.sub('[^a-zA-Z0-9 ]', '', c).strip(), inplace=True)
-                table['Date'] = pd.to_datetime(table['Date'], yearfirst=True, format='mixed')
-                table = table.loc[table['File Name'].str.startswith('python3')]
-                newest = table.loc[table['Date'].argmax()]['File Name']
-                available_ver = newest.split('-')[2]
-                # print(f'found {available_ver}')
-                source = 'osgeo4w'
-                    
+            if qgis_version not in df_ver.index:
+                pack_status['path']='http://download.osgeo.org/osgeo4w/v2'
             else:
+                snap = df_ver.loc[[qgis_version],'snapshot'].values[0]
+                pack_status['path'] = f'https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
+            
+            pack_status['source'] = 'osgeo4w'
 
+        if package_name == 'pyprecag':
+            if online:
                 try:
-                    url = 'https://pypi.python.org/pypi/{}/json'.format(package)
+                    url = 'https://pypi.python.org/pypi/{}/json'.format(package_name)
                     # print(f'Searching pip for {package},  {url}', end='\t')
                     available_ver = requests.get(url)
                     available_ver.raise_for_status()
                     available_ver = available_ver.json()['info']['version']
-                    source = 'pip'
-                    # print(f'found {available_ver}')
+                    pack_status['source'] = 'pip'
+                    pack_status['available'] = available_ver
+                    # print(f'found {available_ver}')    
                 except (requests.ConnectionError, requests.exceptions.HTTPError) as err:
                     available_ver = None
                     # print(f'Skipping {package}. {err.args[0]}')
+            elif pack_status['current'] == '0.0.0' :
+                pack_status['source'] = 'pip'
 
-        loc_whl = None
-        local_files = [p for p in Path(PLUGIN_DIR).joinpath('install_files').rglob(f'{package}*') if
-                       p.suffix in ['.gz', '.whl']]
+            local_files = [p for p in Path(PLUGIN_DIR).joinpath('install_files').rglob(f'{package_name}*') if
+                        p.suffix in ['.gz', '.whl']]
 
-        if len(local_files) > 0:
-            for i, ea in enumerate(local_files):
-                loc_pack, loc_ver = ea.stem.split('-')
-                loc_ver = Path(loc_ver).stem
+            if len(local_files) > 0:
+                for i, ea in enumerate(local_files):
+                    loc_pack, loc_ver = ea.stem.split('-')
+                    loc_ver = Path(loc_ver).stem
 
-                if parse_version(loc_ver) < parse_version(inst_ver): continue  # installed version is new than wheel
+                    if parse_version(loc_ver) < parse_version(inst_ver):
+                        continue  # installed version is new than wheel
 
-                package = loc_pack
-                source = 'pip_whl'
-                loc_whl = ea.name
+                    package_name = loc_pack
+                    pack_status['package'] = loc_pack
+                    pack_status['source'] = 'pip_whl'
+                    pack_status['path'] = ea.name
 
-                if (parse_version(loc_ver) > parse_version(inst_ver)) or (
-                        available_ver is not None and parse_version(loc_ver) > parse_version(available_ver)):
-                    available_ver = loc_ver
-                #self.feedback.pushInfo(f'{package} current: {loc_ver}')
+                    if (parse_version(loc_ver) > parse_version(inst_ver)) or (
+                            available_ver is not None and parse_version(loc_ver) > parse_version(available_ver)):
+                        pack_status['available'] = loc_ver
                 # print(f'Found {len(local_files)} local wheel files, newest version is {available_ver} ')
-        
-        self.feedback.pushInfo(f'{package:.<25} {inst_ver if inst_ver != "0.0.0" else None}')
-        r = pd.Series({'name': package,
-                       'current': inst_ver if inst_ver != '0.0.0' else None,
-                       'available': available_ver if available_ver != '0.0.0' else None,
-                       'source': source})
-        
-        return r
+
+        pack_status['current'] = parse_version(pack_status['current']) if pack_status['current'] != '0.0.0' else None
+        pack_status['available']=  parse_version(pack_status['available']) if pack_status['available'] != '0.0.0' else None
+    
+        self.feedback.pushInfo(f'{package_name:.<25} {pack_status['current']}')
+    
+        return pd.Series(pack_status)
+    

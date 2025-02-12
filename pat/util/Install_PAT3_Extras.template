@@ -1,9 +1,12 @@
 @echo off
-
+ECHO -------------------------------------------------------
 ECHO $pip_func Python 3 extras to support PAT.
-ECHO for $QGIS_VERSION   $QGIS_PATH
+ECHO QGIS      -  $QGIS_VERSION   $QGIS_PATH
+ECHO Osgeo4w   -  $osgeo_packs    $site 
+ECHO PIP       -  $pip_packs
+ECHO -------------------------------------------------------
 
-cd %~dp0
+cd %~dp0 
 
 if "pause-$run_within" equ "pause-False" (
     tasklist /FI "IMAGENAME eq qgis*"| find ":" > NUL

@@ -229,12 +229,13 @@ def check_python_dependencies(package_name, online=False):
      
     # NOTE: importlib.metadata.version has issues if there are dist-info for a package
     # and will return the first it finds and most likely the older version.
-    
-    inst_ver = '0.0.0'
+    pack_status = {'package': package_name,
+                   'current': '0.0.0',
+                   'available': '0.0.0',
+                   'path': None,
+                   'source': None}
 
-    if package_name == 'gdal':
-        inst_ver = sys.modules['osgeo'].__version__
-    elif 'runtime' in package_name:
+    if 'runtime' in package_name:
         dll_file = Path(QgsApplication.applicationDirPath()).joinpath(package_name.split('-')[0] +'.dll')
         if dll_file.exists():
             if platform.system() == 'Windows':
@@ -248,89 +249,85 @@ def check_python_dependencies(package_name, online=False):
             exec(f'import {package_name}')
             module = sys.modules[package_name]
             if hasattr(module, '__version__'): 
-                inst_ver = sys.modules[package_name].__version__    
+                pack_status['current'] = module.__version__    
         except ModuleNotFoundError as err:
+            # ie package not installed   
+            # based on the version of QGIS installed find the correct snapshot.
             pass
-            
-    package = None    # this will be the osgeo4w string required for install.
-    available_ver = '0.0.0'
-    source = 'n/a'
-    if online:
-        if 'osgeo4w_packs' not in globals():
-            urls = ['http://download.osgeo.org/osgeo4w/v2/x86_64/release/python3/',
-                    'http://download.osgeo.org/osgeo4w/v2/x86_64/release/gdal/']
-            global osgeo4w_packs
-            osgeo4w_packs = pd.DataFrame()
-            for url in urls:
-                ut = pd.read_html(url, header=0, skiprows=[1])[0]
-                ut.rename(columns=lambda c: re.sub('[^a-zA-Z0-9 ]', '', c).strip(), inplace=True)
-                ut = ut[ut['File Name'].str.endswith('/')]
-                ut['url'] = url + ut['File Name']
-                ut['File Name'] = ut['File Name'].str.rstrip("/")
-                ut['package_name'] = ut['File Name'].str.replace('python3-','')
-                #ut[['src','package']] = ut['File Name'].str.split('-', n=1,expand=True)
-                
-                ut.set_index('package_name', inplace=True)
-                osgeo4w_packs = pd.concat([osgeo4w_packs, ut], axis=0)
+    
+    if pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']:
+        df_ver = pd.read_csv(os.path.join(PLUGIN_DIR, 'util','versions_table.csv'))
 
-        if package_name in osgeo4w_packs.index:
-            url = osgeo4w_packs.loc[package_name, 'url']
-            package= osgeo4w_packs.loc[package_name, 'File Name']
-            # print(f'Searching osgeo4w for {package_name},  {url}', end='\t')
-            table = pd.read_html(url, header=0, skiprows=[1])[0]
-            table.rename(columns=lambda c: re.sub('[^a-zA-Z0-9 ]', '', c).strip(), inplace=True)
-            table['Date'] = pd.to_datetime(table['Date'], yearfirst=True, format='mixed')
-            table = table.loc[table['File Name'].str.endswith('bz2')]
-            newest = table.iloc[table['Date'].argmax()]['File Name']
-            available_ver = newest.split('-')[2]
-            # print(f'found {available_ver}')
-                                   
-            source = 'osgeo4w'
+        # convert all columns to version numbers
+        # for col in df_ver.filter(regex='version').columns:
+        #     df_ver[col] = df_ver[col].dropna().apply(parse_version)
+        
+        # check if this is a ltr version
+        qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
+        qgis_col = f'qgis-ltr_version' if 'ltr' in Path(qgis_prefix).name.lower() else 'qgis_version'
+        
+        # Find the latest snapshot for each version of QGIS
+        df_ver = df_ver.filter(regex=(f'snap|{qgis_col}') ,axis=1).drop_duplicates(qgis_col,keep='last').set_index(qgis_col)
+
+        qgis_version = Qgis.version().split('-')[0]
+
+        # if 'LTR' in qgis_version:
+        #     if Qgis.QGIS_VERSION_INT < 31609:
+        #         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
+        # else:
+        #     if Qgis.QGIS_VERSION_INT < 32000:
+        #         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
+
+        if qgis_version not in df_ver.index:
+            pack_status['path']='http://download.osgeo.org/osgeo4w/v2'
         else:
+            snap = df_ver.loc[[qgis_version],'snapshot'].values[0]
+            pack_status['path'] = f'https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
+        
+        pack_status['source'] = 'osgeo4w'
 
+    if package_name == 'pyprecag':
+        if online:
             try:
                 url = 'https://pypi.python.org/pypi/{}/json'.format(package_name)
                 # print(f'Searching pip for {package},  {url}', end='\t')
                 available_ver = requests.get(url)
                 available_ver.raise_for_status()
                 available_ver = available_ver.json()['info']['version']
-                source = 'pip'
+                pack_status['source'] = 'pip'
+                pack_status['available'] = available_ver
                 # print(f'found {available_ver}')    
             except (requests.ConnectionError, requests.exceptions.HTTPError) as err:
                 available_ver = None
                 # print(f'Skipping {package}. {err.args[0]}')
+        elif pack_status['current'] == '0.0.0' :
+            pack_status['source'] = 'pip'
 
-    loc_whl = None
-    
-    local_files = [p for p in Path(PLUGIN_DIR).joinpath('install_files').rglob(f'{package_name}*') if
-                   p.suffix in ['.gz', '.whl']]
+        local_files = [p for p in Path(PLUGIN_DIR).joinpath('install_files').rglob(f'{package_name}*') if
+                    p.suffix in ['.gz', '.whl']]
 
-    if len(local_files) > 0:
-        for i, ea in enumerate(local_files):
-            loc_pack, loc_ver = ea.stem.split('-')
-            loc_ver = Path(loc_ver).stem
+        if len(local_files) > 0:
+            for i, ea in enumerate(local_files):
+                loc_pack, loc_ver = ea.stem.split('-')
+                loc_ver = Path(loc_ver).stem
 
-            if parse_version(loc_ver) < parse_version(inst_ver):
-                continue  # installed version is new than wheel
+                if parse_version(loc_ver) < parse_version(inst_ver):
+                    continue  # installed version is new than wheel
 
-            package_name = loc_pack
-            package = loc_pack
-            source = 'pip_whl'
-            loc_whl = ea.name
+                package_name = loc_pack
+                pack_status['package'] = loc_pack
+                pack_status['source'] = 'pip_whl'
+                pack_status['path'] = ea.name
 
-            if (parse_version(loc_ver) > parse_version(inst_ver)) or (
-                    available_ver is not None and parse_version(loc_ver) > parse_version(available_ver)):
-                available_ver = loc_ver
+                if (parse_version(loc_ver) > parse_version(inst_ver)) or (
+                        available_ver is not None and parse_version(loc_ver) > parse_version(available_ver)):
+                    pack_status['available'] = loc_ver
+            # print(f'Found {len(local_files)} local wheel files, newest version is {available_ver} ')
 
-        # print(f'Found {len(local_files)} local wheel files, newest version is {available_ver} ')
+    pack_status['current'] = parse_version(pack_status['current']) if pack_status['current'] != '0.0.0' else None
+    pack_status['available']=  parse_version(pack_status['available']) if pack_status['available'] != '0.0.0' else None
 
-    r = pd.Series({'package': package,
-                   'current': parse_version(inst_ver) if inst_ver != '0.0.0' else None,
-                   'available': parse_version(available_ver) if available_ver != '0.0.0' else None,
-                   'path': loc_whl,
-                   'source': source})
-
-    return r
+    return pd.Series(pack_status)
 
 
 def plugin_status(level='basic', check_for_updates=False, forced_update=False):
@@ -427,10 +424,10 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
     func_step = datetime.now()
     
     if level.lower() == 'basic':
-        df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag','fiona','gdal308-runtime'], columns=['name'])
+        df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag','fiona', 'osgeo.gdal'], columns=['name'])
     else:
         df_py = pd.DataFrame(['geopandas', 'rasterio', 'pandas', 'shapely', 'fiona', 'pyproj', 'unidecode', 'pint',
-                              'numpy', 'scipy', 'chardet', 'pyprecag', 'gdal','gdal308-runtime'], columns=['name'])
+                              'numpy', 'scipy', 'chardet', 'pyprecag', 'osgeo.gdal'], columns=['name'])
 
     df_py[['package', 'current', 'available', 'file', 'source']] = df_py['name'].apply(check_python_dependencies,
                                                                                     args=(check_for_updates,))
@@ -486,6 +483,15 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
 
     return df_dep
 
+def FolderIsWritable(path: str) -> bool:
+    try:
+        filename  = os.path.join(path, 'write_test.txt')
+        with open(filename,"w") as f :
+            f.close()
+        os.remove(filename)
+        return True
+    except:
+        return False
 
 def install(df_updates,forced_update):
     
@@ -494,6 +500,10 @@ def install(df_updates,forced_update):
     
     func_time = datetime.now()
     
+    # check if the installation folder is writable. If not admin access is required.
+    need_admin = not FolderIsWritable(os.path.abspath(QgsApplication.prefixPath()))
+    admin_tag = None
+
     dependencies_met = read_setting(PLUGIN_NAME + '/SETUP/DEPENDENCIES_MET', object_type=bool, default=False)
 
     packs_mess = ''
@@ -505,16 +515,25 @@ def install(df_updates,forced_update):
         packs_mess += '    pip:\t{}\n'.format(
             "\n\t".join(df_updates.loc[df_updates['source'].str.startswith('pip')].index.tolist()))
 
-    inst_message = (f'PAT installation/update required for:\n{packs_mess}\n'
-                    'WARNING Installation may require administrator access.\n\n')
+    inst_message = f'PAT installation/update required for:\n{packs_mess}\n'
+    if need_admin:
+        inst_message += 'WARNING Installation may require administrator access.\n\n'
+        
+        admin_tag = 'runas'
 
     QApplication.restoreOverrideCursor()
     msg_box = QMessageBox()
     msg_box.setWindowTitle("PAT Updates available")
-    msg_box.setText(inst_message + 'Install now?')
-    msg_box.addButton(QMessageBox.Yes)
-    msg_box.addButton(QMessageBox.No)
+    if not need_admin: 
+        msg_box.setText(inst_message + 'Install now?')
+        msg_box.addButton(QMessageBox.Yes)
+        msg_box.addButton(QMessageBox.No)
 
+    else: 
+        msg_box.setText(inst_message)
+        msg_box.addButton(QMessageBox.Ok)
+
+    
     if dependencies_met:
         msg_box.addButton('Delay for 7 days', QMessageBox.ApplyRole)
     if forced_update:
@@ -522,11 +541,14 @@ def install(df_updates,forced_update):
         
     inst_result = msg_box.exec_()
 
+    if platform.system() == 'Windows':
+        install_bat = create_bat_files(df_updates, run_within_qgis=inst_result == QMessageBox.Yes)
+
     success = False
     if inst_result == 1:  # Ignore role
         return False
     
-    if inst_result == 0:  # apply role or 7 day delay
+    elif inst_result == 0:  # apply role or 7 day delay
         write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(7))
         # qgis.utils.unloadPlugin('pat')
         return True
@@ -535,13 +557,12 @@ def install(df_updates,forced_update):
         from qgis.utils import iface
         if platform.system() == 'Windows':
             QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            install_bat = create_bat_files(df_updates, run_within_qgis=True)
-
+            
             # launch BAT file as administrator.
             # https://stackoverflow.com/a/72792517
             from ctypes import windll
             result = windll.shell32.ShellExecuteW(None,  # handle to parent window
-                                                  'runas',  # runas: prompt for UAC, None as per normal
+                                                 admin_tag,  # runas: prompt for UAC, None as per normal
                                                   'cmd.exe',  # file on which verb acts
                                                   ' '.join(['/c', install_bat]),  # parameters
                                                   None,  # working directory (default is cwd)
@@ -583,17 +604,16 @@ def install(df_updates,forced_update):
                 
                 result = success
 
-    if inst_result == QMessageBox.No or not success:
+    if inst_result in ( QMessageBox.No, QMessageBox.Ok) or not success:
         # Create a shortcut on desktop with admin privileges.
         if platform.system() == 'Windows':
-            install_bat = create_bat_files(df_updates, run_within_qgis=False)
-
+            
             desktop = shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOP, 0, 0)
             shortcutPath = os.path.join(desktop, Path(install_bat).stem.replace('_', ' ') + '.lnk')
 
             # add shortcut to desktop....
             create_link(shortcutPath, install_bat, "Install setup for QGIS PAT Plugin",
-                        os.path.expanduser('~'), True)
+                        os.path.expanduser('~'), run_as_admin=need_admin)
 
             LOGGER.critical(f"To install PAT please run the desktop shortcut {Path(install_bat).stem} "
                             f"or bat file as administrator {install_bat}")
@@ -608,15 +628,13 @@ def install(df_updates,forced_update):
 
             write_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', shortcutPath)
 
-
-
         result = False
     
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-        LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name,
-                                                    func_time.strftime("%H:%M:%S.%f"),
-                                                    datetime.now().strftime("%H:%M:%S.%f"),
-                                                    dur=datetime.now() - func_time))
+    # if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
+    #     LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name,
+    #                                                 func_time.strftime("%H:%M:%S.%f"),
+    #                                                 datetime.now().strftime("%H:%M:%S.%f"),
+    #                                                 dur=datetime.now() - func_time))
                                                                       
     return result 
 
@@ -649,18 +667,14 @@ def create_bat_files(df, run_within_qgis=True):
         else:
             qgis_version = Qgis.QGIS_VERSION
             title = f'{title}_qgis-{Qgis.QGIS_VERSION_INT // 100}'
-
-        OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/v2'
-
-        if 'LTR' in qgis_version:
-            if Qgis.QGIS_VERSION_INT < 31609:
-                OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
-        else:
-            if Qgis.QGIS_VERSION_INT < 32000:
-                OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
-
+        
+        OSGeo4W_site=''
+        if 'osgeo4w' in df['source'].values:
+            OSGeo4W_site = df.loc[df['source'] == 'osgeo4w', 'file'].unique()[0]
+        
         df = df.reset_index()
         df['inst'] = df['name']
+        
         df.loc[df['source'] == 'pip_whl', 'inst'] = df['file']
         df.loc[df['source'] == 'osgeo4w', 'inst'] = '-P ' + df['package']
 
