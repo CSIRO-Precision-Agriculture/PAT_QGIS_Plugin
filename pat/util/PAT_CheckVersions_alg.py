@@ -151,7 +151,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         
         
         settings = QgsSettings()
-
+        # TODO: ADD SETTINGS TO DATAFRAME OUTPUT
         i=0
         for ea in settings.allKeys():
             if  ea.startswith('PAT'):
@@ -168,9 +168,6 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         
         
         self.feedback.pushInfo(f'\n')
-        
-        
-        
         
         qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
         
