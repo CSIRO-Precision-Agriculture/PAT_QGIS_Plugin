@@ -27,7 +27,7 @@ from importlib.metadata import version
 from packaging.version import parse as parse_version
 from pathlib import Path
 import pandas as pd
-from qgis.core import QgsApplication, Qgis
+from qgis.core import QgsApplication, Qgis, QgsSettings
 
 
 PLUGIN_NAME = 'pat'
@@ -56,6 +56,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
     LEVEL = 'LEVEL'
     #CHECK_ONLINE = 'CHECK_ONLINE'
     LEVEL_LIST = ['Basic','Full']
+    DELETE_PAT_SETTINGS = 'DELETE_PAT_SETTINGS'
     OUTPUT = 'OUTPUT'
 
     def tr(self, string):
@@ -124,6 +125,12 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         # self.addParameter( QgsProcessingParameterBoolean(name=self.CHECK_ONLINE,
         #                                   description=self.tr('Check for updates'),
         #                                   defaultValue=False ) )
+        
+        self.addParameter( QgsProcessingParameterBoolean(name=self.DELETE_PAT_SETTINGS,
+                                          description=self.tr('Delete All PAT Settings'),
+                                          defaultValue=False ) )
+
+
 
         self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT, 
                             self.tr('Output File'), 
@@ -136,13 +143,38 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         self.context = context
         self.feedback = feedback
         #self.CHECK_ONLINE = self.parameterAsBoolean(parameters, self.CHECK_ONLINE,self.context)
+        
         self.LEVEL = self.LEVEL_LIST[self.parameterAsInt(parameters, self.LEVEL, self.context)]
         
+        self.DELETE_PAT_SETTINGS= self.parameterAsBoolean(parameters, self.DELETE_PAT_SETTINGS,self.context)
         self.OUTPUT = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
+        
+        
+        settings = QgsSettings()
+
+        i=0
+        for ea in settings.allKeys():
+            if  ea.startswith('PAT'):
+                i+=1
+                if i == 1: 
+                    self.feedback.pushInfo(f'PAT Settings:')                
+                    
+                self.feedback.pushInfo(f'\t{ea:.<25} : {settings.value(ea)}')
+                
+
+        if self.DELETE_PAT_SETTINGS:
+            self.feedback.pushInfo(f'Deleting PAT Settings...')                
+            settings.remove('PAT')
+        
+        
+        self.feedback.pushInfo(f'\n')
+        
+        
+        
         
         qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
         
-        qgis_version = f'{Qgis.QGIS_VERSION} (LTR)' if 'ltr' in Path(qgis_prefix).name.lower() else Qgis.QGIS_VERSION
+        qgis_version = '{}-{}'.format(Path(QgsApplication.prefixPath()).stem, Qgis.version().split('-')[0])
         
         self.feedback.pushInfo(f'{"QGIS":.<25} {qgis_version}')
                 
@@ -311,7 +343,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         pack_status['current'] = parse_version(pack_status['current']) if pack_status['current'] != '0.0.0' else None
         pack_status['available']=  parse_version(pack_status['available']) if pack_status['available'] != '0.0.0' else None
     
-        self.feedback.pushInfo(f'{package_name:.<25} {pack_status['current']}')
+        self.feedback.pushInfo(f'{package_name:.<25} {pack_status["current"]}')
     
         return pd.Series(pack_status)
     

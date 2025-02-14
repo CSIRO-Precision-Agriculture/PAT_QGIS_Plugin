@@ -36,7 +36,7 @@ from datetime import datetime
 from . import resources  # import resources like icons for the plugin
 
 import qgis
-from qgis.core import Qgis
+from qgis.core import Qgis,QgsApplication
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtCore import QDateTime
 
@@ -44,6 +44,7 @@ PLUGIN_DIR = os.path.abspath(os.path.dirname(__file__))
 PLUGIN_NAME = "PAT"
 PLUGIN_SHORT = "PAT"
 LOGGER_NAME = 'pyprecag'
+QGIS_VERSION = '{}-{}'.format(Path(QgsApplication.prefixPath()).stem, Qgis.version().split('-')[0])
 
 # This matches the folder pyprecag uses.
 TEMPDIR = os.path.join(tempfile.gettempdir(), 'PrecisionAg')
@@ -106,15 +107,15 @@ def classFactory(iface):
 
     # pat-install.finished is created when running the install bat file externally to QGIS 
     # so if it exists it means install was attempted.
+    
     done_file = Path(PLUGIN_DIR).joinpath('install_files', 'pat-install.finished')
     if done_file.exists(): 
         done_file.unlink()
         shortcutPath  = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
             
-        if shortcutPath != '' and Path(shortcutPath).exists():
-             Path(shortcutPath).unlink()
-             
-        remove_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING')
+        if shortcutPath != '' and Path(shortcutPath).exists() and QGIS_VERSION in Path(shortcutPath).stem :
+            Path(shortcutPath).unlink()
+            remove_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING')
 
     if read_setting(PLUGIN_NAME + "/DEBUG", bool):
         LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
@@ -161,8 +162,9 @@ def classFactory(iface):
                                            datetime.now().strftime("%H:%M:%S.%f"),
                                            dur=datetime.now() - step_time))
     step_time = datetime.now()
+    pending = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str, default='')
 
-    if  read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=bool, default=False):
+    if QGIS_VERSION in Path(pending).stem :
         #qgis.utils.unloadPlugin('pat')
                
         if read_setting(PLUGIN_NAME + "/DEBUG", bool): 

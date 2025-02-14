@@ -1,38 +1,41 @@
 @echo off
-ECHO -------------------------------------------------------
-ECHO $pip_func Python 3 extras to support PAT.
-ECHO QGIS      -  $QGIS_VERSION   $QGIS_PATH
-ECHO Osgeo4w   -  $osgeo_packs    $site 
-ECHO PIP       -  $pip_packs
-ECHO -------------------------------------------------------
 
+ECHO Dependencies Log: $dependency_log  
+ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.... Please Wait
 cd %~dp0 
 
 if "pause-$run_within" equ "pause-False" (
     tasklist /FI "IMAGENAME eq qgis*"| find ":" > NUL
     
     IF errorlevel 1 (
-        echo QGIS is Currently Running. Please save your work and close
+        echo      QGIS is Currently Running. Please save your work and close
         pause
 
         tasklist /FI "IMAGENAME eq qgis*"| find ":" > NUL
 
         IF errorlevel 1 (
-            ECHO QGIS is Still Running. Proceeding to Kill QGIS without saving.
-            taskkill /F /FI "IMAGENAME eq qgis*" 
+            ECHO      QGIS is Still Running. Proceeding to Kill QGIS without saving.
+            taskkill /F /FI "IMAGENAME eq qgis*" > NUL
         )
-      )
+    )
     )
 
-
-ECHO Dependencies Log: $dependency_log  
-ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.... Please Wait
-
 type NUL > "$dependency_log"   
-CALL :PROCESS > "$dependency_log"   
+CALL :PROCESS > "$dependency_log"    2>&1
 GOTO :END 
 
 :PROCESS  
+    ECHO -------------------------------------------------------
+    ECHO $pip_func Python 3 extras to support PAT.
+    ECHO QGIS      -  $QGIS_VERSION   $QGIS_PATH
+    ECHO Osgeo4w   -  $osgeo_packs    $site 
+    ECHO PIP       -  $pip_packs
+    ECHO.
+    ECHO Install inside qgis - $run_within
+    ECHO Has Admin to Install - $admin
+    ECHO -------------------------------------------------------
+
+    
     SET OSGEO4W_ROOT=$QGIS_PATH
 
     if not exist "%OSGEO4W_ROOT%" (
@@ -52,13 +55,14 @@ GOTO :END
     SET OSGEO4W_ROOT=$QGIS_PATH
 
     if "$osgeo_packs" NEQ "" (
-        ECHO. & ECHO Osgeo4w $osgeo_message -----------------------------------------------
+        ECHO    Osgeo4w Installing $osgeo_packs >CON
+        ECHO. & ECHO Osgeo4w Installing $osgeo_packs -----------------------------------------------
         REM  see https://trac.osgeo.org/osgeo4w/wiki/CommandLine
         REM      https://gis.stackexchange.com/questions/303166/unattended-qgis-updates-with-osgeo4w
         REM      -q --quiet-mode ,  -b --disable-buggy-antivirus  ,  -A --advanced install,
         REM      -k --autoaccept,   -n --no-shortcuts, -s --site,  -P --packages  ,  -x --remove-packages
 
-        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\osgeo4w-setup.exe" -q -b -A -k -n -s $site $osgeo_packs
+        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\osgeo4w-setup.exe" -q -b -A -k -n $site $osgeo_packs
     ) ELSE (
         ECHO No OSGEO installation required
     )
@@ -78,11 +82,12 @@ GOTO :END
     ECHO. & Echo The current directory is %CD%
     
     if "$pip_packs" NEQ "" (
+        ECHO     PIP $pip_func  $pip_packs  >CON
         ECHO. & ECHO PIP $pip_func  $pip_packs -----------------------------------------------
         if "$pip_func" == "uninstall" (
             ECHO y | python -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
         ) ELSE (
-            python -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
+            python -m pip $pip_func --upgrade $pip_packs --no-cache-dir --disable-pip-version-check
 
             REM if EXIST $pip_packs (
             REM    ECHO renaming $pip_packs to $pip_packs.installed
@@ -93,6 +98,9 @@ GOTO :END
         REM  No PIP installation required
     )
 	type nul >> pat-install.finished
+	
+	ECHO. & ECHO Installation Complete -----------------------------------------------
+	
     EXIT /B
 
 :END     

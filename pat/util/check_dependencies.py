@@ -57,7 +57,7 @@ if platform.system() == 'Windows':
 
 import struct
 
-from pat import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR
+from pat import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR, QGIS_VERSION
 from util.settings import read_setting, write_setting, remove_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -246,7 +246,13 @@ def check_python_dependencies(package_name, online=False):
                 inst_ver = f'{HIWORD(ms)}.{LOWORD(ms)}.{HIWORD(ls)}'  #.{LOWORD (ls)}'
     else:
         try:
-            exec(f'import {package_name}')
+            pack_imported =package_name in sys.modules  
+            
+            if not pack_imported:
+                exec(f'import {package_name}')
+            else:
+                import importlib
+                importlib.reload(sys.modules[package_name])
             module = sys.modules[package_name]
             if hasattr(module, '__version__'): 
                 pack_status['current'] = module.__version__    
@@ -261,10 +267,8 @@ def check_python_dependencies(package_name, online=False):
         # convert all columns to version numbers
         # for col in df_ver.filter(regex='version').columns:
         #     df_ver[col] = df_ver[col].dropna().apply(parse_version)
-        
-        # check if this is a ltr version
-        qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
-        qgis_col = f'qgis-ltr_version' if 'ltr' in Path(qgis_prefix).name.lower() else 'qgis_version'
+                
+        qgis_col =Path(QgsApplication.prefixPath()).stem
         
         # Find the latest snapshot for each version of QGIS
         df_ver = df_ver.filter(regex=(f'snap|{qgis_col}') ,axis=1).drop_duplicates(qgis_col,keep='last').set_index(qgis_col)
@@ -279,10 +283,10 @@ def check_python_dependencies(package_name, online=False):
         #         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
 
         if qgis_version not in df_ver.index:
-            pack_status['path']='http://download.osgeo.org/osgeo4w/v2'
+            pack_status['path']='-s http://download.osgeo.org/osgeo4w/v2'
         else:
             snap = df_ver.loc[[qgis_version],'snapshot'].values[0]
-            pack_status['path'] = f'https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
+            pack_status['path'] = f'-O -s https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
         
         pack_status['source'] = 'osgeo4w'
 
@@ -374,7 +378,7 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
                                                 dur=datetime.now() - func_step))
     func_step = datetime.now()
     df_dep = pd.DataFrame([{'type': 'QGIS Environment',
-                            'current': f'LTR-{Qgis.QGIS_VERSION}' if 'LTR' in qgis_prefix else Qgis.QGIS_VERSION,
+                            'current':QGIS_VERSION,
                             'path': qgis_prefix}], index=['QGIS'])
 
     df_dep.index.name = 'name'
@@ -468,6 +472,12 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False):
     
     if 'pyprecag' in df_updates.index or forced_update:
         _ = install(df_updates,forced_update)
+    else:
+        shortcutPath  = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
+            
+        if shortcutPath != '' and Path(shortcutPath).exists() and QGIS_VERSION in Path(shortcutPath).stem:
+            Path(shortcutPath).unlink()       
+            remove_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING')
 
     if read_setting(PLUGIN_NAME + '/SETUP/LOAD_TIMES', bool):
         LOGGER.info("..{:.<33} {:.<15} -> {:.<15} = {dur}".format(sys._getframe().f_code.co_name + '-install',
@@ -518,7 +528,6 @@ def install(df_updates,forced_update):
     inst_message = f'PAT installation/update required for:\n{packs_mess}\n'
     if need_admin:
         inst_message += 'WARNING Installation may require administrator access.\n\n'
-        
         admin_tag = 'runas'
 
     QApplication.restoreOverrideCursor()
@@ -595,6 +604,7 @@ def install(df_updates,forced_update):
             
             QApplication.restoreOverrideCursor()
             if success:
+
                 _ = plugin_status(level='basic', check_for_updates=False)
 
                 write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
@@ -655,18 +665,11 @@ def create_file_from_template(template_file, arg_dict, write_file):
     w_file.close()
 
 
-def create_bat_files(df, run_within_qgis=True):
+def create_bat_files(df, run_within_qgis=True,has_admin=False):
     try:
         # the name of the install file.
-        title = 'Install_PAT3'
-        qgis_prefix_path = os.path.abspath(QgsApplication.prefixPath())
-
-        if 'LTR' in os.path.basename(qgis_prefix_path).upper():
-            qgis_version = 'LTR {}'.format(Qgis.QGIS_VERSION)
-            title = f'{title}_qgis-LTR-{Qgis.QGIS_VERSION_INT // 100}'
-        else:
-            qgis_version = Qgis.QGIS_VERSION
-            title = f'{title}_qgis-{Qgis.QGIS_VERSION_INT // 100}'
+        
+        title = f'Install_PAT3_{QGIS_VERSION}'
         
         OSGeo4W_site=''
         if 'osgeo4w' in df['source'].values:
@@ -676,24 +679,23 @@ def create_bat_files(df, run_within_qgis=True):
         df['inst'] = df['name']
         
         df.loc[df['source'] == 'pip_whl', 'inst'] = df['file']
-        df.loc[df['source'] == 'osgeo4w', 'inst'] = '-P ' + df['package']
+        df.loc[df['source'] == 'osgeo4w', 'inst'] = '-P python3-' + df['package']
 
         pip_packages = df.loc[df['source'] != 'osgeo4w', 'inst'].unique().tolist()
         osgeo4w_packages = df.loc[df['source'] == 'osgeo4w', 'inst'].unique().tolist()
-        osgeo4w_names = df.loc[df['source'] == 'osgeo4w', 'name'].unique().tolist()
-
+        
         # create a dictionary to use with the template file.
         d = {'dependency_log': os.path.join(PLUGIN_DIR, 'install_files',
-                                            'dependency_{}.log'.format(date.today().strftime("%Y-%m-%d"))),
+                                            'dependency_{}_{}.log'.format(QGIS_VERSION,date.today().strftime("%Y-%m-%d"))),
              'QGIS_PATH': str(Path(os.environ['OSGEO4W_ROOT']).resolve()),
              'QGIS_VERSION': Qgis.QGIS_VERSION,
-             'osgeo_message': 'Installing {}'.format(', '.join(osgeo4w_names)),
              'site': OSGeo4W_site,
              'osgeo_packs': '' if len(osgeo4w_packages) == 0 else ' '.join(osgeo4w_packages),
              'pip_func': 'install',
              'pip_packs': '' if len(pip_packages) == 0 else ' '.join(pip_packages),
              'py_version': struct.calcsize("P") * 8,
-             'run_within': run_within_qgis
+             'run_within': run_within_qgis,
+             'admin': has_admin,
              }  # this will return 64 or 32
 
         # 'osgeo_uninst': ' -x python3-'.join(['fiona', 'geopandas', 'rasterio'])
