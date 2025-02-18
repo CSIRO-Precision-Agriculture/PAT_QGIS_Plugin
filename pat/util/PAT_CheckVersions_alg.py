@@ -149,20 +149,13 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         self.DELETE_PAT_SETTINGS= self.parameterAsBoolean(parameters, self.DELETE_PAT_SETTINGS,self.context)
         self.OUTPUT = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
         
-        
         settings = QgsSettings()
-        # TODO: ADD SETTINGS TO DATAFRAME OUTPUT
-        i=0
-        for ea in settings.allKeys():
-            if  ea.startswith('PAT'):
-                i+=1
-                if i == 1: 
-                    self.feedback.pushInfo(f'PAT Settings:')                
-                    
-                self.feedback.pushInfo(f'\t{ea:.<25} : {settings.value(ea)}')
-                
+        pat_settings = {ea:settings.value(ea) for ea in settings.allKeys()if  ea.startswith('PAT')}
+        df_set = pd.DataFrame.from_dict({'name':pat_settings.keys(),'value':pat_settings.values()})
+        
 
         if self.DELETE_PAT_SETTINGS:
+            df_set['current'] = 'deleted'
             self.feedback.pushInfo(f'Deleting PAT Settings...')                
             settings.remove('PAT')
         
@@ -173,19 +166,16 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         
         qgis_version = '{}-{}'.format(Path(QgsApplication.prefixPath()).stem, Qgis.version().split('-')[0])
         
-        self.feedback.pushInfo(f'{"QGIS":.<25} {qgis_version}')
+        
                 
         df_dep = pd.DataFrame([{    'current': qgis_version,
-                                    'path': qgis_prefix}], index=['QGIS'])
+                                    'value': qgis_prefix}], index=['QGIS'])
 
         df_dep.index.name = 'name'
 
-        df_dep.loc['Temp', 'path'] = [ tempfile.gettempdir()]
+        df_dep.loc['Temp', 'value'] = [ tempfile.gettempdir()]
         df_dep.loc['Python', 'current'] = [ sys.version]
         
-        self.feedback.pushInfo(f'{"Temp":.<25} {tempfile.gettempdir()}')
-        
-        self.feedback.pushInfo(f'{"Python":.<25} {sys.version}')
         
         import pyplugin_installer
         p = pyplugin_installer.installer_data.plugins.all()
@@ -195,7 +185,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             inst_ver = parse_version(p['version_installed']) if p['version_installed'] else None
             df_dep.loc['PAT', 'current'] = inst_ver
 
-            self.feedback.pushInfo(f'{"PAT":.<25} {inst_ver}')
+            # self.feedback.pushInfo(f'{"PAT":.<25} {inst_ver}')
             # if self.CHECK_ONLINE :
             #     pyplugin_installer.instance().fetchAvailablePlugins(False)
             #     p = pyplugin_installer.installer_data.plugins.all()['pat']
@@ -217,19 +207,22 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         df_dep.dropna(axis=1, how='all',inplace=True)
         df_dep.drop(columns='package',inplace=True)
 
+        df_dep = pd.concat([df_dep, df_set.set_index('name')],ignore_index=False)
+
         if 'csv' in self.OUTPUT:
             df_dep.to_csv(self.OUTPUT, header=True)
         else:
             df_dep.to_excel(self.OUTPUT, header=True)
         
-        
-        # for ea in ['name','current']:
-        #     strlen = df_dep[ea].str.len().max()
-        #     df_dep[ea]='| '+df_dep[ea].str.pad(width=strlen,side='right', fillchar=' ') +' |'
             
         vl = QgsVectorLayer(path=self.OUTPUT, baseName=f"PAT_Depencencies", providerLib="ogr")
         QgsProject.instance().addMapLayer(vl, True)
 
+        df_dep.index = df_dep.index.str.pad(50,fillchar='.',side='right')
+        df_dep = df_dep.fillna('.')
+        df_dep['current']= df_dep['current'].str.pad(12,fillchar='.',side='right')
+        self.feedback.pushInfo(df_dep.to_string(header=False))
+        
         
         return {self.OUTPUT: vl}
 
@@ -245,7 +238,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         pack_status = {'package': package_name,
                     'current': '0.0.0',
                     'available': '0.0.0',
-                    'path': None,
+                    'value': None,
                     'source': None}
 
         if 'runtime' in package_name:
@@ -292,10 +285,10 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             #         OSGeo4W_site = 'http://download.osgeo.org/osgeo4w/'
 
             if qgis_version not in df_ver.index:
-                pack_status['path']='http://download.osgeo.org/osgeo4w/v2'
+                pack_status['value']='http://download.osgeo.org/osgeo4w/v2'
             else:
                 snap = df_ver.loc[[qgis_version],'snapshot'].values[0]
-                pack_status['path'] = f'https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
+                pack_status['value'] = f'https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
             
             pack_status['source'] = 'osgeo4w'
 
@@ -330,7 +323,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                     package_name = loc_pack
                     pack_status['package'] = loc_pack
                     pack_status['source'] = 'pip_whl'
-                    pack_status['path'] = ea.name
+                    pack_status['value'] = ea.name
 
                     if (parse_version(loc_ver) > parse_version(inst_ver)) or (
                             available_ver is not None and parse_version(loc_ver) > parse_version(available_ver)):
@@ -340,7 +333,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         pack_status['current'] = parse_version(pack_status['current']) if pack_status['current'] != '0.0.0' else None
         pack_status['available']=  parse_version(pack_status['available']) if pack_status['available'] != '0.0.0' else None
     
-        self.feedback.pushInfo(f'{package_name:.<25} {pack_status["current"]}')
+        #self.feedback.pushInfo(f'{package_name:.<25} {pack_status["current"]}')
     
         return pd.Series(pack_status)
     
