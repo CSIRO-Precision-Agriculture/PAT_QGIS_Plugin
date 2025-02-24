@@ -246,9 +246,7 @@ def check_python_dependencies(package_name, online=False):
                 inst_ver = f'{HIWORD(ms)}.{LOWORD(ms)}.{HIWORD(ls)}'  #.{LOWORD (ls)}'
     else:
         try:
-            pack_imported =package_name in sys.modules  
-            
-            if not pack_imported:
+            if not package_name in sys.modules :
                 exec(f'import {package_name}')
             else:
                 import importlib

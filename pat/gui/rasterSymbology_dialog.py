@@ -93,7 +93,7 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_rasterSymbology.svg'))
         self.cboType.addItems(list(rs.RASTER_SYMBOLOGY))
         
-        rlayer = next(lyr for lyr in self.iface.layerTreeView().selectedLayers() if lyr.type() == QgsMapLayer.RasterLayer)
+        rlayer = next((lyr for lyr in self.iface.layerTreeView().selectedLayers() if lyr.type() == QgsMapLayer.RasterLayer) , None)
         self.mcboTargetLayer.setLayer(rlayer)
 
     def cleanMessageBars(self, AllBars=True):
