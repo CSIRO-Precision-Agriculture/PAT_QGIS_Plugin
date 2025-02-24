@@ -32,7 +32,7 @@ from qgis.core import QgsApplication, Qgis, QgsSettings
 
 PLUGIN_NAME = 'pat'
 PLUGIN_DIR = ''
-level = 'Full'
+level = 'Basic'
 
 
 class PATVersionsAlgorithm(QgsProcessingAlgorithm):
@@ -119,7 +119,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
 
         self.addParameter(QgsProcessingParameterEnum(self.LEVEL, ('Level'),
                                                      options=self.LEVEL_LIST,
-                                                     defaultValue=1,
+                                                     defaultValue=0,
                                                      optional=False)  )
 
         # self.addParameter( QgsProcessingParameterBoolean(name=self.CHECK_ONLINE,
@@ -148,11 +148,11 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         
         self.DELETE_PAT_SETTINGS= self.parameterAsBoolean(parameters, self.DELETE_PAT_SETTINGS,self.context)
         self.OUTPUT = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
-        
+                
         settings = QgsSettings()
         pat_settings = {ea:settings.value(ea) for ea in settings.allKeys()if  ea.startswith('PAT')}
         df_set = pd.DataFrame.from_dict({'name':pat_settings.keys(),'value':pat_settings.values()})
-        
+                        
 
         if self.DELETE_PAT_SETTINGS:
             df_set['current'] = 'deleted'
@@ -206,8 +206,9 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         df_dep[['current', 'available']] = df_dep[['current', 'available']].astype('string')
         df_dep.dropna(axis=1, how='all',inplace=True)
         df_dep.drop(columns='package',inplace=True)
-
-        df_dep = pd.concat([df_dep, df_set.set_index('name')],ignore_index=False)
+        
+        if self.LEVEL.lower() == 'full':
+            df_dep = pd.concat([df_dep, df_set.set_index('name')],ignore_index=False)
 
         if 'csv' in self.OUTPUT:
             df_dep.to_csv(self.OUTPUT, header=True)
@@ -221,7 +222,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         df_dep.index = df_dep.index.str.pad(50,fillchar='.',side='right')
         df_dep = df_dep.fillna('.')
         df_dep['current']= df_dep['current'].str.pad(12,fillchar='.',side='right')
-        self.feedback.pushInfo(df_dep.to_string(header=False))
+        self.feedback.pushInfo(df_dep.to_string(header=False)  + '\n\n')
         
         
         return {self.OUTPUT: vl}
