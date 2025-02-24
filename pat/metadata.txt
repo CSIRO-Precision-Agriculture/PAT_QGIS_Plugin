@@ -40,8 +40,8 @@ icon=icons/icon.png
 # deprecated flag (applies to the whole plugin, not just a single version)
 # deprecated=False
 
-citation=Ratcliff, Christina; Gobbett, David; Bramley, Rob (2019): PAT - Precision Agriculture Tools. CSIRO.
-Software Collection. https://doi.org/10.25919/5d23f9fb58722
+citation=Ratcliff, Christina; Gobbett, David; Bramley, Rob (2025): PAT - Precision Agriculture Tools. v4. CSIRO.
+Software Collection. http://hdl.handle.net/102.100.100/78354
 
 # Uncomment the following line and add your changelog:
 # dont forget to update the CHANGELOG.MD file
