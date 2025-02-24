@@ -22,7 +22,6 @@ body:
       description: Please provide the PAT.log file to the issue. (to locate, see settings in the PAT menu) and description of steps to reproduce the issue. Screencasts or screenshots are more than welcome, you can drag&drop them in the text box.
     validations:
       required: true
-
   - type: textarea
     id: about-info
     attributes:
