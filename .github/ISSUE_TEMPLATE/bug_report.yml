@@ -11,8 +11,7 @@ body:
     id: what
     attributes:
       label: What is the bug or the crash?
-      description: Please provide the PAT.log file to the issue. (to locate, see settings in the PAT menu) and description of steps to reproduce the issue. 
-      Screencasts or screenshots are more than welcome, you can drag&drop them in the text box.
+      description: Please provide the PAT.log file to the issue. (to locate, see settings in the PAT menu) and description of steps to reproduce the issue. Screencasts or screenshots are more than welcome, you can drag&drop them in the text box.
     validations:
       required: true
   - type: textarea
@@ -22,7 +21,6 @@ body:
       description: In the processing toolbox scripts -> PAT run `Check Python Versions for PAT` and paste the output here.
     validations:
       required: true
-
   - type: textarea
     id: additional-context
     attributes:
