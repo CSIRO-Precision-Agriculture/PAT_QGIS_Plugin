@@ -425,7 +425,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSavePolyFile.setText(s)
 
-        if file_in_use(s):
+        if file_in_use(s)[0]:
             self.lneSavePolyFile.setStyleSheet('color:red')
             self.lblSavePolyFile.setStyleSheet('color:red')
         else:
@@ -663,7 +663,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                 elif not os.path.exists(os.path.dirname(self.lneSavePolyFile.text())):
                     self.lneSavePolyFile.setStyleSheet('color:red')
                     errorList.append(self.tr("Output shapefile folder cannot be found"))
-                elif os.path.exists(self.lneSavePolyFile.text()) and file_in_use(self.lneSavePolyFile.text(), False):
+                elif os.path.exists(self.lneSavePolyFile.text()) and file_in_use(self.lneSavePolyFile.text(), False)[0]:
                     self.lneSavePolyFile.setStyleSheet('color:red')
                     self.lblSavePolyFile.setStyleSheet('color:red')
                     errorList.append(self.tr("Output file {} is open in QGIS or another application".format(
@@ -679,7 +679,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
                     elif not os.path.exists(os.path.dirname(self.lneSavePointsFile.text())):
                         self.lneSavePointsFile.setStyleSheet('color:red')
                         errorList.append(self.tr("Output shapefile folder cannot be found"))
-                    elif os.path.exists(self.lneSavePointsFile.text()) and file_in_use(self.lneSavePointsFile.text(), False):
+                    elif os.path.exists(self.lneSavePointsFile.text()) and file_in_use(self.lneSavePointsFile.text(), False)[0]:
                         self.lneSavePointsFile.setStyleSheet('color:red')
                         self.lblSaveCSVFile.setStyleSheet('color:red')
                         errorList.append(self.tr("Output file {} is open in QGIS or another application".format(

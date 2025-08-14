@@ -293,7 +293,8 @@ def file_in_use(filename, display_msgbox=True):
         filename ():
         display_msgbox ():
     """
-    if not os.path.exists(filename):
+    
+    if not Path(filename).exists():
         return False
 
     try:
@@ -317,19 +318,20 @@ def file_in_use(filename, display_msgbox=True):
             url = urlparse(layer.source())
 
             if os.path.normpath(url.path.strip('/')).upper() == filename.upper():
-                found_lyrs += [layer.name()]
+                found_lyrs += [layer]
         else:
             if os.path.normpath(get_layer_source(layer)) == os.path.normpath(filename):
-                found_lyrs += [layer.name()]
+                found_lyrs += [layer]
 
     if display_msgbox and len(found_lyrs) > 0:
+        layer_names = [l.name() for l in found_lyrs]
         message = 'File <b><i>{}</i></b><br /> is currently in use in QGIS layer(s)<dd>' \
                   '<b>{}</b></dd><br/>Please remove the file from QGIS or use a ' \
-                  'different name'.format(os.path.basename(filename), '<dd><b>'.join(found_lyrs))
+                  'different name'.format(os.path.basename(filename), '<dd><b>'.join(layer_names))
 
         reply = QMessageBox.question(None, 'File in Use', message, QMessageBox.Ok)
 
-    return len(found_lyrs) > 0
+    return len(found_lyrs) > 0, found_lyrs
 
 
 def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True, visible=True):

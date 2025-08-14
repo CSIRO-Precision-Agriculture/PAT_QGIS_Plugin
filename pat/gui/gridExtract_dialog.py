@@ -340,7 +340,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSaveCSVFile.setText(s)
 
-        if file_in_use(s):
+        if file_in_use(s)[0]:
             self.lneSaveCSVFile.setStyleSheet('color:red')
             self.lblSaveCSVFile.setStyleSheet('color:red')
         else:
@@ -391,7 +391,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
                 self.lneSaveCSVFile.setStyleSheet('color:red')
                 self.lblSaveCSVFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Output folder does not exist."))
-            elif os.path.exists(self.lneSaveCSVFile.text()) and file_in_use(self.lneSaveCSVFile.text(), False):
+            elif os.path.exists(self.lneSaveCSVFile.text()) and file_in_use(self.lneSaveCSVFile.text(), False)[0]:
                 self.lneSaveCSVFile.setStyleSheet('color:red')
                 self.lblSaveCSVFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Output file {} is open in QGIS or another application".format(

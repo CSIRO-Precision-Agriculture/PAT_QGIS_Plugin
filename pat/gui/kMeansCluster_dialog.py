@@ -292,7 +292,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSaveFile.setText(s)
 
-        if file_in_use(s):
+        if file_in_use(s[0]):
             self.lneSaveFile.setStyleSheet('color:red')
             self.lblSaveFile.setStyleSheet('color:red')
         else:
@@ -329,7 +329,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
                 self.lneSaveFile.setStyleSheet('color:red')
                 self.lblSaveFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Output folder does not exist."))
-            elif os.path.exists(self.lneSaveFile.text()) and file_in_use(self.lneSaveFile.text(), False):
+            elif os.path.exists(self.lneSaveFile.text()) and file_in_use(self.lneSaveFile.text(), False)[0]:
                 self.lneSaveFile.setStyleSheet('color:red')
                 self.lblSaveFile.setStyleSheet('color:red')
                 errorList.append(self.tr("Output file {} is open in QGIS or another application".format(

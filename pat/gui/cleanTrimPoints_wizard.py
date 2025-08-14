@@ -499,7 +499,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSaveCSVFile.setText(s)
 
-        if file_in_use(s):
+        if file_in_use(s)[0]:
             self.lneSaveCSVFile.setStyleSheet('color:red')
             self.lblSaveCSVFile.setStyleSheet('color:red')
         else:
@@ -752,7 +752,7 @@ class CleanTrimPointsDialog(QDialog, FORM_CLASS):
                 elif not os.path.exists(os.path.dirname(self.lneSaveCSVFile.text())):
                     self.lneSaveCSVFile.setStyleSheet('color:red')
                     errorList.append(self.tr("Output CSV folder cannot be found"))
-                elif os.path.exists(self.lneSaveCSVFile.text()) and file_in_use(self.lneSaveCSVFile.text(), False):
+                elif os.path.exists(self.lneSaveCSVFile.text()) and file_in_use(self.lneSaveCSVFile.text(), False)[0]:
                     self.lneSaveCSVFile.setStyleSheet('color:red')
                     self.lblSaveCSVFile.setStyleSheet('color:red')
                     errorList.append(self.tr("Output file {} is open in QGIS or another application".format(
