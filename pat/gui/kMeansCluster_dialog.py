@@ -84,7 +84,9 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             self.layout().insertRow(0, self.messageBar)
         else:
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
-
+        
+        self.previous_nclust = self.spnClusters.value()
+        
         # GUI Runtime Customisation -----------------------------------------------
         self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mcboRasterLayer.setExcludedProviders(['wms'])
@@ -92,12 +94,14 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_kMeansCluster.svg'))
 
-        self.tabList.setColumnCount(2)
+        self.tabList.setColumnCount(3)
         self.tabList.setHorizontalHeaderItem(0, QTableWidgetItem("ID"))
         self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("0 Raster(s)"))
+        self.tabList.setHorizontalHeaderItem(2, QTableWidgetItem("filename"))
 
         self.tabList.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.tabList.hideColumn(0)  # don't need to display the unique layer ID
+        self.tabList.hideColumn(2)  # don't need to display the unique layer ID
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -206,7 +210,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
                 "{} Raster(s) with {}{} pixels".format(self.tabList.rowCount(), *self.pixel_size[:2])))
 
         if self.mcboRasterLayer.currentIndex() > 0:
-            self.mcboRasterLayer.setCurrentIndex(self.mcboRasterLayer.currentIndex() - 1)
+            self.mcboRasterLayer.setCurrentIndex(self.mcboRasterLayer.currentIndex())
         else:
             self.mcboRasterLayer.setCurrentIndex(0)
 
@@ -219,6 +223,11 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             self.send_to_messagebar('No raster layers to process. Please add a RASTER layer into QGIS',
                                     level=Qgis.Warning, duration=5)
             return
+                
+        if self.lneSaveFile.text() != '':
+            filename = self.lneSaveFile.text()
+            filename = filename.replace(f'{self.tabList.rowCount()}rast', f'{self.tabList.rowCount()+1}rast')
+            self.lneSaveFile.setText(filename)
 
         rowPosition = self.tabList.rowCount()
         self.tabList.insertRow(rowPosition)
@@ -226,6 +235,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
         ## Save the id of the layer to a column used to get a layer object later on.
         self.tabList.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().id()))
         self.tabList.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().name()))
+        self.tabList.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().source()))
 
         if rowPosition == 0:
             self.pixel_size = get_pixel_size(self.mcboRasterLayer.currentLayer())
@@ -243,6 +253,11 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(name='on_cmdDel_clicked')
     def on_cmdDel_clicked(self):
+        if self.lneSaveFile.text() != '':
+            filename = self.lneSaveFile.text()
+            filename = filename.replace(f'{self.tabList.rowCount()}rast', f'{self.tabList.rowCount()-1}rast')
+            self.lneSaveFile.setText(filename)
+    
         self.tabList.removeRow(self.tabList.currentRow())
         self.setMapLayers()
 
@@ -267,6 +282,17 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
                 self.tabList.setItem(row - 1, i, self.tabList.takeItem(row + 1, i))
                 self.tabList.setCurrentCell(row - 1, column)
             self.tabList.removeRow(row + 1)
+
+    @QtCore.pyqtSlot(int)
+    def on_spnClusters_valueChanged(self, value):
+        
+        if self.lneSaveFile.text() != '':
+            filename = self.lneSaveFile.text()
+            filename = filename.replace(f'{self.previous_nclust}cl', f'{value}cl')
+            self.lneSaveFile.setText(filename)
+
+        self.previous_nclust = self.spnClusters.value()
+        
 
     @QtCore.pyqtSlot(name='on_cmdSaveFile_clicked')
     def on_cmdSaveFile_clicked(self):
@@ -376,6 +402,10 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
 
             rasterLyrNames = [registry.mapLayer(self.tabList.item(row, 0).text()).name() for row in
                               range(0, self.tabList.rowCount())]
+            rasters_dict = {}
+            for row in range(self.tabList.rowCount()):
+                rasters_dict [self.tabList.item(row, 2).text()]=self.tabList.item(row, 1).text()
+                
 
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
@@ -390,7 +420,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             settingsStr += '\n    {:20}\t{}\n'.format('Output TIFF File:', self.lneSaveFile.text())
 
             LOGGER.info(settingsStr)
-            _ = processing.kmeans_clustering(rasterSource, self.lneSaveFile.text(), self.spnClusters.value())
+            _ = processing.kmeans_clustering(rasters_dict, self.lneSaveFile.text(), self.spnClusters.value())
             csv_file = self.lneSaveFile.text().replace('.tif', '_statistics.csv')
             vect_layer = addVectorFileToQGIS(csv_file, os.path.basename(csv_file), atTop=True)
 
@@ -401,7 +431,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
                                                invert=raster_sym['invert'])
             self.cleanMessageBars(True)
             self.fraMain.setDisabled(False)
-            self.lneSaveFile.setText('')
+            # self.lneSaveFile.setText('')
             self.iface.mainWindow().statusBar().clearMessage()
             self.iface.messageBar().popWidget()
             QApplication.restoreOverrideCursor()
