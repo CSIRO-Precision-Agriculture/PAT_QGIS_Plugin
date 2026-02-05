@@ -445,10 +445,10 @@ class tTestAnalysisDialog(QDialog, FORM_CLASS):
             points_desc = describe.VectorDescribe(fileStripPts)
             gdf_pts = points_desc.open_geo_dataframe()
 
-            df_table = ttest_analysis(gdf_pts, points_desc.crs,
+            df_table = ttest_analysis(gdf_pts, 
                                       get_layer_source(self.mcboRasterLayer.currentLayer()),
                                       self.lneOutputFolder.text(),
-                                      zone_file, control_file,
+                                      zone_raster=zone_file, control_raster=control_file,
                                       size=self.dsbMovingWinSize.value())
 
             self.cleanMessageBars(True)
