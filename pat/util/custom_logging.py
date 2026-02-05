@@ -256,9 +256,11 @@ def errorCatcher(msg, tag, level):
         pass
 
 
-def openLogPanel():
+def openLogPanel(name=''):
     logMessagesPanel = iface.mainWindow().findChild(QDockWidget, 'MessageLog')
-
+    if name == '' :
+        name = PLUGIN_SHORT
+    
     # Check to see if it is already open
     if not logMessagesPanel.isVisible():
         logMessagesPanel.setVisible(True)
@@ -266,7 +268,7 @@ def openLogPanel():
     # find and set the active tab
     tabWidget = logMessagesPanel.findChildren(QTabWidget)[0]
     for iTab in range(0, tabWidget.count()):
-        if tabWidget.tabText(iTab) == PLUGIN_SHORT:
+        if tabWidget.tabText(iTab) == name:
             tabWidget.setCurrentIndex(iTab)
             break
 
