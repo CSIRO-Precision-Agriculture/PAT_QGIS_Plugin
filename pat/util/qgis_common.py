@@ -261,12 +261,14 @@ def get_layer_source(layer):
     return layer_path
 
 
-def save_as_dialog(dialog, caption, file_filter, default_name=''):
-    s, f = QFileDialog.getSaveFileName(
-        dialog,
-        caption,
-        default_name,
-        file_filter)
+def save_as_dialog(dialog, caption, file_filter, default_name='', suppress_overwrite=False):
+    # suppress the overwrite dialog if the user selects an existing file.
+    
+    args={'filter':file_filter}
+    if suppress_overwrite:
+        args['options'] = QFileDialog.DontConfirmOverwrite
+
+    s, f = QFileDialog.getSaveFileName(dialog, caption, default_name, **args)
 
     if s == '' or s is None:
         return
