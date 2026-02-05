@@ -264,11 +264,11 @@ class ResampleImageToBlockDialog(QDialog, FORM_CLASS):
             outFolder = ''
         else:
             outFolder = self.lneOutputFolder.text()
-
+        
         if outFolder == '':
             outFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
             if outFolder is None or not os.path.exists(outFolder):
-                outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
+                outFolder =  os.path.dirname(self.mcboRasterLayer.currentLayer().source())
 
         s = QFileDialog.getExistingDirectory(self, self.tr(
             "Save output files to a folder. A sub-folder will be created from the image name"),
