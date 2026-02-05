@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>601</width>
-    <height>147</height>
+    <height>169</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -110,16 +110,6 @@
           </property>
          </widget>
         </item>
-        <item row="1" column="1" colspan="2">
-         <widget class="QgsProjectionSelectionWidget" name="mCRSinput">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="0" colspan="2">
          <widget class="QCheckBox" name="chkRunVesper">
           <property name="text">
@@ -143,6 +133,16 @@
           </property>
           <property name="text">
            <string/>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1" colspan="2">
+         <widget class="QgsProjectionSelectionWidget" name="mCRSinput">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
          </widget>
         </item>

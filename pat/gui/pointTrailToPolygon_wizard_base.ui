@@ -72,7 +72,7 @@
       <enum>QFrame::StyledPanel</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="pgeSource">
       <layout class="QGridLayout" name="gridLayout_7">
@@ -149,13 +149,13 @@
              <height>0</height>
             </size>
            </property>
-           <property name="allowEmptyLayer" stdset="0">
+           <property name="allowEmptyLayer">
             <bool>true</bool>
            </property>
-           <property name="showCrs" stdset="0">
+           <property name="showCrs">
             <bool>true</bool>
            </property>
-           <property name="excludedProviders" stdset="0">
+           <property name="excludedProviders">
             <stringlist/>
            </property>
           </widget>
@@ -360,10 +360,10 @@
            <property name="flat">
             <bool>true</bool>
            </property>
-           <property name="collapsed" stdset="0">
+           <property name="collapsed">
             <bool>true</bool>
            </property>
-           <property name="saveCollapsedState" stdset="0">
+           <property name="saveCollapsedState">
             <bool>false</bool>
            </property>
            <layout class="QGridLayout" name="gridLayout_8">
@@ -582,7 +582,7 @@
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QgsProjectionSelectionWidget" name="qgsCRScsv" native="true"/>
+               <widget class="QgsProjectionSelectionWidget" name="mCRScsv"/>
               </item>
              </layout>
             </item>
@@ -853,7 +853,7 @@ UTM zone</string>
              </widget>
             </item>
             <item row="2" column="1" colspan="2">
-             <widget class="QgsProjectionSelectionWidget" name="mCRSoutput" native="true"/>
+             <widget class="QgsProjectionSelectionWidget" name="mCRSoutput"/>
             </item>
            </layout>
           </item>
@@ -868,6 +868,9 @@ UTM zone</string>
     <layout class="QGridLayout" name="gridLayout_5">
      <item row="0" column="0">
       <widget class="QPushButton" name="cmdBack">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="text">
         <string>&lt; Back</string>
        </property>

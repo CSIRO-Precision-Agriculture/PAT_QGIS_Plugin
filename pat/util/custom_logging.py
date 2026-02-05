@@ -33,10 +33,10 @@ from pat import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget
 from qgis.PyQt.Qt import QCoreApplication
 from qgis.gui import QgsMessageBar
-from qgis.core import QgsMessageLog
+from qgis.core import QgsMessageLog, QgsProject, Qgis
 from qgis.utils import iface
 
-from util.settings import read_setting
+from util.settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -83,7 +83,7 @@ class QgsLogHandler(logging.Handler):
 
         except MemoryError:
             message = 'Due to memory limitations on this machine, PrecisionAg can not handle the full log'
-            print(message)
+            #print(message)
             QgsMessageLog.logMessage(message, PLUGIN_SHORT, 0)
         except IOError:
             pass
@@ -124,6 +124,50 @@ def add_logging_handler_once(logger, handler):
     return True
 
 
+def set_log_file():
+    
+    old_file = os.path.normpath(read_setting(PLUGIN_NAME + '/LOG_FILE'))
+
+    if not read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) or \
+        QgsProject.instance().absolutePath()=='':
+        folder = TEMPDIR
+        log_file = os.path.normpath(os.path.join(TEMPDIR, 'PAT.log'))
+    else:
+        folder = os.path.normpath(QgsProject.instance().absolutePath())
+        
+        if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME',bool):
+            log_file = os.path.splitext(QgsProject.instance().fileName())[0] + '_PAT.log'
+        else:
+            log_file = os.path.normpath(os.path.join(folder, 'PAT.log'))
+
+    #if folder != os.path.dirname(old_file) :
+    if os.path.normpath(log_file) != os.path.normpath(old_file):
+        # this only get triggered when the setting gets changed or project gets saved
+        write_setting(PLUGIN_NAME + '/LOG_FILE', log_file)
+    
+        # Stop and start logging to setup the new log level
+        stop_logging(LOGGER_NAME)
+        setup_logger(LOGGER_NAME, log_file)
+        
+        iface.messageBar().pushMessage("Log File", log_file, level=Qgis.Info,duration=15)
+        
+        # if not os.path.exists(log_file):
+        #     LOGGER.info(get_plugin_state('basic'))
+            
+    return log_file
+
+
+class Formatter(logging.Formatter):
+    """https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3"""
+    def format(self, record):
+        if record.levelno == logging.INFO:
+            self._style._fmt = "%(message)s"
+        elif record.levelno == logging.DEBUG:
+            self._style._fmt = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s", "%Y-%m-%d %H:%M:%S")
+        else:
+            self._style._fmt = "%(levelname)s: %(message)s"
+        return super().format(record)
+
 def setup_logger(logger_name, log_file=None):
     """
     Run once when the module is loaded and enable logging.
@@ -144,8 +188,10 @@ def setup_logger(logger_name, log_file=None):
 
     if not os.path.exists(TEMPDIR):
         os.mkdir(TEMPDIR)
-
-    if read_setting(PLUGIN_NAME + "/" + 'DEBUG', bool):
+    
+    debug =read_setting(PLUGIN_NAME + "/" + 'DEBUG', bool) 
+    
+    if debug:
         default_handler_level = logging.DEBUG
     else:
         default_handler_level = logging.INFO
@@ -159,7 +205,10 @@ def setup_logger(logger_name, log_file=None):
     add_logging_handler_once(logger, logging.NullHandler())
 
     # create formatter that will be added to the handlers
-    formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
+    # if debug:
+    #     formatter = logging.Formatter("%(asctime)s.%(msecs)03d %(name)-10s %(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
+    # else:
+    #     formatter = logging.Formatter("%(levelname)-8s  %(message)s","%Y-%m-%d %H:%M:%S")
 
     # create syslog handler which logs even debug messages
     log_path = os.path.join(TEMPDIR, 'PAT.log')
@@ -169,7 +218,7 @@ def setup_logger(logger_name, log_file=None):
     else:
         file_handler = logging.FileHandler(log_file, delay=True)
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
+    file_handler.setFormatter(Formatter())
     add_logging_handler_once(logger, file_handler)
 
     # create console handler with a higher log level
@@ -180,7 +229,7 @@ def setup_logger(logger_name, log_file=None):
 
     # create a QGIS handler
     qgis_handler = QgsLogHandler(default_handler_level)
-    qgis_handler.setFormatter(formatter)
+    qgis_handler.setFormatter(Formatter())
     add_logging_handler_once(logger, qgis_handler)
 
 

@@ -93,7 +93,8 @@ class PostVesperDialog(QDialog, FORM_CLASS):
         self.vesper_qgscrs = None
         self.vesp_dict = None
         self.dfCSV = None
-        self.chkRunVesper.hide()
+        self.block_size = 0
+        # self.chkRunVesper.hide()
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -193,6 +194,8 @@ class PostVesperDialog(QDialog, FORM_CLASS):
                 if "epsg=" in line:
                     epsg = int(line.strip().split('=')[-1])
                     self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(epsg))
+                if 'xside' in line :
+                    self.block_size = int(line.strip().split('=')[-1])
                     break
 
     def on_mCRSinput_crsChanged(self):
@@ -259,7 +262,9 @@ class PostVesperDialog(QDialog, FORM_CLASS):
                 if self.vesper_qgscrs is not None:
                     epsg = int(self.vesper_qgscrs.authid().replace('EPSG:', ''))
 
-                self.vesp_dict = {'control_file': self.lneInVesperCtrlFile.text(), 'epsg': epsg}
+                self.vesp_dict = {'control_file': self.lneInVesperCtrlFile.text(),
+                                   'epsg': epsg,
+                                   'block_size': self.block_size}
 
             else:
                 out_PredTif, out_SETif, out_CITxt = vesper_text_to_raster(self.lneInVesperCtrlFile.text(),

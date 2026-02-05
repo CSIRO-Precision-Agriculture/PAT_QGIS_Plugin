@@ -43,7 +43,7 @@ from qgis.core import (QgsMapLayer, QgsMessageLog, QgsVectorFileWriter, QgsCoord
                        Qgis, QgsMapLayerProxyModel)
 from qgis.gui import QgsMessageBar
 
-from pat.util.qgis_common import get_UTM_Coordinate_System, get_layer_source
+from util.qgis_common import get_UTM_Coordinate_System, get_layer_source
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), 'resampleImageToBlock_dialog_base.ui'))
 

@@ -37,7 +37,7 @@ from qgis.PyQt.QtWidgets import QMessageBox, QPushButton, QApplication, QFileDia
 from qgis.PyQt.QtGui import QIntValidator
 
 from qgis.gui import QgsMessageBar
-from qgis.core import QgsCoordinateReferenceSystem, QgsApplication, QgsMessageLog, Qgis
+from qgis.core import Qgis, QgsProject, QgsExpressionContextUtils, QgsCoordinateReferenceSystem, QgsApplication, QgsMessageLog
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import describe, config
@@ -61,7 +61,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
 
     def __init__(self, iface, parent=None):
 
-        super(PreVesperDialog, self).__init__(iface.mainWindow())
+        super(PreVesperDialog, self).__init__(parent)
 
         # Set up the user interface from Designer.
         self.setupUi(self)
@@ -102,8 +102,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
 
         # this is a validation flag
         self.OverwriteCtrlFile = False
-        self.cboMethod.addItems(
-            ['High Density Kriging', 'Low Density Kriging (Advanced)'])
+        self.cboMethod.addItems(['High Density Kriging', 'Low Density Kriging (Advanced)'])
 
         # To allow only integers for the min number of pts.
         self.onlyInt = QIntValidator()
@@ -115,6 +114,35 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.gbRunVesper.setChecked(False)
             self.gbRunVesper.setCheckable(False)
             self.gbRunVesper.setEnabled(False)
+
+        # Read previously used settings from project variables.
+        project = QgsProject.instance()
+        for key,obj in [('PAT-Vesp-CSV',self.lneInCSVFile),
+                        ('PAT-Vesp-GRID',self.lneInGridFile),
+                        ('PAT-Vesp-OutDir',self.lneVesperFold)]:
+            val = QgsExpressionContextUtils.projectScope(project).variable(key)
+            if val:
+                if os.path.exists(val):
+                    obj.setText(val)
+        
+        
+        self.check_csv(self.lneInCSVFile.text())
+        overlaps, message = self.validate_csv_grid_files(self.lneInCSVFile.text(), self.lneInGridFile.text())
+
+        epsg = QgsExpressionContextUtils.projectScope(project).variable('PAT-Vesp-CRS')
+        
+        if not self.mCRSinput.crs().isValid() and epsg is not None:
+            self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(int(epsg.replace('EPSG:',''))))
+            
+        if not overlaps or message is not None:
+            self.lblInCSVFile.setStyleSheet('color:red')
+            self.lneInCSVFile.setStyleSheet('color:red')
+
+            self.send_to_messagebar(message,
+                                    level=Qgis.Critical,
+                                    duration=0, addToLog=True, showLogPanel=True,
+                                    exc_info=sys.exc_info())
+        
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -207,16 +235,16 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 ctrl_name = re.sub(fld, '', ctrl_name, flags=re.I)
 
                 # and again with the field truncated to 10 chars
-                fld = fld[:10]
+                # fld = fld[:10]
                 ctrl_name = re.sub(fld, '', ctrl_name, flags=re.I)
 
             if self.cboMethod.currentText() == 'High Density Kriging':
-                krig_type = 'HighDensity'
+                krig_type = 'HD'
             else:
-                krig_type = 'LowDensity'
+                krig_type = 'LD'
 
             # add the chosen field name to the control filename
-            ctrl_name = '{}_{}_{}_control'.format(ctrl_name[:20], krig_type, fld)
+            ctrl_name = '{}_{}_{}_control'.format(ctrl_name, krig_type, fld)
 
             # only allow alpha-numeric Underscores and hyphens
             ctrl_name = re.sub('[^A-Za-z0-9_-]+', '', ctrl_name)
@@ -276,8 +304,23 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lblInCSVFile.setStyleSheet('color:black')
         self.lneInCSVFile.setStyleSheet('color:black')
         self.lneInCSVFile.setText(s)
-
-        descCSV = describe.CsvDescribe(s)
+        self.check_csv(s)
+        write_setting(PLUGIN_NAME + "/" + self.toolKey +
+                      "/LastInFolder_CSV", os.path.dirname(s))
+        
+        self.updateCtrlFileName()
+        
+        self.lblVesperFold.setStyleSheet('color:black')
+        self.lneVesperFold.setStyleSheet('color:black')
+        self.lneVesperFold.setText(os.path.dirname(s))
+        write_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder", s)
+        
+    
+    def check_csv(self,csv_file):
+        
+        if csv_file is None or not os.path.exists(csv_file): return 
+        
+        descCSV = describe.CsvDescribe(csv_file)
         self.dfCSV = descCSV.open_pandas_dataframe(nrows=150)
 
         if len(self.dfCSV) <= 100:
@@ -308,10 +351,6 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         if epsg > 0:
             self.mCRSinput.setCrs(QgsCoordinateReferenceSystem().fromEpsgId(epsg))
 
-        write_setting(PLUGIN_NAME + "/" + self.toolKey +
-                      "/LastInFolder_CSV", os.path.dirname(s))
-        del descCSV
-        self.updateCtrlFileName()
 
     @QtCore.pyqtSlot(name='on_cmdInGridFile_clicked')
     def on_cmdInGridFile_clicked(self):
@@ -369,11 +408,12 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             if inFolder is None or not os.path.exists(inFolder):
                 inFolder = read_setting(PLUGIN_NAME + '/BASE_IN_FOLDER')
 
+        fld = unidecode(self.cboKrigColumn.currentText())
         s, _f = QFileDialog.getOpenFileName(self, caption=self.tr("Choose the Vesper Variogram File"),
-                                            directory=inFolder,
-                                            filter='{}  (*.txt);;{}  (*.*);;'.format(
-                                                self.tr("Variogram Text File(s)"),
-                                                self.tr("All Files"))
+                                            directory= inFolder,
+                                            filter=f'{fld} (*{fld}*.txt);;'
+                                                   f'{self.tr("Variogram Text File(s)")} (*.txt);;'
+                                                   f'{ self.tr("All Files")} (*.*);;'
                                             )
 
         self.cleanMessageBars(self)
@@ -396,6 +436,11 @@ class PreVesperDialog(QDialog, FORM_CLASS):
         self.lblVariogramFile.setStyleSheet('color:black')
         self.lneVariogramFile.setStyleSheet('color:black')
         self.lneVariogramFile.setText(s)
+
+        ctrl_name = os.path.basename(s).replace('Variogram_','').replace('.txt','_control.txt')
+
+        self.lneCtrlFile.setText(ctrl_name)
+
         write_setting(PLUGIN_NAME + "/" + self.toolKey +
                       "/LastInFolder_Variogram", os.path.dirname(s))
 
@@ -413,7 +458,8 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
             if outFolder is None or not os.path.exists(outFolder):
                 outFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
-
+        
+        outFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastInFolder_CSV")
         s = QFileDialog.getExistingDirectory(self, self.tr(
             "Vesper processing folder. A Vesper sub-folder will be created."), outFolder,
                                              QFileDialog.ShowDirsOnly)
@@ -518,8 +564,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 return False, 'Grid file does not exist'
             else:
                 try:
-                    df_grid = pd.read_table(grid_file, names=['X', 'Y'],
-                                            delimiter=' ', skipinitialspace=True)
+                    df_grid = pd.read_table(grid_file, names=['X', 'Y'],sep='\s+', skipinitialspace=True)
 
                     grid_bbox = box(df_grid['X'].min(), df_grid['Y'].min(),
                                     df_grid['X'].max(), df_grid['Y'].max())
@@ -697,17 +742,26 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             LOGGER.info('{st}\nProcessing {} {}'.format(
                 self.windowTitle(), message, st='*' * 50))
 
+            project = QgsProject.instance()
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'
             settingsStr += '\n    {:30}\t{}'.format('Data File:', self.lneInCSVFile.text())
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-CSV', self.lneInCSVFile.text())
 
             settingsStr += '\n    {:30}\t{} - {}'.format('Input Projected Coordinate System:',
                                                          self.mCRSinput.crs().authid(),
                                                          self.mCRSinput.crs().description())
-
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-CRS', self.mCRSinput.crs().authid())
+            
             settingsStr += '\n    {:30}\t{}'.format('Krige Column:', self.cboKrigColumn.currentText())
+            
             settingsStr += '\n    {:30}\t{}'.format('Grid File:', self.lneInGridFile.text())
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-GRID', self.lneInGridFile.text())
+
             settingsStr += '\n    {:30}\t{}'.format('Output Vesper Folder:', self.lneVesperFold.text())
+            QgsExpressionContextUtils.setProjectVariable(project, 'PAT-Vesp-OutDir', self.lneVesperFold.text())
+
+            settingsStr += '\n    {:30}\t{}'.format('Control File:', self.lneCtrlFile.text())
 
             settingsStr += '\n    {:30}\t{}'.format('Mode:',self.cboMethod.currentText())
 
@@ -750,6 +804,7 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                            'maxpts': len(self.dfCSV),
                            'jcomvar': 0,
                            })
+                
             epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
             bat_file, ctrl_file = prepare_for_vesper_krige(self.dfCSV,
                                                            self.cboKrigColumn.currentText(),
@@ -764,18 +819,17 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             epsg = 0
             if self.mCRSinput.crs() is not None and self.chkVesper2Raster.isChecked():
                 epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
-
+            
+            message = 'Successfully created files for Vesper kriging. The control file is {}'.format(ctrl_file)
+            self.send_to_messagebar(message, level=Qgis.Success, duration=5, addToLog=True, core_QGIS=True)
+            LOGGER.info('Successfully created files for Vesper kriging')
+            
             if self.gbRunVesper.isChecked():
                 # Add to vesper queue
-                self.vesp_dict = {'control_file': ctrl_file, 'epsg': epsg}
-
-            else:
-                message = 'Successfully created files for Vesper kriging. ' \
-                          'The control file is {}'.format(ctrl_file)
-                self.send_to_messagebar(message, level=Qgis.Success, duration=0,
-                                        addToLog=True, core_QGIS=True)
-                LOGGER.info('Successfully created files for Vesper kriging')
-
+                self.vesp_dict = {'control_file': ctrl_file, 
+                                  'epsg': epsg,
+                                  'block_size':int(self.dsbBlockKrigSize.value())}
+         
             QApplication.restoreOverrideCursor()
             return super(PreVesperDialog, self).accept(*args, **kwargs)
 

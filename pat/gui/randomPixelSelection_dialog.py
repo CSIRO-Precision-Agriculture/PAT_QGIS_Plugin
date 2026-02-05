@@ -84,10 +84,10 @@ class RandomPixelSelectionDialog(QDialog, FORM_CLASS):
 
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_randomPixel.svg'))
 
-        last_size = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSampleSize")
+        last_size = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSampleSize",int)
 
         if last_size is not None and int(last_size) > 0:
-            self.dsbSize.setValue(read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastSampleSize", int))
+            self.dsbSize.setValue(last_size)
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.

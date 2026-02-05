@@ -8,7 +8,7 @@
         begin      : 2017-05-25
         git sha    : $Format:%H$
         copyright  : (c) 2018, Commonwealth Scientific and Industrial Research Organisation (CSIRO)
-        email      : PAT@csiro.au PAT@csiro.au
+        email      : PAT@csiro.au
  ***************************************************************************/
 
 /***************************************************************************
@@ -35,24 +35,26 @@ except ImportError:
 
 from datetime import timedelta
 import logging
-import os.path
+import os
 import shutil
 import sys
 import time
 import traceback
 import webbrowser
 from functools import partial
-from pkg_resources import parse_version
+
+from packaging.version import parse as parse_version
+
 try:
     from qgis import processing
 except:
     # required for qgis 3.4
     import processing
 
-from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt
+from qgis.PyQt.QtCore import QTranslator, qVersion, QCoreApplication, QTimer, QProcess, Qt, QLocale
 from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessageBox, QPushButton, QLabel
 from qgis.PyQt.QtGui import QIcon
-from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication
+from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication, QgsSettings
 
 from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 from .gui.about_dialog import AboutDialog
@@ -75,11 +77,11 @@ from .gui.stripTrialPoints_dialog import StripTrialPointsDialog
 from .gui.tTestAnalysis_dialog import tTestAnalysisDialog
 
 from .util.check_dependencies import check_vesper_dependency, check_R_dependency
-from .util.custom_logging import stop_logging
+from .util.custom_logging import stop_logging, set_log_file
 from .util.qgis_common import addRasterFileToQGIS, removeFileFromQGIS
 from .util.settings import read_setting, write_setting
 from .util.processing_alg_logging import ProcessingAlgMessages
-from .util.qgis_symbology import ( RASTER_SYMBOLOGY, raster_apply_classified_renderer)
+from .util.qgis_symbology import (RASTER_SYMBOLOGY, raster_apply_classified_renderer)
 
 import pyprecag
 from pyprecag import config
@@ -108,7 +110,7 @@ class pat_toolbar(object):
         self.plugin_dir = os.path.dirname(__file__)
 
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QgsSettings().value('locale/userLocale', QLocale().name())[0:2]
         locale_path = os.path.join(self.plugin_dir, 'i18n', 'pat_plugin_{}.qm'.format(locale))
 
         if os.path.exists(locale_path):
@@ -147,13 +149,26 @@ class pat_toolbar(object):
                 write_setting(PLUGIN_NAME + '/' + eaKey, os.path.join(os.path.expanduser('~'), PLUGIN_NAME))
 
         self.DEBUG = config.get_debug_mode()
+
         self.vesper_queue = []
         self.vesper_queue_showing = False
         self.processVesper = None
         self.vesper_exe = check_vesper_dependency(iface)
-
+        
+        # change log on project save
+        QgsProject.instance().projectSaved.connect(self.change_log)
+        
+        # change log on project open
+        QgsProject.instance().readProject.connect(self.change_log)
+ 
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
+
+
+    def change_log(self):
+           
+        log_file = set_log_file()        
+
 
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -430,6 +445,7 @@ class pat_toolbar(object):
                                                 QMessageBox.Ok)
         
         stop_logging('pyprecag')
+        # QgsProject.instance().projectSaved.disconnect(self.change_log)
         
 #         layermap = QgsProject.instance().mapLayers()
 #         RemoveLayers = []
@@ -449,28 +465,29 @@ class pat_toolbar(object):
             exc_type, exc_value, exc_traceback = sys.exc_info()
             mess = str(traceback.format_exc())
             print(mess)
-
        
         self.menuPrecAg.clear()
+        
         for action in self.actions:
             self.iface.removePluginMenu(u'{}Menu'.format(PLUGIN_SHORT), action)
             self.iface.removeToolBarIcon(action)
-        
-        # # remove the toolbar
-        #del self.toolbar
-        self.menuPrecAg.deleteLater()
-        self.toolbar.deleteLater()
 
-        #self.clear_modules()
+        self.iface.mainWindow().removeToolBar(self.toolbar)
+
+        del self.menuPrecAg
+        del self.toolbar
+
 
     def queueAddTo(self, vesp_dict):
-        """ Add a control file to the VESPER queue"""
+        """ Add a control file to the VESPER queue
+        TODO: Investigate moving VESPER queue to QgsTask
+        https://docs.qgis.org/3.28/en/docs/pyqgis_developer_cookbook/tasks.html"""
 
         if next((x for x in self.vesper_queue if x['control_file'] == vesp_dict["control_file"])
                 , None) is not None:
 
             self.iface.messageBar().pushMessage('Control file is already in the VESPER queue. {}'.format(
-                vesp_dict['control_file']),level=Qgis.Warning, duration=15)
+                vesp_dict['control_file']), level=Qgis.Warning, duration=15)
 
             self.queueDisplay()
 
@@ -499,16 +516,21 @@ class pat_toolbar(object):
         ctrl_width = len(max([os.path.basename(ea['control_file']) for ea in self.vesper_queue], key=len))
         epsg_width = len(max([str(ea['epsg']) for ea in self.vesper_queue], key=len))
 
-        header = '{:3}\t{:<{cw}}\t{:5}\t{:>{ew}} {}'.format(
-            '#', 'Control File', 'Import', 'EPSG', 'Folder', cw=ctrl_width + 10, ew=epsg_width + 10)
+        header = '{:3}\t{:<{cw}}\t{}\t{:5}\t{:>{ew}} {}'.format('#', 'Control File', 'Block Size',
+                                                            'Import', 'EPSG', 'Folder',
+                                                             cw=ctrl_width + 10, ew=epsg_width + 10)
 
         print('\n' + '-' * len(header))
         print(header)
         print('-' * len(header))
         for i, ea in enumerate(self.vesper_queue):
-            print('{:3}\t{:<{cw}}\t{:5}\t{:>{ew}}\t{}'.format(
-                i + 1, os.path.basename(ea['control_file']), str(bool(ea['epsg'] > 0)), ea['epsg'],
-                os.path.dirname(ea['control_file']), cw=ctrl_width + 10, ew=epsg_width + 10))
+            print('{:3}\t{:<{cw}}\t{}\t{:5}\t{:>{ew}}\t{}'.format(
+                i + 1, os.path.basename(ea['control_file']), 
+                ea['block_size'],
+                str(bool(ea['epsg'] > 0)),
+                ea['epsg'],
+                os.path.dirname(ea['control_file']), 
+                cw=ctrl_width + 10, ew=epsg_width + 10))
 
         print('\n')
 
@@ -589,6 +611,13 @@ class pat_toolbar(object):
             self.processVesper = None
 
             if currentTask['epsg'] > 0:
+                
+                LOGGER.info('\n{st}\nVESPER Import'.format(st='*' * 50))
+                settingsStr = 'Parameters:---------------------------------------'
+                settingsStr += '\n    {:30}\t{}'.format('Vesper Control File:',currentTask['control_file'])
+                settingsStr += '\n    {:30}\t{}'.format('Coordinate System:',  currentTask['epsg'])
+                LOGGER.info(settingsStr)
+                
                 try:
                     out_PredTif, out_SETif, out_CITxt = vesper_text_to_raster(currentTask['control_file'],
                                                                               currentTask['epsg'])
@@ -774,9 +803,9 @@ class pat_toolbar(object):
             output_folder = dlg_tTestAnalysis.lneOutputFolder.text()
             import webbrowser
             try:
-                from urllib.request import pathname2url         # Python 2.x
+                from urllib.request import pathname2url  # Python 2.x
             except:
-                from urllib.request import pathname2url # Python 3.x
+                from urllib.request import pathname2url  # Python 3.x
 
             def open_folder():
                 url = 'file:{}'.format(pathname2url(os.path.abspath(output_folder)))
@@ -880,7 +909,7 @@ class pat_toolbar(object):
                 webbrowser.open(url)
 
             message = 'Raster statistics for points extracted successfully !'
-            #add a button to open the file outside qgis
+            # add a button to open the file outside qgis
             widget = self.iface.messageBar().createMessage('', message)
             button = QPushButton(widget)
             button.setText('Open File')
@@ -942,6 +971,7 @@ class pat_toolbar(object):
         if dlgPreVesper.exec_():
             if dlgPreVesper.gbRunVesper.isChecked():
                 self.queueAddTo(dlgPreVesper.vesp_dict)
+                LOGGER.info('Added To queue')
                 self.processRunVesper()
                 if len(self.vesper_queue) > 0:
                     self.lblVesperQueue.setText('{} tasks in VESPER queue'.format(len(self.vesper_queue)))
@@ -1013,10 +1043,11 @@ class pat_toolbar(object):
 
     def run_blockGrid(self):
         """Run method for the block grid dialog"""
+
         dlgBlockGrid = BlockGridDialog(self.iface)
 
         # Show the dialog
-        dlgBlockGrid.show()
+        dlgBlockGrid.open()
 
         if dlgBlockGrid.exec_():
             message = 'Block grid completed successfully !'
@@ -1079,7 +1110,7 @@ class pat_toolbar(object):
 
     def run_settings(self):
         """Run method for the about dialog"""
-        dlgSettings = SettingsDialog()
+        dlgSettings = SettingsDialog(self.iface)
         if dlgSettings.exec_():
             self.vesper_exe = dlgSettings.vesper_exe
             self.DEBUG = config.get_debug_mode()

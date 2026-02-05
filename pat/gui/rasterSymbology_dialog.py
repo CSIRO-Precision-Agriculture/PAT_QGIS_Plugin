@@ -30,7 +30,7 @@ import traceback
 from collections import OrderedDict
 
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
-from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog
+from qgis.PyQt.QtWidgets import QPushButton, QApplication, QDialog, QDialogButtonBox
 
 from qgis.core import QgsMessageLog, QgsStyle, QgsMapLayer, QgsApplication, QgsMapLayerProxyModel, Qgis
 from qgis.gui import QgsMessageBar
@@ -61,6 +61,9 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
         # Set up the user interface from Designer.
         self.setupUi(self)
 
+        # Add apply action
+        self.button_box.button(QDialogButtonBox.Apply).clicked.connect(self.accept)
+
         # The qgis interface
         self.iface = iface
         self.DISP_TEMP_LAYERS = read_setting(PLUGIN_NAME + '/DISP_TEMP_LAYERS', bool)
@@ -84,9 +87,14 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
 
         # GUI Customisation -----------------------------------------------
         self.mcboTargetLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
+        self.mcboTargetLayer.setExcludedProviders(['wms'])
+
         # self.setMapLayers()
         self.setWindowIcon(QtGui.QIcon(':/plugins/pat/icons/icon_rasterSymbology.svg'))
         self.cboType.addItems(list(rs.RASTER_SYMBOLOGY))
+        
+        rlayer = next((lyr for lyr in self.iface.layerTreeView().selectedLayers() if lyr.type() == QgsMapLayer.RasterLayer) , None)
+        self.mcboTargetLayer.setLayer(rlayer)
 
     def cleanMessageBars(self, AllBars=True):
         """Clean Messages from the validation layout.
@@ -221,13 +229,16 @@ class RasterSymbologyDialog(QDialog, FORM_CLASS):
 
             QApplication.restoreOverrideCursor()
             self.iface.mainWindow().statusBar().clearMessage()
-            return super(RasterSymbologyDialog, self).accept(*args, **kwargs)
+            return False # leave dialog open
 
         except Exception as err:
             QApplication.restoreOverrideCursor()
             self.cleanMessageBars(True)
-            self.iface.mainWindow().statusBar().clearMessage()
-
+            try:
+                self.iface.mainWindow().statusBar().clearMessage()
+            except:
+            	# This exception error occurs in unittests when there is no status bar
+                print("No Status Bar To Clear")
             self.send_to_messagebar(str(err), level=Qgis.Critical,
                                     duration=0, addToLog=True, exc_info=sys.exc_info())
             return False  # leave dialog open
