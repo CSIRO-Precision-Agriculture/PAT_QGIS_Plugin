@@ -24,6 +24,7 @@ from builtins import str
 from builtins import range
 import logging
 import os
+from pathlib import Path
 import sys
 import traceback
 import re
@@ -41,7 +42,7 @@ from qgis.core import Qgis, QgsProject, QgsExpressionContextUtils, QgsCoordinate
 
 from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import describe, config
-from pyprecag.kriging_ops import prepare_for_vesper_krige, VesperControl
+from pyprecag.kriging_ops import prepare_for_vesper_krige, VesperControl, parse_variogram_file
 from pyprecag.describe import predictCoordinateColumnNames
 
 from util.check_dependencies import check_vesper_dependency
@@ -422,8 +423,8 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.lneVariogramFile.setStyleSheet('color:red')
             self.lblVariogramFile.setStyleSheet('color:red')
             return
-
-        if 'Variogram Model' not in open(s).read():
+    
+        if 'Variogram Model' not in Path(s).read_text():
             self.lneVariogramFile.setStyleSheet('color:red')
             self.lblVariogramFile.setStyleSheet('color:red')
             self.send_to_messagebar("Invalid Variogram File", level=Qgis.Critical,
@@ -501,40 +502,6 @@ class PreVesperDialog(QDialog, FORM_CLASS):
             self.lneMinPoint.clear()
             self.lblRowCount.setText('')
 
-    def parse_variogram_file(self):
-
-        vario_values = {}
-
-        for line in open(self.lneVariogramFile.text()):
-            # reset some text to control file tags
-            line = line.replace('C0', 'CO')
-            line = line.replace('Variogram Model', 'modtyp').strip()
-
-            if set(':=.').intersection(set(line)):
-                for ea in ['=', ':', ' ']:
-                    if ea in line:
-                        key, val = line.split(ea, 1)
-                        break
-
-                # sort out the numerics from the strings
-                try:
-                    key = int(float(key)) if int(
-                        float(key)) == float(key) else float(key)
-                except ValueError:
-                    key = key.strip()
-
-                try:
-                    val = int(float(val)) if int(
-                        float(val)) == float(val) else float(val)
-                except ValueError:
-                    val = val.strip()
-
-                # only return keys required for the control file.
-                # and key in VESPER_OPTIONS.keys():
-                if isinstance(key, str):
-                    vario_values[key] = val
-
-        return vario_values
 
     def validate_csv_grid_files(self, csv_file, grid_file, show_msgbox=True):
         """ validate the csv and grid files and check for overlap assuming that they are
@@ -791,19 +758,14 @@ class PreVesperDialog(QDialog, FORM_CLASS):
                 vc.update(xside=int(self.dsbBlockKrigSize.value()),
                           yside=int(self.dsbBlockKrigSize.value()))
             else:
-                # from the variogram text file find and update the control file keys
-                vario = self.parse_variogram_file()
-
-                vesp_keys = {key: val for key, val in list(vario.items()) if key in vc}
-                vc.update(vesp_keys)
-
-                # apply the other keys.
-                vc.update({'jpntkrg': 1,
-                           'jlockrg': 0,
-                           'minpts': int(self.lneMinPoint.text()),
-                           'maxpts': len(self.dfCSV),
-                           'jcomvar': 0,
-                           })
+                vario = parse_variogram_file(self.lneVariogramFile.text(),
+                                             minpts= int(self.lneMinPoint.text()),
+                                             maxpts=len(self.dfCSV),
+                                             ptkrg='Punctual',
+                                            lockrg='Global',
+                                            comvar='Define Variogram Parameter')
+                vc.update(vario)
+                
                 
             epsg = int(self.mCRSinput.crs().authid().replace('EPSG:', ''))
             bat_file, ctrl_file = prepare_for_vesper_krige(self.dfCSV,
