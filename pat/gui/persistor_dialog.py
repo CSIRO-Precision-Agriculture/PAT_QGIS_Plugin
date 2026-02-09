@@ -371,7 +371,7 @@ class PersistorDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSaveFile.setText(s)
 
-        if file_in_use(s)[0]:
+        if file_in_use(s):
             self.lneSaveFile.setStyleSheet('color:red')
             self.lblSaveFile.setStyleSheet('color:red')
         else:

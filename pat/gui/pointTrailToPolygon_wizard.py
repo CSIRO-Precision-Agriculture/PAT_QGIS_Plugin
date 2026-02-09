@@ -425,7 +425,7 @@ class PointTrailToPolygonDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSavePolyFile.setText(s)
 
-        if file_in_use(s)[0]:
+        if file_in_use(s):
             self.lneSavePolyFile.setStyleSheet('color:red')
             self.lblSavePolyFile.setStyleSheet('color:red')
         else:

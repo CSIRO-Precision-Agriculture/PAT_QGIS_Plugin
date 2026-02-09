@@ -340,7 +340,7 @@ class GridExtractDialog(QDialog, FORM_CLASS):
         s = os.path.normpath(s)
         self.lneSaveCSVFile.setText(s)
 
-        if file_in_use(s)[0]:
+        if file_in_use(s):
             self.lneSaveCSVFile.setStyleSheet('color:red')
             self.lblSaveCSVFile.setStyleSheet('color:red')
         else:
