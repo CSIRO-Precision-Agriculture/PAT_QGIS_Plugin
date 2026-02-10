@@ -92,7 +92,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Check python versions for PAT (2026)')
+        return self.tr('Check python versions for PAT')
 
     def group(self):
         """
@@ -117,7 +117,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and Outputs associated with it..
         """
-        return self.tr("Check python versions for PAT (2026)")
+        return self.tr("Check python versions for PAT")
 
     def initAlgorithm(self, config=None):
         """
@@ -353,17 +353,15 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                 # elif package_name==err.name:
                     # pack_status['error'] = 'Not Installed'
                 # self.feedback.pushInfo('**',package_name,' - ',err.name,'-', err)
-                pass
+            except ModuleNotFoundError as err:
+                pack_status['error'] = 'Module Not Found - ' + str(err)
+            
 
         if pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']:
             ver_file = Path(PLUGIN_DIR).joinpath( 'util','versions_table.csv')
             if ver_file.exists():
                 df_ver = pd.read_csv(ver_file)
-
-                # convert all columns to version numbers
-                # for col in df_ver.filter(regex='version').columns:
-                #     df_ver[col] = df_ver[col].dropna().apply(parse_version)
-                
+ 
                 # check if this is a ltr version
                 qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
                 qgis_col = f'qgis-ltr_version' if 'ltr' in Path(qgis_prefix).name.lower() else 'qgis_version'
