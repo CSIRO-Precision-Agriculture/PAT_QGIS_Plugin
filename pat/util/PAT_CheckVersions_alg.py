@@ -263,7 +263,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
        
         self.feedback.pushInfo(df_newT.to_string(index=True,header=False) + '\n\n')
         
-        if Path(self.OUTPUT).exists() :
+        if self.APPEND_TO_EXISTING and Path(self.OUTPUT).exists() :
             if '.csv' == Path(self.OUTPUT).suffix:
                 df_existing = pd.read_csv(self.OUTPUT,header=None)
             else:
