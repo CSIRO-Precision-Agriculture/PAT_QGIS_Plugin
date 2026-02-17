@@ -28,7 +28,7 @@ import os
 import sys
 import traceback
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS, addRasterFileToQGIS

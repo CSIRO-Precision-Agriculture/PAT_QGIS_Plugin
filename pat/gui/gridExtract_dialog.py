@@ -32,7 +32,7 @@ import traceback
 
 import numpy as np
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR
 from pyprecag import raster_ops, config, processing, describe
 
 from util.custom_logging import errorCatcher, openLogPanel

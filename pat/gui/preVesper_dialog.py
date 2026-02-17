@@ -39,7 +39,7 @@ from qgis.PyQt.QtGui import QIntValidator
 from qgis.gui import QgsMessageBar
 from qgis.core import Qgis, QgsProject, QgsExpressionContextUtils, QgsCoordinateReferenceSystem, QgsApplication, QgsMessageLog
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat.util.constants import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from pyprecag import describe, config
 from pyprecag.kriging_ops import prepare_for_vesper_krige, VesperControl
 from pyprecag.describe import predictCoordinateColumnNames

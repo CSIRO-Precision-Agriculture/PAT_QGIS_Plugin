@@ -38,16 +38,7 @@ from . import resources  # import resources like icons for the plugin
 import qgis
 from qgis.core import Qgis,QgsApplication
 from qgis.PyQt.QtWidgets import QMessageBox
-from qgis.PyQt.QtCore import QDateTime
-
-PLUGIN_DIR = os.path.abspath(os.path.dirname(__file__))
-PLUGIN_NAME = "PAT"
-PLUGIN_SHORT = "PAT"
-LOGGER_NAME = 'pyprecag'
-QGIS_VERSION = '{}-{}'.format(Path(QgsApplication.prefixPath()).stem, Qgis.version().split('-')[0])
-
-# This matches the folder pyprecag uses.
-TEMPDIR = os.path.join(tempfile.gettempdir(), 'PrecisionAg')
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR, PLUGIN_DIR
 
 ''' Adds the path to the external libraries to the sys.path if not already added'''
 if PLUGIN_DIR not in sys.path:

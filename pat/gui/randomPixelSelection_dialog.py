@@ -28,7 +28,7 @@ import sys
 import traceback
 
 import rasterio
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
+from pat.util.constants import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets
 from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget, QPushButton, QApplication, QDialog
 

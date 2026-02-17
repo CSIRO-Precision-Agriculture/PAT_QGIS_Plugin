@@ -27,7 +27,7 @@ import os
 import sys
 import traceback
 import warnings
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat.util.constants import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import save_as_dialog, file_in_use, removeFileFromQGIS, \
     copyLayerToMemory, addVectorFileToQGIS

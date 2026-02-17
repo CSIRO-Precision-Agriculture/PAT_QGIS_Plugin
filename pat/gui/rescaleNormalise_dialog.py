@@ -35,7 +35,7 @@ from qgis.core import QgsMessageLog, Qgis, QgsApplication, QgsMapLayerProxyModel
 from qgis.gui import QgsMessageBar
 
 import rasterio
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
+from pat.util.constants import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 from util.custom_logging import errorCatcher, openLogPanel
 from util.qgis_common import removeFileFromQGIS, addRasterFileToQGIS, save_as_dialog, get_layer_source
 from util.settings import read_setting, write_setting

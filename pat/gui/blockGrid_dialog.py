@@ -28,7 +28,7 @@ import re
 import sys
 import traceback
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR
 
 from qgis.core import Qgis, QgsApplication
 from qgis.PyQt import QtGui, uic, QtCore, QtWidgets

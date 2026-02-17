@@ -43,7 +43,7 @@ from qgis.core import (QgsProject, QgsProviderRegistry, QgsMapLayer, QgsVectorLa
                        QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,
                        QgsFeature, QgsField, NULL)
 
-from pat import LOGGER_NAME
+from pat.util.constants import LOGGER_NAME
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()

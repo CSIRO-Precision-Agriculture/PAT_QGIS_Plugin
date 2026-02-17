@@ -57,7 +57,7 @@ if platform.system() == 'Windows':
 
 import struct
 
-from pat import LOGGER_NAME, PLUGIN_NAME, PLUGIN_DIR, QGIS_VERSION
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR, PLUGIN_DIR
 from util.settings import read_setting, write_setting, remove_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)

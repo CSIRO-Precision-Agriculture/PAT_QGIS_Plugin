@@ -28,7 +28,7 @@ from builtins import range
 import logging
 import os
 
-from pat import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
 
 from qgis.PyQt.QtWidgets import QDockWidget, QTabWidget
 from qgis.PyQt.Qt import QCoreApplication

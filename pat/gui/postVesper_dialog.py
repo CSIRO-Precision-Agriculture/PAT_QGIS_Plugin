@@ -31,7 +31,7 @@ import traceback
 
 from qgis.PyQt.QtWidgets import QPushButton, QDialog, QApplication, QFileDialog
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
+from pat.util.constants import LOGGER_NAME, PLUGIN_NAME, TEMPDIR, PLUGIN_SHORT
 from qgis.PyQt import QtCore, QtGui, uic, QtWidgets
 from qgis.core import QgsMessageLog, QgsCoordinateReferenceSystem, QgsApplication, Qgis
 from qgis.gui import QgsMessageBar

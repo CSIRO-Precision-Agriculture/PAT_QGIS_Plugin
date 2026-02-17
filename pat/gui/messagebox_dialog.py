@@ -26,7 +26,7 @@ import os
 from qgis.PyQt import QtGui, QtCore
 from PyQt4 import uic
 
-from pat import PLUGIN_NAME
+from pat.util.constants import PLUGIN_NAME
 from pat.util.settings import write_setting
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]

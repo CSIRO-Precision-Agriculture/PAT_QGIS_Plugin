@@ -31,7 +31,7 @@ import geopandas as gpd
 import pandas as pd
 from shapely import wkt
 import rasterio
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat.util.constants import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
 from util.custom_logging import errorCatcher, openLogPanel
 
 from util.qgis_common import (save_as_dialog, file_in_use, removeFileFromQGIS, get_layer_source,

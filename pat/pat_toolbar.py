@@ -56,7 +56,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu, QDockWidget, QToolButton, QMessa
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProject, QgsMessageLog, Qgis, QgsApplication, QgsSettings
 
-from . import PLUGIN_DIR, PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, TEMPDIR
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR, PLUGIN_DIR
 from .gui.about_dialog import AboutDialog
 from .gui.settings_dialog import SettingsDialog
 

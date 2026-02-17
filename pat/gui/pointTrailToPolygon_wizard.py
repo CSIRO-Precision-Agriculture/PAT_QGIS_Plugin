@@ -43,7 +43,7 @@ import inspect
 import chardet
 import pandas as pd
 
-from pat import LOGGER_NAME, PLUGIN_NAME, TEMPDIR
+from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR
 
 from pyprecag import processing, describe, crs as pyprecag_crs, convert, config, LOGGER
 from pyprecag.describe import predictCoordinateColumnNames

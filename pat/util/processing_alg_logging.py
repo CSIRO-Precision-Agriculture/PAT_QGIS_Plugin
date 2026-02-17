@@ -30,7 +30,7 @@ import fnmatch
 
 from qgis.core import QgsApplication
 
-from pat import LOGGER_NAME
+from pat.util.constants import LOGGER_NAME
 from pat.util.custom_logging import errorCatcher
 
 LOGGER = logging.getLogger(LOGGER_NAME)
