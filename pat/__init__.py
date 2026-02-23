@@ -19,34 +19,34 @@
  ***************************************************************************/
 
 """
-from __future__ import absolute_import
-
-from future import standard_library
-
-standard_library.install_aliases()
-
+import traceback
 import os
 import sys
 import platform
 import tempfile
 from pathlib import Path
 import logging
-
+from packaging.version import parse as parse_version
 from datetime import datetime
+
 from . import resources  # import resources like icons for the plugin
 
 import qgis
-from qgis.core import Qgis,QgsApplication
+from qgis.core import Qgis,QgsApplication, QgsRuntimeProfiler, QgsSettings
 from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.PyQt.QtCore import QDateTime, QSettings
+
+from pat.util.settings import read_setting, write_setting
+from pat.util.check_dependencies import is_folder_writable, post_install_check
 from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR, PLUGIN_DIR
 
 ''' Adds the path to the external libraries to the sys.path if not already added'''
 if PLUGIN_DIR not in sys.path:
     sys.path.append(PLUGIN_DIR)
 
-# if os.path.join(PLUGIN_DIR, 'ext-libs') not in sys.path:
-#     site.addsitedir(os.path.join(PLUGIN_DIR, 'ext-libs'))
-
+# extra_path = Path(PLUGIN_DIR).joinpath('ext-libs','pyprecag-fork')
+# if extra_path.exists() and str(extra_path) not in sys.path:
+#     sys.path.append(str(extra_path))
 
 def classFactory(iface):
     """Load pat_toolbar class from file pat_toolbar.
@@ -59,30 +59,26 @@ def classFactory(iface):
     if platform.system() != 'Windows':
         message = 'PAT is only available for Windows'
 
-        iface.messageBar().pushMessage("ERROR", message,
-                                       level=Qgis.Critical,
-                                       duration=0)
-
         QMessageBox.critical(None, 'Error', message)
         sys.exit(message)
 
-    if not os.path.exists(TEMPDIR):
-        os.mkdir(TEMPDIR)
+    if not Path(TEMPDIR).exists():
+        Path(TEMPDIR).mkdir(parents=True, exist_ok=True)
 
     from .util.settings import read_setting, write_setting, remove_setting
-            
-    if read_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", bool) is None:
-        write_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", False)
+    
+    # if read_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", bool) is None:
+    #     write_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", False)
 
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool) is None:
-        write_setting(PLUGIN_NAME + "/DEBUG", False)
+    # if read_setting(PLUGIN_NAME + "/DEBUG", bool) is None:
+    #     write_setting(PLUGIN_NAME + "/DEBUG", False)
 
-    if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME', bool) is None:
-        write_setting(PLUGIN_NAME + '/USE_PROJECT_NAME', False)
+    # if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME', bool) is None:
+    #     write_setting(PLUGIN_NAME + '/USE_PROJECT_NAME', False)
 
-    if read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) is None:
-        write_setting(PLUGIN_NAME + '/PROJECT_LOG', False)
-        write_setting(PLUGIN_NAME + '/LOG_FILE', os.path.normpath(os.path.join(TEMPDIR, 'PAT.log')))
+    # if read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) is None:
+    #     write_setting(PLUGIN_NAME + '/PROJECT_LOG', False)
+    #     write_setting(PLUGIN_NAME + '/LOG_FILE', os.path.normpath(os.path.join(TEMPDIR, 'PAT.log')))
 
     # the custom logging import requires qgis_config so leave it here
     from .util.custom_logging import set_log_file, setup_logger
@@ -95,100 +91,86 @@ def classFactory(iface):
 
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
-
-    # pat-install.finished is created when running the install bat file externally to QGIS 
-    # so if it exists it means install was attempted.
     
-    done_file = Path(PLUGIN_DIR).joinpath('install_files', 'pat-install.finished')
-    if done_file.exists(): 
-        done_file.unlink()
-        shortcutPath  = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
+    
+    plugin = None
+    
+    pending = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
             
-        if shortcutPath != '' and Path(shortcutPath).exists() and QGIS_VERSION in Path(shortcutPath).stem :
-            Path(shortcutPath).unlink()
-            remove_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING')
+    finish_file = Path(PLUGIN_DIR).joinpath('install_files', 'pat-install.finished')
 
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool):
-        LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                           'Logger Setup ',
-                                           start_time.strftime("%H:%M:%S.%f"),
-                                           datetime.now().strftime("%H:%M:%S.%f"),
-                                           dur=datetime.now() - start_time))
+    if pending.endswith('lnk') and Path(finish_file).exists() and QGIS_VERSION in pending:
+        Path(pending).unlink(missing_ok=True)
+        #finish_file.unlink(missing_ok=True)
+        # reset to finished so we know the first part is done.
+        write_setting(f'{PLUGIN_NAME}/SETUP/INSTALL_PENDING', 'finished')
+        pending = 'finished'
     
-    step_time = datetime.now() 
+    
+    from pat.util.check_dependencies import plugin_status
+    i_attempt = 0
+    while True and i_attempt < 3:
+        i_attempt += 1
+        print(f'Attempt {i_attempt} for {QGIS_VERSION} - {datetime.now()}')
+        print("\n".join([f"{k} = {QgsSettings().value(k)}" for k in sorted(QgsSettings().allKeys()) if k.startswith(f'{PLUGIN_NAME}/SETUP')]))    
+    
+        try:
+            with QgsRuntimeProfiler.profile("Import plugin"): 
+                from .pat_toolbar import pat_toolbar
+            plugin = pat_toolbar(iface)
+            # Remove the choice as its loaded successfully.
+            QgsSettings().remove(f'{PLUGIN_NAME}/SETUP/INSTALL_CHOICE')
+            QgsSettings().remove(f'{PLUGIN_NAME}/SETUP/INSTALL_PENDING')
+            break
 
-    next_check = read_setting(PLUGIN_NAME + "/SETUP/NEXT_CHECK", object_type=QDateTime)
-    
-    if next_check.isNull():   
-        check_online = True
-    else:
-        check_online = QDateTime.currentDateTime() > next_check
-    
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-        LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                        'Prep',
-                                        step_time.strftime("%H:%M:%S.%f"),
-                                           datetime.now().strftime("%H:%M:%S.%f"),
-                                           dur=datetime.now() - step_time))
-        
-    step_time = datetime.now()
-    
-    from .util.check_dependencies import plugin_status
-    
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-        LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                        'import plugin_status',
-                                        step_time.strftime("%H:%M:%S.%f"),
-                                           datetime.now().strftime("%H:%M:%S.%f"),
-                                           dur=datetime.now() - step_time))
-        
-    step_time = datetime.now()
-    
-    _ = plugin_status(level='basic', check_for_updates=check_online)
-                   
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-        LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                        'Checking Dependencies',
-                                        step_time.strftime("%H:%M:%S.%f"),
-                                           datetime.now().strftime("%H:%M:%S.%f"),
-                                           dur=datetime.now() - step_time))
-    step_time = datetime.now()
-    pending = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str, default='')
-
-    if QGIS_VERSION in Path(pending).stem :
-        #qgis.utils.unloadPlugin('pat')
-               
-        if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-                LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                        'PAT Pending Install',  
-                                        start_time.strftime("%H:%M:%S.%f"),
-                                        datetime.now().strftime("%H:%M:%S.%f"),
-                                        dur=datetime.now() - start_time))
-        
-        sys.exit('Please install dependencies to use PAT')   
-    else:
-        # if we get here, then plugin should be imported and ready to go so set new check date.
-        if QDateTime.currentDateTime() > read_setting(PLUGIN_NAME + "/SETUP/NEXT_CHECK", object_type=QDateTime):
-            write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
-        
-        #qgis.utils.reloadPlugin('pat')
-        step_time = datetime.now()
-        from .pat_toolbar import pat_toolbar
-        if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
-            LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                    'ImportToolbar',  
-                                    step_time.strftime("%H:%M:%S.%f"),
-                                    datetime.now().strftime("%H:%M:%S.%f"),
-                                    dur=datetime.now() - start_time))
+        except ModuleNotFoundError  as err:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            mess = str(traceback.format_exc())
             
-            LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                    'PAT Loaded successfully',  
-                                    start_time.strftime("%H:%M:%S.%f"),
-                                    datetime.now().strftime("%H:%M:%S.%f"),
-                                    dur=datetime.now() - start_time))
-        
-        from .util.check_dependencies import check_pat_symbols
-        check_pat_symbols()
-                
-        return pat_toolbar(iface)
+            # Should be not installed
+            print(f'ModuleNotFoundError - {err.name} {err}')
+            
+            if str(err).startswith('No module named'):
+                inst_df = plugin_status(level='basic', check_for_updates=False)
+                break
+            else:
+                print (mess)
+                break
 
+        except ImportError  as err:
+            if 'DLL load failed' in str(err) and 'rasterio' in err.path and not pending.endswith('lnk') is not None:
+                post_check_pack = post_install_check('rasterio')
+                if post_check_pack:
+                    _=plugin_status(level='basic', extra_packages=post_check_pack)
+            else:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                mess = str(traceback.format_exc())
+                print(mess)
+                break
+
+        except Exception as error:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            mess = str(traceback.format_exc())
+            print(mess)
+
+            break
+
+    if plugin is  None:
+        plugin = DummyPlugin(iface)
+            
+    return plugin
+
+class DummyPlugin:
+    """Dummy plugin class that does nothing when dependencies aren't met"""
+    def __init__(self, iface):
+        self.iface = iface
+
+    def initGui(self):
+        pass
+    
+    def unload(self):
+        pass
+
+    def _load(self) -> None:
+        """Load the plugin resources and initialize components."""
+        pass

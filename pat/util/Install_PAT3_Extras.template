@@ -1,7 +1,7 @@
 @echo off
 
 ECHO Dependencies Log: $dependency_log  
-ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.... Please Wait
+ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.
 cd %~dp0 
 
 if "pause-$run_within" equ "pause-False" (
@@ -43,26 +43,24 @@ GOTO :END
         pause
         goto eof
     )
-    ECHO. Running "%OSGEO4W_ROOT%\bin\o4w_env.bat"
-    CALL "%OSGEO4W_ROOT%\bin\o4w_env.bat"
-
-    if exist "%OSGEO4W_ROOT%\bin\py3_env.bat" (
-        ECHO. Running "%OSGEO4W_ROOT%\bin\py3_env.bat"
-        REM py3_env includes setting PYTHONHOME & PYTHONPATH & PATH
-        CALL "%OSGEO4W_ROOT%\bin\py3_env.bat"
-    )
-
-    SET OSGEO4W_ROOT=$QGIS_PATH
+    ECHO. Running "%OSGEO4W_ROOT%\bin\setup.bat"
 
     if "$osgeo_packs" NEQ "" (
-        ECHO    Osgeo4w Installing $osgeo_packs >CON
+        ECHO    Osgeo4w $pip_func $osgeo_packs - please wait... >CON
         ECHO. & ECHO Osgeo4w Installing $osgeo_packs -----------------------------------------------
         REM  see https://trac.osgeo.org/osgeo4w/wiki/CommandLine
         REM      https://gis.stackexchange.com/questions/303166/unattended-qgis-updates-with-osgeo4w
         REM      -q --quiet-mode ,  -b --disable-buggy-antivirus  ,  -A --advanced install,
         REM      -k --autoaccept,   -n --no-shortcuts, -s --site,  -P --packages  ,  -x --remove-packages
 
-        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\osgeo4w-setup.exe" -q -b -A -k -n $site $osgeo_packs
+        ECHO & ECHO. | "%OSGEO4W_ROOT%\bin\setup.bat" -q -b -A -k -n $site $osgeo_packs
+        :waitloop_pat_uninstall
+		tasklist /FI "IMAGENAME eq osgeo4w-setup.exe" | find /I "osgeo4w-setup.exe" >nul
+		if not errorlevel 1 (
+			timeout /t 2 >nul
+			goto waitloop_pat_uninstall
+		)
+        
     ) ELSE (
         ECHO No OSGEO installation required
     )
@@ -77,17 +75,13 @@ GOTO :END
     REM        mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs"
     REM    )
     REM )
-
-    cd %~dp0 
-    ECHO. & Echo The current directory is %CD%
     
     if "$pip_packs" NEQ "" (
-        ECHO     PIP $pip_func  $pip_packs  >CON
+        ECHO    PIP $pip_func  $pip_packs  - please wait... >CON
         ECHO. & ECHO PIP $pip_func  $pip_packs -----------------------------------------------
-        if "$pip_func" == "uninstall" (
-            ECHO y | python -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
-        ) ELSE (
-            python -m pip $pip_func --upgrade $pip_packs --no-cache-dir --disable-pip-version-check
+        ECHO y | "%OSGEO4W_ROOT%\bin\python-qgis.bat" -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
+        REM ) ELSE (
+            REM ECHO y | "%OSGEO4W_ROOT%\bin\python-qgis.bat" -m pip $pip_func --upgrade $pip_packs --no-cache-dir --disable-pip-version-check
 
             REM if EXIST $pip_packs (
             REM    ECHO renaming $pip_packs to $pip_packs.installed
@@ -97,7 +91,7 @@ GOTO :END
     ) ELSE (
         REM  No PIP installation required
     )
-	type nul >> pat-install.finished
+	type nul >> "$finished_file"
 	
 	ECHO. & ECHO Installation Complete -----------------------------------------------
 	
@@ -108,10 +102,10 @@ GOTO :END
 
     ECHO. & ECHO ----------------------------------------------------------------------
     ECHO.
-    ECHO ** Please restart QGIS to complete installation.
-    ECHO You may have to reinstall or activate the PAT Plugin through the plugin manager.
+    ECHO ** QGIS is restarting.
+    ECHO You may have to activate the PAT Plugin through the plugin manager.
     ECHO.
-    
+    call "%OSGEO4W_ROOT%\bin\qgis.bat"
     if "pause-$run_within" equ "pause-False" (
     	pause
     	)

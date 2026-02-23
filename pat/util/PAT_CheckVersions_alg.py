@@ -85,7 +85,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'pat_versions2'
+        return 'pat_versions'
 
     def displayName(self):
         """
@@ -160,6 +160,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         self.DELETE_PAT_SETTINGS= self.parameterAsBoolean(parameters, self.DELETE_PAT_SETTINGS,self.context)
         
         self.OUTPUT = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
+    
         self.APPEND_TO_EXISTING= self.parameterAsBoolean(parameters, self.APPEND_TO_EXISTING,self.context)
                 
         settings = QgsSettings()
@@ -226,11 +227,14 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             #     p = pyplugin_installer.installer_data.plugins.all()['pat']
             #     df_dep.loc['PAT', 'available'] = parse_version(p['version_available'])  # needs further testing
 
+        gdal_version = parse_version(getattr(importlib.import_module('osgeo.gdal'), "__version__", '0.0.0'))
+        old_gdal  = f'gdal{gdal_version.major}{gdal_version.minor-1}-runtime'
+
         if self.LEVEL.lower() == 'basic':
-            df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag','fiona','osgeo.gdal'], columns=['name'])
+            df_py = pd.DataFrame(['osgeo.gdal',old_gdal,'geopandas', 'rasterio', 'pyprecag','fiona'], columns=['name'])
         else:
-            df_py = pd.DataFrame(['geopandas', 'rasterio', 'pandas', 'shapely', 'fiona', 'pyproj', 'unidecode', 'pint',
-                                'numpy', 'scipy', 'chardet', 'pyprecag', 'osgeo.gdal','gdal311-runtime'], columns=['name'])
+            df_py = pd.DataFrame(['osgeo.gdal',old_gdal,'geopandas', 'rasterio', 'pandas', 'shapely', 'fiona', 'pyproj', 'unidecode', 'pint',
+                                'numpy', 'scipy', 'chardet', 'pyprecag', ], columns=['name'])
 
         # df_py = pd.DataFrame(['rasterio','fiona', 'geopandas'], columns=['name'])
 
@@ -248,7 +252,8 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         if self.LEVEL.lower() == 'expert':
             df_set = df_set.set_index('name').T.reset_index(drop=True)
         else:
-            df_set = df_set.loc[df_set['name'].str.contains('PAT/SETUP')].set_index('name').T.reset_index(drop=True)
+            df_set = df_set.loc[df_set['name'].str.contains('PAT/SETUP|PAT/VESPER_EXE', regex=True)]
+            df_set = df_set.set_index('name').T.reset_index(drop=True)
 
         if not df_set.empty:
             df_new = pd.concat([df, df_set], axis=1)
@@ -261,9 +266,11 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
 
         # Pad index with dots
         df_newT.index = df_newT.index.astype(str).str.pad(index_width, fillchar='.', side='right')       
-       
-        self.feedback.pushInfo(df_newT.to_string(index=True,header=False) + '\n\n')
         
+        df_newT.index.name = 'Name'
+        df_newT.columns =['Value']       
+        self.feedback.pushInfo(df_newT.to_string(index=True,header=True) + '\n\n')
+
         if self.APPEND_TO_EXISTING and Path(self.OUTPUT).exists() :
             if '.csv' == Path(self.OUTPUT).suffix:
                 df_existing = pd.read_csv(self.OUTPUT,header=None)
@@ -276,11 +283,15 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             df_combined = pd.concat([df_existingT, df_new], axis=0)
             df_new = df_combined[~df_combined.index.duplicated(keep='last')]
             df_new.reset_index(inplace=True,drop=False)
+        
+        df_newT = df_new.T
+        df_newT.index.name = 'Name'
+        df_newT.columns =['Value']
 
-        if '.csv' == Path(self.OUTPUT).suffix:
-            df_new.T.to_csv(self.OUTPUT, header=False)
+        if '.csv' == Path(self.OUTPUT).suffix :
+            df_newT.to_csv(self.OUTPUT, header=True,index=True)
         elif '.xlsx' == Path(self.OUTPUT).suffix:
-            df_new.T.to_excel(self.OUTPUT, header=False)
+            df_newT.to_excel(self.OUTPUT, header=True)
 
             # reply = QMessageBox.question(
             #         None,
@@ -358,7 +369,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             
 
         if pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']:
-            ver_file = Path(PLUGIN_DIR).joinpath( 'util','versions_table.csv')
+            ver_file = Path(PLUGIN_DIR).joinpath( 'util','snapshot_table.csv')
             if ver_file.exists():
                 df_ver = pd.read_csv(ver_file)
  
