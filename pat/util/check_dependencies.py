@@ -417,7 +417,12 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False, e
                                                 datetime.now().strftime("%H:%M:%S.%f"),
                                                 dur=datetime.now() - func_step))
     func_step = datetime.now()
+    np_version = getattr(importlib.import_module('numpy'), "__version__", '0.0.0')
+    use_snapshots = parse_version(np_version) < parse_version('2.0.0')
+    gdal_version = getattr(importlib.import_module('osgeo.gdal'), "__version__", '0.0.0')
     
+    del np_version, gdal_version
+
     if level.lower() == 'basic':
         df_py = pd.DataFrame(['geopandas', 'rasterio', 'pyprecag','fiona', 'osgeo.gdal', *extra_packages], columns=['name'])
     else:
@@ -425,12 +430,10 @@ def plugin_status(level='basic', check_for_updates=False, forced_update=False, e
                               'numpy', 'scipy', 'chardet', 'pyprecag','osgeo.gdal', *extra_packages], columns=['name'])
     
     
-    np_version = getattr(importlib.import_module('numpy'), "__version__", '0.0.0')
-    use_snapshots = parse_version(np_version) < parse_version('2.0.0')
-    del np_version
+
 
     df_py[['package', 'current', 'available','error', 'file', 'source']] = df_py['name'].apply(check_python_dependencies,
-                                                                                    args=(check_for_updates,))
+                                                                                    args=(check_for_updates, use_snapshots))
     
     # if rasterio imports then we dont need gdal runtime
     #if df_py.loc[df_py['name'] == 'rasterio', 'current'].notnull().bool():
