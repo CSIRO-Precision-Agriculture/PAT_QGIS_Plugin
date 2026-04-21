@@ -84,9 +84,9 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             self.layout().insertRow(0, self.messageBar)
         else:
             self.layout().insertWidget(0, self.messageBar)  # for use with Vertical/horizontal layout box
-        
+
         self.previous_nclust = self.spnClusters.value()
-        
+
         # GUI Runtime Customisation -----------------------------------------------
         self.mcboRasterLayer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mcboRasterLayer.setExcludedProviders(['wms'])
@@ -178,30 +178,40 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
         if self.mcboRasterLayer.count() == 0:
             return
 
+        self.mcboRasterLayer.setExceptedLayerList([])
+
         if self.tabList.rowCount() == 0:
             # reset to show all pixel sizes.
-            self.mcboRasterLayer.setExceptedLayerList([])
             self.pixel_size = ['0','m','']
         else:
             if self.layers_df is None:
                 self.layers_df = build_layer_table()
 
-            self.mcboRasterLayer.setExceptedLayerList([])
+            # we are building an exclusion list of layers
+            #Pick list only uses rasters
+            df_raster = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
+
             used_layers = [self.tabList.item(row, 0).text() for row in range(0, self.tabList.rowCount())]
             df_used = self.layers_df[self.layers_df['layer_id'].isin(used_layers)]
 
-            df_sub = self.layers_df[(self.layers_df['provider'] == 'gdal') & (self.layers_df['layer_type'] == 'RasterLayer')]
+            # that aren't in use.
+            df_valid = df_raster[~df_raster['layer_id'].isin(used_layers)]
 
-            # Find layers that don't overlap, have a different pixel size or have already been added (via list of layer id's).
-            df_sub = df_sub[((df_sub['layer_id'].isin(used_layers)) | (df_sub['pixel_size'] != self.pixel_size[0])) |
-                            (~df_sub.intersects(df_used.union_all()))]
+            # find layers that instersect
+            df_valid = df_valid[df_valid.intersects(df_used.union_all())]
 
-            if len(df_sub['layer'].tolist()) > 0:
-                self.mcboRasterLayer.setExceptedLayerList(df_sub['layer'].tolist())
+            # and have the same pixel size.
+            df_valid = df_valid[df_valid['pixel_size'] == self.pixel_size[0]]
+
+            # everything else is excluded from the pick list.
+            excl = df_raster[~df_raster['layer_id'].isin(df_valid['layer_id'].tolist())]['layer'].tolist()
+
+            if len(excl) > 0:
+                self.mcboRasterLayer.setExceptedLayerList(excl)
 
             # withdrawn coordinate system check as correctly definied in QGIS 2 as GDA94 / MGA zone 54
             # get interpreted in QGIS 3 as CRS: BOUNDCRS[SOURCECRS[PROJCRS["GDA94 / MGA zone 54",BASEGEOGCRS["GDA94",DATUM["Geocentric Datum of Australia 1994",ELLIPSOID["GRS 1980"
-        
+
         self.tabList.horizontalHeader().setStyleSheet('color:black')
         if self.tabList.rowCount()==0:
             self.tabList.setHorizontalHeaderItem(1, QTableWidgetItem("{} Raster(s)".format(self.tabList.rowCount())))
@@ -223,11 +233,6 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             self.send_to_messagebar('No raster layers to process. Please add a RASTER layer into QGIS',
                                     level=Qgis.Warning, duration=5)
             return
-                
-        if self.lneSaveFile.text() != '':
-            filename = self.lneSaveFile.text()
-            filename = filename.replace(f'{self.tabList.rowCount()}rast', f'{self.tabList.rowCount()+1}rast')
-            self.lneSaveFile.setText(filename)
 
         rowPosition = self.tabList.rowCount()
         self.tabList.insertRow(rowPosition)
@@ -235,6 +240,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
         ## Save the id of the layer to a column used to get a layer object later on.
         self.tabList.setItem(rowPosition, 0, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().id()))
         self.tabList.setItem(rowPosition, 1, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().name()))
+        self.tabList.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().source()))
         self.tabList.setItem(rowPosition, 2, QtWidgets.QTableWidgetItem(self.mcboRasterLayer.currentLayer().source()))
 
         if rowPosition == 0:
@@ -257,7 +263,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             filename = self.lneSaveFile.text()
             filename = filename.replace(f'{self.tabList.rowCount()}rast', f'{self.tabList.rowCount()-1}rast')
             self.lneSaveFile.setText(filename)
-    
+
         self.tabList.removeRow(self.tabList.currentRow())
         self.setMapLayers()
 
@@ -285,20 +291,23 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
 
     @QtCore.pyqtSlot(int)
     def on_spnClusters_valueChanged(self, value):
-        
+
         if self.lneSaveFile.text() != '':
             filename = self.lneSaveFile.text()
             filename = filename.replace(f'{self.previous_nclust}cl', f'{value}cl')
             self.lneSaveFile.setText(filename)
 
         self.previous_nclust = self.spnClusters.value()
-        
+
 
     @QtCore.pyqtSlot(name='on_cmdSaveFile_clicked')
     def on_cmdSaveFile_clicked(self):
-        lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
-        if lastFolder is None or not os.path.exists(lastFolder):
-            lastFolder = read_setting(PLUGIN_NAME + '/BASE_OUT_FOLDER')
+
+        lastFolder =  QgsProject.instance().homePath()
+
+        #lastFolder = read_setting(PLUGIN_NAME + "/" + self.toolKey + "/LastOutFolder")
+        #if lastFolder is None or not os.path.exists(lastFolder):
+        #    lastFolder =  QgsProject.instance().homePath()
 
         # get first layer in the list
         str_pixel_size = numeric_pixelsize_to_string(float(self.pixel_size[0]))
@@ -405,7 +414,7 @@ class KMeansClusterDialog(QDialog, FORM_CLASS):
             rasters_dict = {}
             for row in range(self.tabList.rowCount()):
                 rasters_dict [self.tabList.item(row, 2).text()]=self.tabList.item(row, 1).text()
-                
+
 
             # Add settings to log
             settingsStr = 'Parameters:---------------------------------------'

@@ -353,11 +353,15 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                     # pack_status['error'] = 'Not Installed'
                 # self.feedback.pushInfo('**',package_name,' - ',err.name,'-', err)
                 pass
+        
+        module = importlib.import_module('numpy')
+        np_version = getattr(module, "__version__", '0.0.0')
 
-        if pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']:
+        
+        if (pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']) or np_version.major < 2:
             ver_file = Path(PLUGIN_DIR).joinpath( 'util','versions_table.csv')
             if ver_file.exists():
-                df_ver = pd.read_csv(ver_file)
+                df_ver = pd.read_csv(ver_file,index_col='qgis_version')
 
                 # convert all columns to version numbers
                 # for col in df_ver.filter(regex='version').columns:
@@ -365,10 +369,10 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                 
                 # check if this is a ltr version
                 qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
-                qgis_col = f'qgis-ltr_version' if 'ltr' in Path(qgis_prefix).name.lower() else 'qgis_version'
+                qgis_col = 'qgis_version' 
                 
                 # Find the latest snapshot for each version of QGIS
-                df_ver = df_ver.filter(regex=(f'snap|{qgis_col}') ,axis=1).drop_duplicates(qgis_col,keep='last').set_index(qgis_col)
+                # df_ver = df_ver.filter(regex=(f'snap|{qgis_col}') ,axis=1).drop_duplicates(qgis_col,keep='last').set_index(qgis_col)
 
                 qgis_version = Qgis.version().split('-')[0]
 

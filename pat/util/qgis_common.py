@@ -19,13 +19,17 @@
  *                                                                         *
  ***************************************************************************/
 """
+import sys
+import traceback
+
 import six
 from future import standard_library
-from qgis._core import QgsVectorFileWriter
+
 
 standard_library.install_aliases()
 import logging
 import os
+from pathlib import Path
 import re
 from urllib.parse import urlparse
 
@@ -40,7 +44,7 @@ from qgis.PyQt.QtWidgets import QFileDialog, QDockWidget, QMessageBox
 
 from qgis.utils import iface
 from qgis.core import (QgsProject, QgsProviderRegistry, QgsMapLayer, QgsVectorLayer, QgsRasterLayer,
-                       QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,
+                       QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,QgsVectorFileWriter,
                        QgsFeature, QgsField, NULL)
 
 from pat import LOGGER_NAME
@@ -196,7 +200,8 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
                     'crs_name': layer_crs.description(),
                     'is_projected': not layer_crs.isGeographic(),
                     'provider': layer.providerType(),
-                    'geometry': wkt.loads(prj_ext.asWktPolygon())}
+                    'geometry': wkt.loads(prj_ext.asWktPolygon()),
+                    }
 
         # 'extent': prj_ext.asWktPolygon(),
 
@@ -216,12 +221,15 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
                     gpd_rPoly.to_crs(dest_crs.authid().replace('epgs:', ''), inplace=True)
                     row_dict.update({'geometry': gpd_rPoly.union_all()})
 
-                    del gpd_rPoly, results, msk, rast_shapes
-                except:
-                    pass
-
+                    # del gpd_rPoly, results, msk, rast_shapes
+                except Exception as err:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    mess = str(traceback.format_exc())
+                    print(mess)
+            
+            
             row_dict.update({'bandcount': layer.bandCount(),
-                             'datatype': dataTypes[layer.dataProvider().dataType(1)],
+                             'datatype': dataTypes.get(layer.dataProvider().dataType(1), 'Unknown'),
                              'pixel_size': pixel_size[0],
                              'pixel_text': '{} {}'.format(*pixel_size),
                              })

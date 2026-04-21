@@ -36,7 +36,7 @@ from qgis.gui import QgsMessageBar
 from qgis.core import QgsMessageLog, QgsProject, Qgis
 from qgis.utils import iface
 
-from util.settings import read_setting, write_setting
+from settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
@@ -125,7 +125,7 @@ def add_logging_handler_once(logger, handler):
 
 
 def set_log_file():
-    
+
     old_file = os.path.normpath(read_setting(PLUGIN_NAME + '/LOG_FILE'))
 
     if not read_setting(PLUGIN_NAME + '/PROJECT_LOG', bool) or \
@@ -134,7 +134,7 @@ def set_log_file():
         log_file = os.path.normpath(os.path.join(TEMPDIR, 'PAT.log'))
     else:
         folder = os.path.normpath(QgsProject.instance().absolutePath())
-        
+
         if read_setting(PLUGIN_NAME + '/USE_PROJECT_NAME',bool):
             log_file = os.path.splitext(QgsProject.instance().fileName())[0] + '_PAT.log'
         else:
@@ -144,16 +144,16 @@ def set_log_file():
     if os.path.normpath(log_file) != os.path.normpath(old_file):
         # this only get triggered when the setting gets changed or project gets saved
         write_setting(PLUGIN_NAME + '/LOG_FILE', log_file)
-    
+
         # Stop and start logging to setup the new log level
         stop_logging(LOGGER_NAME)
         setup_logger(LOGGER_NAME, log_file)
-        
+
         iface.messageBar().pushMessage("Log File", log_file, level=Qgis.Info,duration=15)
-        
+
         # if not os.path.exists(log_file):
         #     LOGGER.info(get_plugin_state('basic'))
-            
+
     return log_file
 
 
@@ -188,9 +188,9 @@ def setup_logger(logger_name, log_file=None):
 
     if not os.path.exists(TEMPDIR):
         os.mkdir(TEMPDIR)
-    
-    debug =read_setting(PLUGIN_NAME + "/" + 'DEBUG', bool) 
-    
+
+    debug =read_setting(PLUGIN_NAME + "/" + 'DEBUG', bool)
+
     if debug:
         default_handler_level = logging.DEBUG
     else:
@@ -260,7 +260,7 @@ def openLogPanel(name=''):
     logMessagesPanel = iface.mainWindow().findChild(QDockWidget, 'MessageLog')
     if name == '' :
         name = PLUGIN_SHORT
-    
+
     # Check to see if it is already open
     if not logMessagesPanel.isVisible():
         logMessagesPanel.setVisible(True)
