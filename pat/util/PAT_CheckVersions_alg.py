@@ -57,17 +57,17 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
     # used when calling the algorithm from another algorithm, or when
     # calling from the QGIS console.
 
-    # Basic is bare minimum, 
-    # Advanced includes more dependencies and settings, 
+    # Basic is bare minimum,
+    # Advanced includes more dependencies and settings,
     # Expert includes all dependencies and settings.
     LEVEL = 'LEVEL'
     LEVEL_LIST = ['Basic','Advanced','Expert']
-    
+
     #CHECK_ONLINE = 'CHECK_ONLINE'
     DELETE_PAT_SETTINGS = 'DELETE_PAT_SETTINGS'
     OUTPUT = 'OUTPUT'
     APPEND_TO_EXISTING = 'APPEND_TO_EXISTING'
-    
+
     def tr(self, string):
         """
         Returns a translatable string with the self.tr() function.
@@ -133,16 +133,16 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         # self.addParameter( QgsProcessingParameterBoolean(name=self.CHECK_ONLINE,
         #                                   description=self.tr('Check for updates'),
         #                                   defaultValue=False ) )
-        
+
         self.addParameter( QgsProcessingParameterBoolean(name=self.DELETE_PAT_SETTINGS,
                                           description=self.tr('Delete All PAT Settings'),
                                           defaultValue=False ) )
 
 
-        self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT, 
-                            self.tr('Output File'), 
+        self.addParameter(QgsProcessingParameterFileDestination(self.OUTPUT,
+                            self.tr('Output File'),
                             'CSV files (*.csv)'))
-            
+
         self.addParameter( QgsProcessingParameterBoolean(name=self.APPEND_TO_EXISTING,
                                           description=self.tr('Append to existing file'),
                                           defaultValue=False ) )
@@ -154,40 +154,40 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         self.context = context
         self.feedback = feedback
         #self.CHECK_ONLINE = self.parameterAsBoolean(parameters, self.CHECK_ONLINE,self.context)
-        
+
         self.LEVEL = self.LEVEL_LIST[self.parameterAsInt(parameters, self.LEVEL, self.context)]
-        
+
         self.DELETE_PAT_SETTINGS= self.parameterAsBoolean(parameters, self.DELETE_PAT_SETTINGS,self.context)
-        
+
         self.OUTPUT = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
-    
+
         self.APPEND_TO_EXISTING= self.parameterAsBoolean(parameters, self.APPEND_TO_EXISTING,self.context)
-                
+
         settings = QgsSettings()
         pat_settings = {ea:settings.value(ea) for ea in settings.allKeys()if  ea.startswith('PAT')}
         df_set = pd.DataFrame.from_dict({'name':pat_settings.keys(),'value':pat_settings.values()})
-                        
+
 
         if self.DELETE_PAT_SETTINGS:
             df_set['current'] = 'deleted'
-            self.feedback.pushInfo(f'Deleting PAT Settings...')                
+            self.feedback.pushInfo(f'Deleting PAT Settings...')
             settings.remove('PAT')
-        
-        
+
+
         self.feedback.pushInfo(f'\n')
-                
+
         settings = QgsSettings()
         pat_settings = {ea:settings.value(ea) for ea in settings.allKeys()if  ea.startswith('PAT')}
 
         for k,v in pat_settings.items():
             if isinstance(v, QDateTime):
                 pat_settings[k] = v.toString("yyyy-MM-dd HH:mm:ss")
-            
+
         df_set = pd.DataFrame.from_dict({'name':pat_settings.keys(),'value':pat_settings.values()})
 
         if self.DELETE_PAT_SETTINGS:
             df_set['current'] = 'deleted'
-            self.feedback.pushInfo(f'Deleting PAT Settings...')                
+            self.feedback.pushInfo(f'Deleting PAT Settings...')
             settings.remove('PAT')
 
         qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
@@ -220,7 +220,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             inst_ver = parse_version(p['version_installed']) if p['version_installed'] else None
             # Add a column to df called 'pat' and set its value to inst_ver
             df['pat'] = inst_ver
-            
+
             # self.feedback.pushInfo(f'{"PAT":.<25} {inst_ver}')
             # if CHECK_ONLINE :
             #     pyplugin_installer.instance().fetchAvailablePlugins(False)
@@ -231,9 +231,9 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         old_gdal  = f'gdal{gdal_version.major}{gdal_version.minor-1}-runtime'
 
         if self.LEVEL.lower() == 'basic':
-            df_py = pd.DataFrame(['osgeo.gdal',old_gdal,'geopandas', 'rasterio', 'pyprecag','fiona'], columns=['name'])
+            df_py = pd.DataFrame(['osgeo.gdal',old_gdal,'geopandas', 'rasterio', 'pyprecag','fiona','gdal311-runtime'], columns=['name'])
         else:
-            df_py = pd.DataFrame(['osgeo.gdal',old_gdal,'geopandas', 'rasterio', 'pandas', 'shapely', 'fiona', 'pyproj', 'unidecode', 'pint',
+            df_py = pd.DataFrame(['osgeo.gdal',old_gdal,'geopandas', 'rasterio', 'pandas', 'shapely', 'fiona','gdal311-runtime', 'pyproj', 'unidecode', 'pint',
                                 'numpy', 'scipy', 'chardet', 'pyprecag', ], columns=['name'])
 
         # df_py = pd.DataFrame(['rasterio','fiona', 'geopandas'], columns=['name'])
@@ -252,23 +252,25 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         if self.LEVEL.lower() == 'expert':
             df_set = df_set.set_index('name').T.reset_index(drop=True)
         else:
-            df_set = df_set.loc[df_set['name'].str.contains('PAT/SETUP|PAT/VESPER_EXE', regex=True)]
+            # Use plain string checks for compatibility with older pyarrow builds.
+            mask = df_set['name'].str.startswith('PAT/SETUP', na=False) | df_set['name'].eq('PAT/VESPER_EXE')
+            df_set = df_set.loc[mask]
             df_set = df_set.set_index('name').T.reset_index(drop=True)
 
         if not df_set.empty:
             df_new = pd.concat([df, df_set], axis=1)
 
         df_new = pd.concat([df_new, tmp], axis=1)
-        
+
         df_newT = df_new.T
         # Calculate max index width
         index_width = df_newT.index.astype(str).map(len).max() *2
 
         # Pad index with dots
-        df_newT.index = df_newT.index.astype(str).str.pad(index_width, fillchar='.', side='right')       
-        
+        df_newT.index = df_newT.index.astype(str).str.pad(index_width, fillchar='.', side='right')
+
         df_newT.index.name = 'Name'
-        df_newT.columns =['Value']       
+        df_newT.columns =['Value']
         self.feedback.pushInfo(df_newT.to_string(index=True,header=True) + '\n\n')
 
         if self.APPEND_TO_EXISTING and Path(self.OUTPUT).exists() :
@@ -276,14 +278,14 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                 df_existing = pd.read_csv(self.OUTPUT,header=None)
             else:
                 df_existing = pd.read_excel(self.OUTPUT, header=None)
-                
+
             df_existingT = df_existing.set_index(0).T.set_index(['PC Name','QGIS_prefix'],drop=True)
             df_new.set_index(['PC Name','QGIS_prefix'], inplace=True)
 
             df_combined = pd.concat([df_existingT, df_new], axis=0)
             df_new = df_combined[~df_combined.index.duplicated(keep='last')]
             df_new.reset_index(inplace=True,drop=False)
-        
+
         df_newT = df_new.T
         df_newT.index.name = 'Name'
         df_newT.columns =['Value']
@@ -303,7 +305,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
 
             # if reply == QMessageBox.Yes:
             #     os.startfile(self.OUTPUT)
-            
+
 
         # if self.LEVEL.lower() == 'advanced':
         #     df_dep = pd.concat([df_dep, df_set.set_index('name')],ignore_index=False)
@@ -313,7 +315,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         # else:
         #     df_dep.to_excel(self.OUTPUT, header=True)
 
-            
+
         vl = QgsVectorLayer(path=self.OUTPUT, baseName=f"PAT_Depencencies", providerLib="ogr")
         QgsProject.instance().addMapLayer(vl, True)
 
@@ -321,14 +323,14 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
         # df_dep = df_dep.fillna('.')
         # df_dep['current']= df_dep['current'].str.pad(12,fillchar='.',side='right')
         return {self.OUTPUT: vl}
-        
+
     def check_python_dependencies(self, package_name, online=False):
         """Check to see if a python package is installed and what version it is with an option to check online for updates.
         Args:
             package_name (str): the name of the package
             online (bool): Check online for updates with priority for osgeo4w over pip.
         """
-        
+
         # NOTE: importlib.metadata.version has issues if there are dist-info for a package
         # and will return the first it finds and most likely the older version.
         pack_status = {'package': package_name,
@@ -349,7 +351,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                     ms = info['FileVersionMS']
                     ls = info['FileVersionLS']
                     inst_ver = f'{HIWORD(ms)}.{LOWORD(ms)}.{HIWORD(ls)}'  #.{LOWORD (ls)}'
-                    pack_status['current'] = inst_ver 
+                    pack_status['current'] = inst_ver
             elif len(dll_files)> 0:
                 pack_status['error'] = 'Installed GDAL DLLs: ' + ', '.join(dll_files)
 
@@ -357,7 +359,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
             try:
                 module = importlib.import_module(package_name)
                 version = getattr(module, "__version__", '0.0.0')
-                pack_status['current'] = version 
+                pack_status['current'] = version
             except ImportError as err:
                 if package_name != err.name:
                     pack_status['error'] = 'Install Error - ' + str(err)
@@ -366,17 +368,17 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                 # self.feedback.pushInfo('**',package_name,' - ',err.name,'-', err)
             except ModuleNotFoundError as err:
                 pack_status['error'] = 'Module Not Found - ' + str(err)
-            
+
 
         if pack_status['current'] == '0.0.0' and package_name in ['geopandas','rasterio','fiona']:
             ver_file = Path(PLUGIN_DIR).joinpath( 'util','snapshot_table.csv')
             if ver_file.exists():
                 df_ver = pd.read_csv(ver_file)
- 
+
                 # check if this is a ltr version
                 qgis_prefix = str(Path(QgsApplication.prefixPath()).resolve())
                 qgis_col = f'qgis-ltr_version' if 'ltr' in Path(qgis_prefix).name.lower() else 'qgis_version'
-                
+
                 # Find the latest snapshot for each version of QGIS
                 df_ver = df_ver.filter(regex=(f'snap|{qgis_col}') ,axis=1).drop_duplicates(qgis_col,keep='last').set_index(qgis_col)
 
@@ -394,7 +396,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                 else:
                     snap = df_ver.loc[[qgis_version],'snapshot'].values[0]
                     pack_status['value'] = f'https://download.osgeo.org/osgeo4w/v2/snapshots/{snap}/'
-                
+
                 pack_status['source'] = 'osgeo4w'
 
         if package_name == 'pyprecag':
@@ -407,7 +409,7 @@ class PATVersionsAlgorithm(QgsProcessingAlgorithm):
                     available_ver = available_ver.json()['info']['version']
                     pack_status['source'] = 'pip'
                     pack_status['available'] = available_ver
-                    # self.feedback.pushInfo(f'found {available_ver}')    
+                    # self.feedback.pushInfo(f'found {available_ver}')
                 except (requests.ConnectionError, requests.exceptions.HTTPError) as err:
                     available_ver = None
                     # self.feedback.pushInfo(f'Skipping {package}. {err.args[0]}')

@@ -1,12 +1,12 @@
 @echo off
 
-ECHO Dependencies Log: $dependency_log  
+ECHO Dependencies Log: $dependency_log
 ECHO. & ECHO $pip_func dependencies for QGIS PAT Plugin.
-cd %~dp0 
+cd %~dp0
 
 if "pause-$run_within" equ "pause-False" (
     tasklist /FI "IMAGENAME eq qgis*"| find ":" > NUL
-    
+
     IF errorlevel 1 (
         echo      QGIS is Currently Running. Please save your work and close
         pause
@@ -20,22 +20,22 @@ if "pause-$run_within" equ "pause-False" (
     )
     )
 
-type NUL > "$dependency_log"   
+type NUL > "$dependency_log"
 CALL :PROCESS > "$dependency_log"    2>&1
-GOTO :END 
+GOTO :END
 
-:PROCESS  
+:PROCESS
     ECHO -------------------------------------------------------
     ECHO $pip_func Python 3 extras to support PAT.
     ECHO QGIS      -  $QGIS_VERSION   $QGIS_PATH
-    ECHO Osgeo4w   -  $osgeo_packs    $site 
+    ECHO Osgeo4w   -  $osgeo_packs    $site
     ECHO PIP       -  $pip_packs
     ECHO.
     ECHO Install inside qgis - $run_within
     ECHO Has Admin to Install - $admin
     ECHO -------------------------------------------------------
 
-    
+
     SET OSGEO4W_ROOT=$QGIS_PATH
 
     if not exist "%OSGEO4W_ROOT%" (
@@ -44,6 +44,17 @@ GOTO :END
         goto eof
     )
     ECHO. Running "%OSGEO4W_ROOT%\bin\setup.bat"
+
+    set pybat="%OSGEO4W_ROOT%\bin\python-qgis.bat"
+    IF NOT EXIST %pybat% (
+        set pybat="%OSGEO4W_ROOT%\bin\python-qgis-ltr.bat"
+        )
+    REM ECHO. Using %pybat%
+    set qgisbat="%OSGEO4W_ROOT%\bin\qgis.bat"
+    IF NOT EXIST %qgisbat% (
+        set qgisbat="%OSGEO4W_ROOT%\bin\qgis-ltr.bat"
+        )
+    REM ECHO. Using %qgisbat%
 
     if "$osgeo_packs" NEQ "" (
         ECHO    Osgeo4w $pip_func $osgeo_packs - please wait... >CON
@@ -60,7 +71,7 @@ GOTO :END
 			timeout /t 2 >nul
 			goto waitloop_pat_uninstall
 		)
-        
+
     ) ELSE (
         ECHO No OSGEO installation required
     )
@@ -75,13 +86,14 @@ GOTO :END
     REM        mkdir "%OSGEO4W_ROOT%\apps\Python37\lib\site-packages\fiona\.libs"
     REM    )
     REM )
-    
+
     if "$pip_packs" NEQ "" (
+        ECHO Using %pybat% >CON
         ECHO    PIP $pip_func  $pip_packs  - please wait... >CON
         ECHO. & ECHO PIP $pip_func  $pip_packs -----------------------------------------------
-        ECHO y | "%OSGEO4W_ROOT%\bin\python-qgis.bat" -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
+        ECHO y | %pybat% -m pip $pip_func $pip_packs --no-cache-dir --disable-pip-version-check
         REM ) ELSE (
-            REM ECHO y | "%OSGEO4W_ROOT%\bin\python-qgis.bat" -m pip $pip_func --upgrade $pip_packs --no-cache-dir --disable-pip-version-check
+            REM ECHO y | %pybat% -m pip $pip_func --upgrade $pip_packs --no-cache-dir --disable-pip-version-check
 
             REM if EXIST $pip_packs (
             REM    ECHO renaming $pip_packs to $pip_packs.installed
@@ -92,12 +104,12 @@ GOTO :END
         REM  No PIP installation required
     )
 	type nul >> "$finished_file"
-	
+
 	ECHO. & ECHO Installation Complete -----------------------------------------------
-	
+
     EXIT /B
 
-:END     
+:END
     type "$dependency_log"
 
     ECHO. & ECHO ----------------------------------------------------------------------
@@ -105,7 +117,7 @@ GOTO :END
     ECHO ** QGIS is restarting.
     ECHO You may have to activate the PAT Plugin through the plugin manager.
     ECHO.
-    call "%OSGEO4W_ROOT%\bin\qgis.bat"
+    call %qgisbat%
     if "pause-$run_within" equ "pause-False" (
     	pause
     	)

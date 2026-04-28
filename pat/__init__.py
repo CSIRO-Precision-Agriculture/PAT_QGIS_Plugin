@@ -29,8 +29,6 @@ import logging
 from packaging.version import parse as parse_version
 from datetime import datetime
 
-from . import resources  # import resources like icons for the plugin
-
 import qgis
 from qgis.core import Qgis,QgsApplication, QgsRuntimeProfiler, QgsSettings
 from qgis.PyQt.QtWidgets import QMessageBox
@@ -39,6 +37,7 @@ from qgis.PyQt.QtCore import QDateTime, QSettings
 from pat.util.settings import read_setting, write_setting
 from pat.util.check_dependencies import is_folder_writable, post_install_check
 from pat.util.constants import PLUGIN_NAME, PLUGIN_SHORT, LOGGER_NAME, QGIS_VERSION, TEMPDIR, PLUGIN_DIR
+from . import resources  # import resources like icons for the plugin
 
 ''' Adds the path to the external libraries to the sys.path if not already added'''
 if PLUGIN_DIR not in sys.path:
@@ -55,7 +54,7 @@ def classFactory(iface):
     :type iface: QgsInterface
     """
     start_time = datetime.now()
-    
+
     if platform.system() != 'Windows':
         message = 'PAT is only available for Windows'
 
@@ -66,7 +65,7 @@ def classFactory(iface):
         Path(TEMPDIR).mkdir(parents=True, exist_ok=True)
 
     from .util.settings import read_setting, write_setting, remove_setting
-    
+
     # if read_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", bool) is None:
     #     write_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", False)
 
@@ -81,22 +80,23 @@ def classFactory(iface):
     #     write_setting(PLUGIN_NAME + '/LOG_FILE', os.path.normpath(os.path.join(TEMPDIR, 'PAT.log')))
 
     # the custom logging import requires qgis_config so leave it here
-    from .util.custom_logging import set_log_file, setup_logger
+    from pat.util.custom_logging import set_log_file, setup_logger
 
     # Call the logger pyprecag so it picks up the module debugging as well.
     log_file = set_log_file()
-    
-    # make sure the logger file is actually set 
+
+    # make sure the logger file is actually set
     setup_logger(LOGGER_NAME, log_file)
 
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
-    
-    
+
     plugin = None
-    
+    # if Qgis.QGIS_VERSION_INT < 34409:
+    QgsSettings().remove('PAT/SETUP')
+
     pending = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
-            
+
     finish_file = Path(PLUGIN_DIR).joinpath('install_files', 'pat-install.finished')
 
     if pending.endswith('lnk') and Path(finish_file).exists() and QGIS_VERSION in pending:
@@ -105,17 +105,16 @@ def classFactory(iface):
         # reset to finished so we know the first part is done.
         write_setting(f'{PLUGIN_NAME}/SETUP/INSTALL_PENDING', 'finished')
         pending = 'finished'
-    
-    
+
     from pat.util.check_dependencies import plugin_status
     i_attempt = 0
     while True and i_attempt < 3:
         i_attempt += 1
         print(f'Attempt {i_attempt} for {QGIS_VERSION} - {datetime.now()}')
-        print("\n".join([f"{k} = {QgsSettings().value(k)}" for k in sorted(QgsSettings().allKeys()) if k.startswith(f'{PLUGIN_NAME}/SETUP')]))    
-    
+        print("\n".join([f"{k} = {QgsSettings().value(k)}" for k in sorted(QgsSettings().allKeys()) if k.startswith(f'{PLUGIN_NAME}/SETUP')]))
+
         try:
-            with QgsRuntimeProfiler.profile("Import plugin"): 
+            with QgsRuntimeProfiler.profile("Import plugin"):
                 from .pat_toolbar import pat_toolbar
             plugin = pat_toolbar(iface)
             # Remove the choice as its loaded successfully.
@@ -126,10 +125,10 @@ def classFactory(iface):
         except ModuleNotFoundError  as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             mess = str(traceback.format_exc())
-            
+
             # Should be not installed
             print(f'ModuleNotFoundError - {err.name} {err}')
-            
+
             if str(err).startswith('No module named'):
                 inst_df = plugin_status(level='basic', check_for_updates=False)
                 break
@@ -157,7 +156,7 @@ def classFactory(iface):
 
     if plugin is  None:
         plugin = DummyPlugin(iface)
-            
+
     return plugin
 
 class DummyPlugin:
@@ -167,7 +166,7 @@ class DummyPlugin:
 
     def initGui(self):
         pass
-    
+
     def unload(self):
         pass
 
