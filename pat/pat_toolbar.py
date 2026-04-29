@@ -154,20 +154,20 @@ class pat_toolbar(object):
         self.vesper_queue_showing = False
         self.processVesper = None
         self.vesper_exe = check_vesper_dependency(iface)
-        
+
         # change log on project save
         QgsProject.instance().projectSaved.connect(self.change_log)
-        
+
         # change log on project open
         QgsProject.instance().readProject.connect(self.change_log)
- 
+
         if not os.path.exists(TEMPDIR):
             os.mkdir(TEMPDIR)
 
 
     def change_log(self):
-           
-        log_file = set_log_file()        
+
+        log_file = set_log_file()
 
 
     def tr(self, message):
@@ -434,40 +434,40 @@ class pat_toolbar(object):
         LOGGER.debug(sys.path)
 
     def unload(self):
-        
+
         """Removes the plugin menu/toolbar item and icon from QGIS GUI and clean up temp folder"""
-        
+
         if len(self.vesper_queue) > 0:
             replyQuit = QMessageBox.information(self.iface.mainWindow(),
                                                 "Quit QGIS", "Quitting QGIS with {} tasks in the "
                                                 "VESPER queue.\n\t{}".format(len(self.vesper_queue),
                                                 '\n\t'.join([ea['control_file'] for ea in self.vesper_queue])),
                                                 QMessageBox.Ok)
-        
+
         stop_logging('pyprecag')
         # QgsProject.instance().projectSaved.disconnect(self.change_log)
-        
+
 #         layermap = QgsProject.instance().mapLayers()
 #         RemoveLayers = []
 #         for name, layer in layermap.items():
 #             if TEMPDIR in layer.source():
 #                 RemoveLayers.append(layer.id())
-#         
+#
 #         if len(RemoveLayers) > 0:
 #             QgsProject.instance().removeMapLayers(RemoveLayers)
-#         
+#
         """ remove the PrecisionAg Temp Folder."""
         try:
             if not self.DEBUG and os.path.exists(TEMPDIR):
                 shutil.rmtree(TEMPDIR)
-        
+
         except Exception as err:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             mess = str(traceback.format_exc())
             print(mess)
-       
+
         self.menuPrecAg.clear()
-        
+
         for action in self.actions:
             self.iface.removePluginMenu(u'{}Menu'.format(PLUGIN_SHORT), action)
             self.iface.removeToolBarIcon(action)
@@ -525,11 +525,11 @@ class pat_toolbar(object):
         print('-' * len(header))
         for i, ea in enumerate(self.vesper_queue):
             print('{:3}\t{:<{cw}}\t{}\t{:5}\t{:>{ew}}\t{}'.format(
-                i + 1, os.path.basename(ea['control_file']), 
+                i + 1, os.path.basename(ea['control_file']),
                 ea['block_size'],
                 str(bool(ea['epsg'] > 0)),
                 ea['epsg'],
-                os.path.dirname(ea['control_file']), 
+                os.path.dirname(ea['control_file']),
                 cw=ctrl_width + 10, ew=epsg_width + 10))
 
         print('\n')
@@ -611,13 +611,13 @@ class pat_toolbar(object):
             self.processVesper = None
 
             if currentTask['epsg'] > 0:
-                
+
                 LOGGER.info('\n{st}\nVESPER Import'.format(st='*' * 50))
                 settingsStr = 'Parameters:---------------------------------------'
                 settingsStr += '\n    {:30}\t{}'.format('Vesper Control File:',currentTask['control_file'])
                 settingsStr += '\n    {:30}\t{}'.format('Coordinate System:',  currentTask['epsg'])
                 LOGGER.info(settingsStr)
-                
+
                 try:
                     out_PredTif, out_SETif, out_CITxt = vesper_text_to_raster(currentTask['control_file'],
                                                                               currentTask['epsg'])

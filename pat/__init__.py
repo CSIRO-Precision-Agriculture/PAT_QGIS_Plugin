@@ -33,12 +33,14 @@ from pathlib import Path
 import logging
 
 from datetime import datetime
-from . import resources  # import resources like icons for the plugin
+
 
 import qgis
 from qgis.core import Qgis,QgsApplication
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.PyQt.QtCore import QDateTime
+
+from . import resources  # import resources like icons for the plugin
 
 PLUGIN_DIR = os.path.abspath(os.path.dirname(__file__))
 PLUGIN_NAME = "PAT"
@@ -53,8 +55,9 @@ TEMPDIR = os.path.join(tempfile.gettempdir(), 'PrecisionAg')
 if PLUGIN_DIR not in sys.path:
     sys.path.append(PLUGIN_DIR)
 
-# if os.path.join(PLUGIN_DIR, 'ext-libs') not in sys.path:
-#     site.addsitedir(os.path.join(PLUGIN_DIR, 'ext-libs'))
+extra_path = Path(PLUGIN_DIR).joinpath('ext-libs','pyprecag-fork')
+if extra_path.exists() and str(extra_path) not in sys.path:
+    sys.path.insert(0,str(extra_path))
 
 
 def classFactory(iface):
@@ -64,7 +67,7 @@ def classFactory(iface):
     :type iface: QgsInterface
     """
     start_time = datetime.now()
-    
+
     if platform.system() != 'Windows':
         message = 'PAT is only available for Windows'
 
@@ -79,7 +82,7 @@ def classFactory(iface):
         os.mkdir(TEMPDIR)
 
     from .util.settings import read_setting, write_setting, remove_setting
-            
+
     if read_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", bool) is None:
         write_setting(PLUGIN_NAME + "/DISP_TEMP_LAYERS", False)
 
@@ -94,25 +97,25 @@ def classFactory(iface):
         write_setting(PLUGIN_NAME + '/LOG_FILE', os.path.normpath(os.path.join(TEMPDIR, 'PAT.log')))
 
     # the custom logging import requires qgis_config so leave it here
-    from .util.custom_logging import set_log_file, setup_logger
+    from pat.util.custom_logging import set_log_file, setup_logger
 
     # Call the logger pyprecag so it picks up the module debugging as well.
     log_file = set_log_file()
-    
-    # make sure the logger file is actually set 
+
+    # make sure the logger file is actually set
     setup_logger(LOGGER_NAME, log_file)
 
     LOGGER = logging.getLogger(LOGGER_NAME)
     LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
 
-    # pat-install.finished is created when running the install bat file externally to QGIS 
+    # pat-install.finished is created when running the install bat file externally to QGIS
     # so if it exists it means install was attempted.
-    
+
     done_file = Path(PLUGIN_DIR).joinpath('install_files', 'pat-install.finished')
-    if done_file.exists(): 
+    if done_file.exists():
         done_file.unlink()
         shortcutPath  = read_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING', object_type=str,default='')
-            
+
         if shortcutPath != '' and Path(shortcutPath).exists() and QGIS_VERSION in Path(shortcutPath).stem :
             Path(shortcutPath).unlink()
             remove_setting(PLUGIN_NAME + '/SETUP/INSTALL_PENDING')
@@ -123,39 +126,39 @@ def classFactory(iface):
                                            start_time.strftime("%H:%M:%S.%f"),
                                            datetime.now().strftime("%H:%M:%S.%f"),
                                            dur=datetime.now() - start_time))
-    
-    step_time = datetime.now() 
+
+    step_time = datetime.now()
 
     next_check = read_setting(PLUGIN_NAME + "/SETUP/NEXT_CHECK", object_type=QDateTime)
-    
-    if next_check.isNull():   
+
+    if next_check.isNull():
         check_online = True
     else:
         check_online = QDateTime.currentDateTime() > next_check
-    
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
+
+    if read_setting(PLUGIN_NAME + "/DEBUG", bool):
         LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
                                         'Prep',
                                         step_time.strftime("%H:%M:%S.%f"),
                                            datetime.now().strftime("%H:%M:%S.%f"),
                                            dur=datetime.now() - step_time))
-        
+
     step_time = datetime.now()
-    
+
     from .util.check_dependencies import plugin_status
-    
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
+
+    if read_setting(PLUGIN_NAME + "/DEBUG", bool):
         LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
                                         'import plugin_status',
                                         step_time.strftime("%H:%M:%S.%f"),
                                            datetime.now().strftime("%H:%M:%S.%f"),
                                            dur=datetime.now() - step_time))
-        
+
     step_time = datetime.now()
-    
+
     _ = plugin_status(level='basic', check_for_updates=check_online)
-                   
-    if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
+
+    if read_setting(PLUGIN_NAME + "/DEBUG", bool):
         LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
                                         'Checking Dependencies',
                                         step_time.strftime("%H:%M:%S.%f"),
@@ -166,38 +169,38 @@ def classFactory(iface):
 
     if QGIS_VERSION in Path(pending).stem :
         #qgis.utils.unloadPlugin('pat')
-               
-        if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
+
+        if read_setting(PLUGIN_NAME + "/DEBUG", bool):
                 LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                        'PAT Pending Install',  
+                                        'PAT Pending Install',
                                         start_time.strftime("%H:%M:%S.%f"),
                                         datetime.now().strftime("%H:%M:%S.%f"),
                                         dur=datetime.now() - start_time))
-        
-        sys.exit('Please install dependencies to use PAT')   
+
+        sys.exit('Please install dependencies to use PAT')
     else:
         # if we get here, then plugin should be imported and ready to go so set new check date.
         if QDateTime.currentDateTime() > read_setting(PLUGIN_NAME + "/SETUP/NEXT_CHECK", object_type=QDateTime):
             write_setting(PLUGIN_NAME + '/SETUP/NEXT_CHECK', QDateTime.currentDateTime().addDays(30))
-        
+
         #qgis.utils.reloadPlugin('pat')
         step_time = datetime.now()
         from .pat_toolbar import pat_toolbar
-        if read_setting(PLUGIN_NAME + "/DEBUG", bool): 
+        if read_setting(PLUGIN_NAME + "/DEBUG", bool):
             LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                    'ImportToolbar',  
+                                    'ImportToolbar',
                                     step_time.strftime("%H:%M:%S.%f"),
                                     datetime.now().strftime("%H:%M:%S.%f"),
                                     dur=datetime.now() - start_time))
-            
+
             LOGGER.info("{:.<35} {:.<15} -> {:.<15} = {dur}".format(
-                                    'PAT Loaded successfully',  
+                                    'PAT Loaded successfully',
                                     start_time.strftime("%H:%M:%S.%f"),
                                     datetime.now().strftime("%H:%M:%S.%f"),
                                     dur=datetime.now() - start_time))
-        
+
         from .util.check_dependencies import check_pat_symbols
         check_pat_symbols()
-                
+
         return pat_toolbar(iface)
 

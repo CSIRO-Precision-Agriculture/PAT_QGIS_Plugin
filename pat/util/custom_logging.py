@@ -36,7 +36,7 @@ from qgis.gui import QgsMessageBar
 from qgis.core import QgsMessageLog, QgsProject, Qgis
 from qgis.utils import iface
 
-from settings import read_setting, write_setting
+from pat.util.settings import read_setting, write_setting
 
 LOGGER = logging.getLogger(LOGGER_NAME)
 LOGGER.addHandler(logging.NullHandler())  # logging.StreamHandler()
