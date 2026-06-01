@@ -47,6 +47,7 @@ from qgis.core import (QgsProject, QgsProviderRegistry, QgsMapLayer, QgsVectorLa
                        QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsUnitTypes,QgsVectorFileWriter,
                        QgsFeature, QgsField, NULL)
 
+from pyprecag.describe import predictCoordinateColumnNames
 from pat import LOGGER_NAME
 
 LOGGER = logging.getLogger(LOGGER_NAME)
@@ -138,10 +139,10 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
     Layer_list: default  None
                 if None then it will build the table from all layers in the QGIS project
                 otherwise it will use the list.
-    
-    only_raster_boundingbox: default False 
-                    create a bounding box from the raster data 
-                   ie removing nodata from polygon. 
+
+    only_raster_boundingbox: default False
+                    create a bounding box from the raster data
+                   ie removing nodata from polygon.
                    This will slow it down if large numbers of rasters are present.
     """
 
@@ -169,7 +170,7 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
 
         if layer.crs().isValid() and layer.crs().authid() == '':
             # Try and convert older style coordinates systems
-            # were correctly definied in QGIS 2 as GDA94 / MGA zone 54 
+            # were correctly definied in QGIS 2 as GDA94 / MGA zone 54
             # but get interpreted in QGIS 3 as  Unknown CRS: BOUNDCRS[SOURCECRS[PROJCRS["GDA94 / MGA zone 54",.....
 
             layer_crs = QgsCoordinateReferenceSystem()
@@ -226,8 +227,8 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     mess = str(traceback.format_exc())
                     print(mess)
-            
-            
+
+
             row_dict.update({'bandcount': layer.bandCount(),
                              'datatype': dataTypes.get(layer.dataProvider().dataType(1), 'Unknown'),
                              'pixel_size': pixel_size[0],
@@ -249,11 +250,13 @@ def build_layer_table(layer_list=None, only_raster_boundingbox=True):
 
 def get_layer_source(layer):
     """
-    layer.source() sometimes returns  'C:/data/Temp/My_points_wgs84.shp|layername=My_points_wgs84' 
+    layer.source() sometimes returns  'C:/data/Temp/My_points_wgs84.shp|layername=My_points_wgs84'
     so this will break this down and return only the path.
     """
-
     result = QgsProviderRegistry.instance().decodeUri(layer.providerType(), layer.dataProvider().dataSourceUri())
+
+    if layer.providerType() == 'delimitedtext':
+        result['path'] = layer.source().split('?')[0]
 
     if not 'path' in result.keys():
         return ''
@@ -271,7 +274,7 @@ def get_layer_source(layer):
 
 def save_as_dialog(dialog, caption, file_filter, default_name='', suppress_overwrite=False):
     # suppress the overwrite dialog if the user selects an existing file.
-    
+
     args={'filter':file_filter}
     if suppress_overwrite:
         args['options'] = QFileDialog.DontConfirmOverwrite
@@ -303,7 +306,7 @@ def file_in_use(filename, display_msgbox=True):
         filename ():
         display_msgbox ():
     """
-    
+
     if not Path(filename).exists():
         return False
 
@@ -362,7 +365,22 @@ def addVectorFileToQGIS(filename, layer_name='', group_layer_name='', atTop=True
     if layer_name == '':
         layer_name = os.path.splitext(os.path.basename(filename))[0]
 
-    vector_layer = QgsVectorLayer(filename, layer_name, "ogr")
+    if filename.lower().endswith('.csv'):
+        cols = pd.read_csv(filename, nrows=0).columns
+
+        xy_cols = predictCoordinateColumnNames(cols.tolist())
+        if None in xy_cols:
+            uri = rf'file:///{filename}?type=csv&maxFields=10000&detectTypes=yes&geomType=none' \
+                      r'&spatialIndex=no&subsetIndex=no&watchFile=no'
+        else:
+            # this is a workaround for loading csv files with geometry columns. The delimitedtext provider doesn't
+            # handle the geometry column in the same way as ogr and it causes problems with the layer table and map comboboxes.
+            uri = '{}?delimiter={}&xField={}&yField={}'.format(filename, ',', xy_cols[0], xy_cols[1])
+
+
+        vector_layer = QgsVectorLayer(uri, layer_name, "delimitedtext")
+    else:
+        vector_layer = QgsVectorLayer(filename, layer_name, "ogr")
 
     addLayerToQGIS(vector_layer, group_layer_name=group_layer_name, atTop=atTop)
     QgsProject.instance().layerTreeRoot().findLayer(vector_layer.id()).setItemVisibilityChecked(visible)
